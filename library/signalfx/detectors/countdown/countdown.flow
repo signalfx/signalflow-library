@@ -1,0 +1,122 @@
+# These functions transform a stream, assumed to be either decreasing or increasing, into an
+# estimate of how long it will take (in hours) for the stream to reach 0 (in case decreasing),
+# or some user-specified capacity (in case increasing); and facilitate the creation of a
+# detector based on how many hours of capacity are left.
+#
+# @author joe
+
+def hours_left_stream(stream, increment_size=duration('1m'), estimation_period=duration('10m')):
+    # Args:
+    #     stream: data stream, assumed to be decreasing and non-negative
+    #     increment_size (duration): interval length used to estimate rate of change
+    #         (optional, default=duration('1m'))
+    #     estimation_period (duration): interval over which estimation is made
+    #         (optional, default=duration('10m'))
+    #
+    # Returns:
+    #     hours left until stream has value 0, calculated via linear extrapolation; is optimistic in
+    #         that it uses the maximum hours left over the estimation_period
+    a = stream.min(over=increment_size)
+    b = a.timeshift(increment_size)
+    c = (a - b).max(over=estimation_period).below(0)
+    num_increments_per_hour = duration('1h') / increment_size
+    return (a / (-1 * num_increments_per_hour * c)).max(over=estimation_period)
+
+def hours_left_stream_incr(stream, maximum_capacity, increment_size=duration('1m'),
+                           estimation_period=duration('10m')):
+    # Args:
+    #     stream: data stream, assumed to be increasing
+    #     maximum_capacity (number): value at which stream is exhausted,
+    #         e.g. 100 for disk.summary_utilization
+    #     increment_size (duration): interval length used to estimate rate of change
+    #         (optional, default=duration('1m'))
+    #     estimation_period (duration): interval over which estimation is made
+    #         (optional, default=duration('10m'))
+    #
+    # Returns:
+    #     hours left until stream has value maximum_capacity, calculated via linear extrapolation;
+    #         is optimistic in that it uses the maximum hours left over the estimation_period
+    return hours_left_stream(maximum_capacity - stream, increment_size=increment_size,
+                             estimation_period=estimation_period)
+
+
+def hours_left_stream_detector(stream, lower_threshold, fire_lasting=None,
+                               clear_threshold=None, clear_lasting=None,
+                               increment_size=duration('1m'), estimation_period=duration('10m')):
+    # Args:
+    #     stream: data stream, assumed to be decreasing
+    #     lower_threshold (int):  threshold for firing (number of hours)
+    #     fire_lasting (lasting): lasting object associated with lower_threshold;
+    #         note the estimation_period serves as a quasi-duration argument
+    #         (optional, default=None)
+    #     clear_threshold (int): threshold for clearing (number of hours) (optional, default=None);
+    #         using a clear_threshold larger than lower_threshold should reduce flappiness
+    #     clear_lasting (lasting): lasting object associated with clear threshold (optional,
+    #         default=None)
+    #     increment_size (duration): interval length used to estimate rate of change
+    #         (optional, default=duration('1m'))
+    #     estimation_period (duration): interval over which estimation is made
+    #         (optional, default=duration('10m'))
+    # Returns:
+    #     detect block which fires when stream is estimated to "run out" (i.e., have value 0) within
+    #         lower_threshold hours (for fire_lasting); clears when stream is estimated not to be
+    #         exhausted for at least clear_threshold hours (for clear_lasting)
+    hours_left = hours_left_stream(stream,
+                                   increment_size=increment_size,
+                                   estimation_period=estimation_period)
+    if clear_threshold is None:
+        return detect(when(hours_left < lower_threshold, fire_lasting))
+    else:
+           return detect(when(hours_left < lower_threshold, fire_lasting),
+                         when(hours_left > clear_threshold, clear_lasting))
+
+
+
+def hours_left_stream_incr_detector(stream, maximum_capacity, lower_threshold, fire_lasting=None,
+                                    clear_threshold=None, clear_lasting=None,
+                                    increment_size=duration('1m'),
+                                    estimation_period=duration('10m')):
+    # Args:
+    #     stream: data stream, assumed to be increasing
+    #     maximum_capacity (number): value at which stream is exhausted,
+    #         e.g. 100 for disk.summary_utilization
+    #     lower_threshold (int):  threshold for firing (number of hours)
+    #     fire_lasting (lasting): lasting object associated with lower_threshold;
+    #         note the estimation_period serves as a quasi-duration argument
+    #         (optional, default=None)
+    #     clear_threshold (int): threshold for clearing (number of hours) (optional, default=None);
+    #         using a clear_threshold larger than lower_threshold should reduce flappiness
+    #     clear_lasting (lasting): lasting object associated with clear threshold (optional,
+    #         default=None)
+    #     increment_size (duration): interval length used to estimate rate of change
+    #         (optional, default=duration('1m'))
+    #     estimation_period (duration): interval over which estimation is made
+    #         (optional, default=duration('10m'))
+    # Returns:
+    #     detect block which fires when stream is estimated to "run out" (i.e., hit
+    #         maximum_capacity) within lower_threshold hours (for fire_lasting);
+    #         clears when stream is estimated to have at least clear_threshold hours left
+    #         (for clear_lasting)
+    return hours_left_stream_detector(maximum_capacity - stream,
+                                        lower_threshold, fire_lasting=fire_lasting,
+                                        clear_threshold=clear_threshold,
+                                        clear_lasting=clear_lasting,
+                                        increment_size=increment_size,
+                                        estimation_period=estimation_period)
+
+
+# examples
+#hours_left_stream(100 - data('disk.summary_utilization')).publish()
+
+
+#hours_left_stream_detector(100 - data('disk.summary_utilization'),
+#                            24,fire_lasting=lasting('5m', 1.0)).publish('a')
+
+
+#hours_left_stream_detector(100 - data('disk.summary_utilization'),
+#                            24, clear_threshold=36, clear_lasting=lasting('5m', 0.95)).publish('b')
+
+
+#hours_left_stream_incr_detector(data('disk.summary_utilization'),
+#                            100, 24, clear_threshold=48).publish('c')
+
