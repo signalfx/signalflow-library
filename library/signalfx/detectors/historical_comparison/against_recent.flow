@@ -1,0 +1,106 @@
+# These functions transform a stream into detectors which fire when the recent window
+# (default length is 5 minutes) is very different from the preceding window (default length 1 hour).
+#
+# The basic toggles are:
+#   the windows to compare (by default, current 5 minutes against previous 1 hour),
+#   strategy (rolling mean + standard deviations, or rolling percentile comparison),
+#   the sensitivity of the detector (the number of deviations in the first case, the
+#       percentile used to define the threshold in the latter),
+#   and the orientation (above, below, or out-of-band).
+#
+# By default the firing and clearing thresholds are different (to reduce flappiness).
+#
+# These detectors are appropriate for signals with stationary behavior, i.e., those with a
+# a distribution that does not change over time. In particular, these are not appropriate for
+# signals with a strong periodicity or trend.
+#
+# Remark: the duration parameter of the detect block enters as the window being evaluated, and
+#         the shift applied before summarizing a historical window. The percent of duration could
+#         be incorporated by replacing "min" and "max" in the detect blocks with percentiles.
+#
+# @author joe
+
+
+def detector_helper(recent_min, recent_max, f_bot, c_bot, c_top, f_top, orientation):
+    if orientation == 'above':
+        return detect(when(recent_min > f_top), when(recent_max < c_top))
+    elif orientation == 'below':
+        return detect(when(recent_max < f_bot), when(recent_min > c_bot))
+    elif orientation == 'out_of_band':
+        return detect(when(recent_min > f_top or recent_max < f_bot),
+                      when(recent_max < c_top and recent_min > c_bot))
+
+
+def detector_mean_std(stream, current_window=duration('5m'),
+                      historical_window=duration('1h'),
+                      fire_num_stddev=3, clear_num_stddev=2.5,
+                      orientation='above'):
+    # Args:
+    #       stream: data stream
+    #       current_window (duration) : the window whose behavior is being tested for abnormality
+    #           (optional, default=duration('5m'))
+    #       historical_window (duration): the window whose behavior is used to define normality
+    #           (optional, default=duration('1h'))
+    #       fire_num_stddev (number): number of standard deviations below historical mean
+    #           required to fire (optional, default=3)
+    #       clear_num_stddev (number): number of standard deviations below historical mean
+    #           required to clear (optional, default=2.5)
+    #       orientation (string): specifies whether detect fires when signal is above, below, or
+    #           or out-of-band (optional, default='above', one of 'above', 'below', 'out_of_band')
+    #
+    # Returns:
+    #       detect block that fires when the last (current_window) of stream is at least
+    #           fire_num_stddev standard deviations above/below/away from the mean of the
+    #           preceding historical_window,
+    #           and clears when the last (current_window) of stream remains below/above/within
+    #           clear_num_stddev standard deviations above/below/of the mean of the
+    #           preceding historical_window
+    def h(x):
+        return stream.timeshift(current_window).mean_plus_stddev(stddev=x, over=historical_window)
+
+    recent_min = stream.min(over=current_window)
+    recent_max = stream.max(over=current_window)
+    return detector_helper(recent_min, recent_max, h(-1 * fire_num_stddev),
+                           h(-1 * clear_num_stddev), h(clear_num_stddev), h(
+            fire_num_stddev), orientation)
+
+
+def detector_percentile(stream, current_window=duration('5m'),
+                        historical_window=duration('1h'),
+                        fire_pctile_threshold=99, clear_pctile_threshold=95,
+                        orientation='above'):
+    # Args:
+    #       stream: data stream
+    #       current_window (duration) : the window whose behavior is being tested for abnormality
+    #           (optional, default=duration('5m'))
+    #       historical_window (duration): the window whose behavior is used to define normality
+    #           (optional, default=duration('1h'))
+    #       fire_percentile_threshold (number): percentile of historical_window used as a
+    #           threshold for firing (optional, default=99)
+    #       clear_percentile_threshold (number): percentile of historical_window used as a
+    #           threshold for clearing (optional, default=95)
+    #       orientation (string): specifies whether detect fires when signal is above, below, or
+    #           or out-of-band (optional, default='above', one of 'above', 'below', 'out_of_band')
+    #
+    # Returns:
+    #       detect block that fires when the last (current_window) of stream exceeds (or drops
+    #           below, or goes out of band) the fire_percentile_threshold of the
+    #           preceding historical_window,
+    #           and clears when the last (current_window) of stream remains below (or above, or
+    #           within band) the clear_percentile_threshold of the preceding historical_window
+    def j(x):
+        return stream.timeshift(current_window).percentile(x, over=historical_window)
+
+    recent_min = stream.min(over=current_window)
+    recent_max = stream.max(over=current_window)
+    return detector_helper(recent_min, recent_max, j(100 - fire_pctile_threshold),
+                           j(100 - clear_pctile_threshold), j(
+            clear_pctile_threshold), j(fire_pctile_threshold), orientation)
+
+# examples
+# above_detector_mean_std(data('jvm.cpu.load').percentile(70), fire_num_stddev=2,
+#                         clear_num_stddev=1).publish('abover')
+
+# out_of_band_detector_percentile(data('jvm.cpu.load'), current_window=duration('10m'),
+#                                 historical_window=duration('10m'), fire_percentile_threshold=90,
+#                                 clear_percentile_threshold=75).publish('pctile')

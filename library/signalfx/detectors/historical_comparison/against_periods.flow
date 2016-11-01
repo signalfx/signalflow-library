@@ -1,0 +1,101 @@
+# These functions transform a stream into detectors which fire when
+#
+# The basic toggles are:
+#   FIXME
+#   the windows to compare (by default, current 5 minutes against previous 1 hour),
+#   strategy (rolling mean + standard deviations, or rolling percentile comparison),
+#   the sensitivity of the detector (the number of deviations in the first case, the
+#       percentile used to define the threshold in the latter),
+#   and the orientation (above, below, or out-of-band).
+#
+# By default the firing and clearing thresholds are different (to reduce flappiness).
+#
+# These detectors are appropriate for signals with periodic ....
+#
+# Remark: the duration parameter of the detect block enters as the window being evaluated, and
+#         the shift applied before summarizing a historical window. The percent of duration could
+#         be incorporated by replacing "min" and "max" in the detect blocks with percentiles.
+#
+# @author joe
+#
+
+
+def detector_helper(summary, fire_bot, clear_bot, clear_top, fire_top, orientation):
+    if orientation == 'above':
+        return detect(when(summary > fire_top), when(summary < clear_top))
+    elif orientation == 'below':
+        return detect(when(summary < fire_bot), when(summary > clear_bot))
+    elif orientation == 'out_of_band':
+        return detect(when(summary > fire_top or summary < fire_bot),
+                      when(summary < clear_top and summary > clear_bot))
+
+
+def n_period_summary(stream, window_to_compare, space_between_windows, num_stddev,
+                     num_periods, discard_historical_outliers=True):
+    def f(x):
+        return stream.timeshift(x * space_between_windows).mean_plus_stddev(stddev=num_stddev,
+                                                                            over=window_to_compare)
+
+    if discard_historical_outliers:
+        if num_periods == 3:
+            return median(f(1), f(2), f(3))
+        elif num_periods == 4:
+            return median(f(1), f(2), f(3), f(4))
+    else:
+        if num_periods == 3:
+            return mean(f(1), f(2), f(3))
+        elif num_periods == 4:
+            return mean(f(1), f(2), f(3), f(4))
+
+
+def period_summaries(stream, window_to_compare=duration('15m'),
+                     space_between_windows=duration('1w'),
+                     num_windows=4, num_stddev=0, discard_historical_outliers=True):
+    if num_windows == 1:
+        return stream.timeshift(space_between_windows).mean_plus_stddev(stddev=num_stddev,
+                                                                        over=window_to_compare)
+    elif num_windows == 2:
+        return mean(stream.timeshift(space_between_windows).mean_plus_stddev(stddev=num_stddev,
+                                                                             over=window_to_compare),
+                    stream.timeshift(2 * space_between_windows).mean_plus_stddev(stddev=num_stddev,
+                                                                                 over=window_to_compare))
+    elif num_windows == 3 or num_windows == 4:
+        return n_period_summary(stream, window_to_compare, space_between_windows, num_stddev,
+                                num_windows,
+                                discard_historical_outliers=discard_historical_outliers)
+
+
+def detector_growth_rate(stream, window_to_compare=duration('15m'),
+                         space_between_windows=duration('1w'),
+                         num_windows=4, fire_growth_rate_threshold=0.2,
+                         clear_growth_rate_threshold=0.1,
+                         discard_historical_outliers=True, orientation='above'):
+    previous = period_summaries(stream, window_to_compare=window_to_compare,
+                                space_between_windows=space_between_windows,
+                                num_windows=num_windows, num_stddev=0,
+                                discard_historical_outliers=discard_historical_outliers)
+    summary = stream.mean(over=window_to_compare)
+    return detector_helper(summary, (1 - fire_growth_rate_threshold) * previous,
+                           (1 - clear_growth_rate_threshold) * previous,
+                           (1 + clear_growth_rate_threshold) * previous,
+                           (1 + fire_growth_rate_threshold) * previous, orientation)
+
+
+def detector_mean_std(stream, window_to_compare=duration('15m'),
+                      space_between_windows=duration('1w'),
+                      num_windows=4, fire_num_stddev=3, clear_num_stddev=2.5,
+                      discard_historical_outliers=True, orientation='above'):
+    def g(x):
+        return period_summaries(stream, window_to_compare=window_to_compare,
+                                space_between_windows=space_between_windows,
+                                num_windows=num_windows,
+                                num_stddev=x,
+                                discard_historical_outliers=discard_historical_outliers)
+
+    summary = stream.mean(over=window_to_compare)
+    return detector_helper(summary, g(-1 * fire_num_stddev), g(-1 * clear_num_stddev),
+                           g(clear_num_stddev), g(fire_num_stddev), orientation)
+
+
+#examples
+#TODO
