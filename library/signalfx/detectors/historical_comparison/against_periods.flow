@@ -33,7 +33,7 @@ def detector_helper(summary, fire_bot, clear_bot, clear_top, fire_top, orientati
 def n_period_summary(stream, window_to_compare, space_between_windows, num_stddev,
                      num_periods, discard_historical_outliers=True):
     def f(x):
-        return stream.timeshift(x * space_between_windows).mean_plus_stddev(stddev=num_stddev,
+        return stream.timeshift(x * space_between_windows).mean_plus_stddev(stddevs=num_stddev,
                                                                             over=window_to_compare)
 
     if discard_historical_outliers:
@@ -52,12 +52,12 @@ def period_summaries(stream, window_to_compare=duration('15m'),
                      space_between_windows=duration('1w'),
                      num_windows=4, num_stddev=0, discard_historical_outliers=True):
     if num_windows == 1:
-        return stream.timeshift(space_between_windows).mean_plus_stddev(stddev=num_stddev,
+        return stream.timeshift(space_between_windows).mean_plus_stddev(stddevs=num_stddev,
                                                                         over=window_to_compare)
     elif num_windows == 2:
-        return mean(stream.timeshift(space_between_windows).mean_plus_stddev(stddev=num_stddev,
+        return mean(stream.timeshift(space_between_windows).mean_plus_stddev(stddevs=num_stddev,
                                                                              over=window_to_compare),
-                    stream.timeshift(2 * space_between_windows).mean_plus_stddev(stddev=num_stddev,
+                    stream.timeshift(2 * space_between_windows).mean_plus_stddev(stddevs=num_stddev,
                                                                                  over=window_to_compare))
     elif num_windows == 3 or num_windows == 4:
         return n_period_summary(stream, window_to_compare, space_between_windows, num_stddev,
