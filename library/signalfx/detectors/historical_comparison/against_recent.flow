@@ -41,7 +41,7 @@ def detector_mean_std(stream, current_window=duration('5m'),
     #           (optional, default=duration('5m'))
     #       historical_window (duration): the window whose behavior is used to define normality
     #           (optional, default=duration('1h'))
-    #       fire_num_stddev (number): number of standard deviations below historical mean
+    #       fire_num_stddev (number): number of standard deviations DIFF FROM TODO historical mean
     #           required to fire (optional, default=3)
     #       clear_num_stddev (number): number of standard deviations below historical mean
     #           required to clear (optional, default=2.5)
@@ -67,7 +67,7 @@ def detector_mean_std(stream, current_window=duration('5m'),
 
 def detector_percentile(stream, current_window=duration('5m'),
                         historical_window=duration('1h'),
-                        fire_pctile_threshold=99, clear_pctile_threshold=95,
+                        fire_percentile_threshold=99, clear_percentile_threshold=95,
                         orientation='above'):
     # Args:
     #       stream: data stream
@@ -93,14 +93,14 @@ def detector_percentile(stream, current_window=duration('5m'),
 
     recent_min = stream.min(over=current_window)
     recent_max = stream.max(over=current_window)
-    return detector_helper(recent_min, recent_max, j(100 - fire_pctile_threshold),
-                           j(100 - clear_pctile_threshold), j(
-            clear_pctile_threshold), j(fire_pctile_threshold), orientation)
+    return detector_helper(recent_min, recent_max, j(100 - fire_percentile_threshold),
+                           j(100 - clear_percentile_threshold), j(
+            clear_percentile_threshold), j(fire_percentile_threshold), orientation)
 
 # examples
-# above_detector_mean_std(data('jvm.cpu.load').percentile(70), fire_num_stddev=2,
+# detector_mean_std(data('jvm.cpu.load').percentile(70), fire_num_stddev=2,
 #                         clear_num_stddev=1).publish('abover')
 
-# out_of_band_detector_percentile(data('jvm.cpu.load'), current_window=duration('10m'),
+# detector_percentile(data('jvm.cpu.load'), current_window=duration('10m'),
 #                                 historical_window=duration('10m'), fire_percentile_threshold=90,
-#                                 clear_percentile_threshold=75).publish('pctile')
+#                                 clear_percentile_threshold=75, orientation='out_of_band').publish('pctile')

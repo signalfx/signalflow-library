@@ -1,5 +1,5 @@
 # The main function transforms a stream, assumed to specify a population of interest, into
-# a detector which fire when a member of the population becomes an outlier.
+# a detector which fires when a member of the population becomes an outlier.
 #
 # The basic toggles are:
 #   strategy (mean + standard deviations, or median + median absolute deviations),
@@ -74,3 +74,10 @@ def detector(population_stream,
         return detect(
             when(population_stream > fire_top or population_stream < fire_bot, fire_lasting),
             when(population_stream < clear_top and population_stream > clear_bot, clear_lasting))
+
+
+
+#examples
+#some_data = data('jvm.cpu.load')
+#detector(some_data, strategy='median_MAD', orientation='out_of_band').publish('MAD_OOB')
+#detector(some_data, fire_num_dev=2, clear_num_dev=1, orientation='below').publish('mstd_below')

@@ -22,6 +22,7 @@ def hours_left_stream(stream, increment_size=duration('1m'), estimation_period=d
     num_increments_per_hour = duration('1h') / increment_size
     return (a / (-1 * num_increments_per_hour * c)).max(over=estimation_period)
 
+
 def hours_left_stream_incr(stream, maximum_capacity, increment_size=duration('1m'),
                            estimation_period=duration('10m')):
     # Args:
@@ -67,9 +68,8 @@ def hours_left_stream_detector(stream, lower_threshold, fire_lasting=None,
     if clear_threshold is None:
         return detect(when(hours_left < lower_threshold, fire_lasting))
     else:
-           return detect(when(hours_left < lower_threshold, fire_lasting),
-                         when(hours_left > clear_threshold, clear_lasting))
-
+        return detect(when(hours_left < lower_threshold, fire_lasting),
+                      when(hours_left > clear_threshold, clear_lasting))
 
 
 def hours_left_stream_incr_detector(stream, maximum_capacity, lower_threshold, fire_lasting=None,
@@ -98,25 +98,23 @@ def hours_left_stream_incr_detector(stream, maximum_capacity, lower_threshold, f
     #         clears when stream is estimated to have at least clear_threshold hours left
     #         (for clear_lasting)
     return hours_left_stream_detector(maximum_capacity - stream,
-                                        lower_threshold, fire_lasting=fire_lasting,
-                                        clear_threshold=clear_threshold,
-                                        clear_lasting=clear_lasting,
-                                        increment_size=increment_size,
-                                        estimation_period=estimation_period)
-
+                                      lower_threshold, fire_lasting=fire_lasting,
+                                      clear_threshold=clear_threshold,
+                                      clear_lasting=clear_lasting,
+                                      increment_size=increment_size,
+                                      estimation_period=estimation_period)
 
 # examples
-#hours_left_stream(100 - data('disk.summary_utilization')).publish()
+# hours_left_stream(100 - data('disk.summary_utilization')).publish()
 
 
-#hours_left_stream_detector(100 - data('disk.summary_utilization'),
+# hours_left_stream_detector(100 - data('disk.summary_utilization'),
 #                            24,fire_lasting=lasting('5m', 1.0)).publish('a')
 
 
-#hours_left_stream_detector(100 - data('disk.summary_utilization'),
+# hours_left_stream_detector(100 - data('disk.summary_utilization'),
 #                            24, clear_threshold=36, clear_lasting=lasting('5m', 0.95)).publish('b')
 
 
-#hours_left_stream_incr_detector(data('disk.summary_utilization'),
+# hours_left_stream_incr_detector(data('disk.summary_utilization'),
 #                            100, 24, clear_threshold=48).publish('c')
-

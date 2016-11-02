@@ -1,7 +1,9 @@
-# These functions transform a stream into detectors which fire when
+# These functions transform a stream into detectors which fire when the recent window
+# (default length is 15 minutes) is very different from the same period timeshifted by some
+# unit (default shift is 1 week).
 #
 # The basic toggles are:
-#   FIXME
+#   FIXME start
 #   the windows to compare (by default, current 5 minutes against previous 1 hour),
 #   strategy (rolling mean + standard deviations, or rolling percentile comparison),
 #   the sensitivity of the detector (the number of deviations in the first case, the
@@ -15,9 +17,8 @@
 # Remark: the duration parameter of the detect block enters as the window being evaluated, and
 #         the shift applied before summarizing a historical window. The percent of duration could
 #         be incorporated by replacing "min" and "max" in the detect blocks with percentiles.
-#
+#  FIXME end
 # @author joe
-#
 
 
 def detector_helper(summary, fire_bot, clear_bot, clear_top, fire_top, orientation):
@@ -98,4 +99,6 @@ def detector_mean_std(stream, window_to_compare=duration('15m'),
 
 
 #examples
-#TODO
+#some_data = data('jvm.cpu.load').mean()
+#detector_mean_std(some_data, orientation='out_of_band').publish('mstd_OOB')
+#detector_growth_rate(some_data, orientation='above').publish('growth_above')

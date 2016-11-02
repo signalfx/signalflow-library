@@ -1,0 +1,32 @@
+# Detects when a stream stops reporting.  TODO add more
+#
+#
+#
+#
+# @author joe
+
+
+
+def not_reporting_detector(stream, resource_identifier=None, duration=duration('15m')):
+    # Args:
+    #     stream: data stream to monitor for non-reporting
+    #     resource_identifier (String): a field that identifies the unit to monitor
+    #         (optional, default=None corresponds to no aggregation)
+    #     duration (duration) : specifies for how long host must be unmonitored to
+    #         fire an alert (optional, default='15m')
+    #
+    # Returns:
+    #     detect block that fires when the stream has not emitted for duration
+    if resource_identifier is None:
+        binary = stream.map(lambda x: 1 if x is not None else 0)
+    else:
+        binary = stream.sum(by=resource_identifier).map(lambda x: 1 if x is not None else 0)
+    return detect(when(binary < 1, lasting(duration, 1.0)))
+
+
+# example
+# terminate_filter = filter("sf_tags", "sfhost_terminated")
+# aws_terminate_filter = filter("aws_state", "{Code: 48,Name: terminated}")
+# expect_dead = terminate_filter or aws_terminate_filter
+# not_reporting_detector(data('cpu.utilization', not expect_dead),
+#                       resource_identifier='aws_tag_Name').publish('is_down')
