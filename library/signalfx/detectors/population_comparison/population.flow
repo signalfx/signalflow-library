@@ -81,3 +81,5 @@ def detector(population_stream,
 #some_data = data('jvm.cpu.load')
 #detector(some_data, strategy='median_MAD', orientation='out_of_band').publish('MAD_OOB')
 #detector(some_data, fire_num_dev=2, clear_num_dev=1, orientation='below').publish('mstd_below')
+#detector(some_data, group_by_property=['aws_instance_type'],
+#    fire_num_dev=2, clear_num_dev=1, orientation='below').publish('mstd_below')

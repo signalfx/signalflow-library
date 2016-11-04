@@ -3,21 +3,19 @@
 # unit (default shift is 1 week).
 #
 # The basic toggles are:
-#   FIXME start
-#   the windows to compare (by default, current 5 minutes against previous 1 hour),
-#   strategy (rolling mean + standard deviations, or rolling percentile comparison),
-#   the sensitivity of the detector (the number of deviations in the first case, the
-#       percentile used to define the threshold in the latter),
+#   the length of windows to compare (by default, 15 minutes),
+#   the space between windows (by default, 1 week, corresponding to week-over-week comparison),
+#   the number of historical windows used to establish a baseline (by default, 4),
+#   whether to exclude historical outliers when computing the baseline (i.e., whether to use
+#       median or mean of the historical bands, default is to exclude),
+#   whether to construct historical bands using growth rate or standard deviations,
 #   and the orientation (above, below, or out-of-band).
 #
 # By default the firing and clearing thresholds are different (to reduce flappiness).
 #
-# These detectors are appropriate for signals with periodic ....
+# These detectors are appropriate for signals with periodic behavior. The period enters via
+# the space_between_windows argument.
 #
-# Remark: the duration parameter of the detect block enters as the window being evaluated, and
-#         the shift applied before summarizing a historical window. The percent of duration could
-#         be incorporated by replacing "min" and "max" in the detect blocks with percentiles.
-#  FIXME end
 # @author joe
 
 
