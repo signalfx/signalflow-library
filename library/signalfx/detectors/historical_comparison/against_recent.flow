@@ -41,9 +41,9 @@ def detector_mean_std(stream, current_window=duration('5m'),
     #           (optional, default=duration('5m'))
     #       historical_window (duration): the window whose behavior is used to define normality
     #           (optional, default=duration('1h'))
-    #       fire_num_stddev (number): number of standard deviations DIFF FROM TODO historical mean
+    #       fire_num_stddev (number): number of standard deviations different from historical mean
     #           required to fire (optional, default=3)
-    #       clear_num_stddev (number): number of standard deviations below historical mean
+    #       clear_num_stddev (number): number of standard deviations different from historical mean
     #           required to clear (optional, default=2.5)
     #       orientation (string): specifies whether detect fires when signal is above, below, or
     #           or out-of-band (optional, default='above', one of 'above', 'below', 'out_of_band')

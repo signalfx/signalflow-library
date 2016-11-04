@@ -10,6 +10,10 @@ def hours_left_stream(stream, increment_size=duration('1m'), estimation_period=d
     #     stream: data stream, assumed to be decreasing and non-negative
     #     increment_size (duration): interval length used to estimate rate of change
     #         (optional, default=duration('1m'))
+    #     NB it is very important that increment_size be larger than data/job resolution,
+    #       else it will be silently replaced by that resolution in the calculation of "c",
+    #       but not in that of "num_increments_per_hour", and the stream returned by this
+    #       function will be incorrect
     #     estimation_period (duration): interval over which estimation is made
     #         (optional, default=duration('10m'))
     #
