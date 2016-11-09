@@ -93,14 +93,24 @@ def detector_percentile(stream, current_window=duration('5m'),
 
     recent_min = stream.min(over=current_window)
     recent_max = stream.max(over=current_window)
-    return detector_helper(recent_min, recent_max, j(100 - fire_percentile_threshold),
-                           j(100 - clear_percentile_threshold), j(
-            clear_percentile_threshold), j(fire_percentile_threshold), orientation)
+    if fire_percentile_threshold > 50:
+        return detector_helper(recent_min, recent_max, j(100 - fire_percentile_threshold),
+                               j(100 - clear_percentile_threshold), j(clear_percentile_threshold),
+                               j(fire_percentile_threshold), orientation)
+    else:
+        return detector_helper(recent_min, recent_max, j(fire_percentile_threshold),
+                               j(clear_percentile_threshold), j(100 - clear_percentile_threshold),
+                               j(100 - fire_percentile_threshold), orientation)
 
 # examples
 # detector_mean_std(data('jvm.cpu.load').percentile(70), fire_num_stddev=2,
 #                         clear_num_stddev=1).publish('abover')
 
-# detector_percentile(data('jvm.cpu.load'), current_window=duration('10m'),
-#                                 historical_window=duration('10m'), fire_percentile_threshold=90,
-#                                 clear_percentile_threshold=75, orientation='out_of_band').publish('pctile')
+#detector_percentile(data('jvm.cpu.load'), current_window=duration('10m'),
+#                                historical_window=duration('10m'), fire_percentile_threshold=90,
+#                                clear_percentile_threshold=75, orientation='out_of_band').publish('pctile')
+
+
+#detector_percentile(data('jvm.cpu.load'), current_window=duration('10m'),
+#                                historical_window=duration('10m'), fire_percentile_threshold=77,
+#                                clear_percentile_threshold=75, orientation='out_of_band').publish('pctile')

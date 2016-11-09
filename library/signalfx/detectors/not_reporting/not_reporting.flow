@@ -14,7 +14,7 @@ def detector(stream, resource_identifier=None, duration=duration('15m')):
     #     stream: data stream to monitor for non-reporting
     #     resource_identifier (String): a field that identifies the unit to monitor
     #         (optional, default=None corresponds to no aggregation)
-    #     duration (duration) : specifies for how long host must be unmonitored to
+    #     duration (duration) : specifies for how long unit must be unmonitored to
     #         fire an alert (optional, default='15m')
     #
     # Returns:
