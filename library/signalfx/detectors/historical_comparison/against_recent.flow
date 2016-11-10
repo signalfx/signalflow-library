@@ -56,10 +56,10 @@ def detector_mean_std(stream, current_window=duration('5m'),
     #           clear_num_stddev standard deviations above/below/of the mean of the
     #           preceding historical_window
     def h(x):
-        return stream.timeshift(current_window).mean_plus_stddev(stddevs=x, over=historical_window)
+        return stream.timeshift(duration(current_window)).mean_plus_stddev(stddevs=x, over=duration(historical_window))
 
-    recent_min = stream.min(over=current_window)
-    recent_max = stream.max(over=current_window)
+    recent_min = stream.min(over=duration(current_window))
+    recent_max = stream.max(over=duration(current_window))
     return detector_helper(recent_min, recent_max, h(-1 * fire_num_stddev),
                            h(-1 * clear_num_stddev), h(clear_num_stddev), h(
             fire_num_stddev), orientation)
@@ -89,10 +89,10 @@ def detector_percentile(stream, current_window=duration('5m'),
     #           and clears when the last (current_window) of stream remains below (or above, or
     #           within band) the clear_percentile_threshold of the preceding historical_window
     def j(x):
-        return stream.timeshift(current_window).percentile(x, over=historical_window)
+        return stream.timeshift(duration(current_window)).percentile(x, over=duration(historical_window))
 
-    recent_min = stream.min(over=current_window)
-    recent_max = stream.max(over=current_window)
+    recent_min = stream.min(over=duration(current_window))
+    recent_max = stream.max(over=duration(current_window))
     if fire_percentile_threshold > 50:
         return detector_helper(recent_min, recent_max, j(100 - fire_percentile_threshold),
                                j(100 - clear_percentile_threshold), j(clear_percentile_threshold),

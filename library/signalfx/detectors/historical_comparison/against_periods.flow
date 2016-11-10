@@ -32,8 +32,9 @@ def detector_helper(summary, fire_bot, clear_bot, clear_top, fire_top, orientati
 def n_period_summary(stream, window_to_compare, space_between_windows, num_stddev,
                      num_periods, discard_historical_outliers=True):
     def f(x):
-        return stream.timeshift(x * space_between_windows).mean_plus_stddev(stddevs=num_stddev,
-                                                                            over=window_to_compare)
+        return stream.timeshift(x * duration(space_between_windows)).mean_plus_stddev(
+            stddevs=num_stddev,
+            over=duration(window_to_compare))
 
     if discard_historical_outliers:
         if num_periods == 3:
@@ -50,16 +51,20 @@ def n_period_summary(stream, window_to_compare, space_between_windows, num_stdde
 def period_summaries(stream, window_to_compare=duration('15m'),
                      space_between_windows=duration('1w'),
                      num_windows=4, num_stddev=0, discard_historical_outliers=True):
+    space_between_windows_dur = duration(space_between_windows)
+    window_to_compare_dur = duration(window_to_compare)
     if num_windows == 1:
-        return stream.timeshift(space_between_windows).mean_plus_stddev(stddevs=num_stddev,
-                                                                        over=window_to_compare)
+        return stream.timeshift(space_between_windows_dur).mean_plus_stddev(stddevs=num_stddev,
+                                                                            over=window_to_compare_dur)
     elif num_windows == 2:
-        return mean(stream.timeshift(space_between_windows).mean_plus_stddev(stddevs=num_stddev,
-                                                                             over=window_to_compare),
-                    stream.timeshift(2 * space_between_windows).mean_plus_stddev(stddevs=num_stddev,
-                                                                                 over=window_to_compare))
+        return mean(stream.timeshift(space_between_windows_dur).mean_plus_stddev(stddevs=num_stddev,
+                                                                                 over=window_to_compare_dur),
+                    stream.timeshift(2 * space_between_windows_dur).mean_plus_stddev(
+                        stddevs=num_stddev,
+                        over=window_to_compare_dur))
     elif num_windows == 3 or num_windows == 4:
-        return n_period_summary(stream, window_to_compare, space_between_windows, num_stddev,
+        return n_period_summary(stream, window_to_compare_dur, space_between_windows_dur,
+                                num_stddev,
                                 num_windows,
                                 discard_historical_outliers=discard_historical_outliers)
 
@@ -73,7 +78,7 @@ def detector_growth_rate(stream, window_to_compare=duration('15m'),
                                 space_between_windows=space_between_windows,
                                 num_windows=num_windows, num_stddev=0,
                                 discard_historical_outliers=discard_historical_outliers)
-    summary = stream.mean(over=window_to_compare)
+    summary = stream.mean(over=duration(window_to_compare))
     return detector_helper(summary, (1 - fire_growth_rate_threshold) * previous,
                            (1 - clear_growth_rate_threshold) * previous,
                            (1 + clear_growth_rate_threshold) * previous,
@@ -91,12 +96,11 @@ def detector_mean_std(stream, window_to_compare=duration('15m'),
                                 num_stddev=x,
                                 discard_historical_outliers=discard_historical_outliers)
 
-    summary = stream.mean(over=window_to_compare)
+    summary = stream.mean(over=duration(window_to_compare))
     return detector_helper(summary, g(-1 * fire_num_stddev), g(-1 * clear_num_stddev),
                            g(clear_num_stddev), g(fire_num_stddev), orientation)
 
-
-#examples
-#some_data = data('jvm.cpu.load').mean()
-#detector_mean_std(some_data, orientation='out_of_band').publish('mstd_OOB')
-#detector_growth_rate(some_data, orientation='above').publish('growth_above')
+# examples
+# some_data = data('jvm.cpu.load').mean()
+# detector_mean_std(some_data, orientation='out_of_band').publish('mstd_OOB')
+# detector_growth_rate(some_data, orientation='above').publish('growth_above')

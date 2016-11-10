@@ -20,11 +20,11 @@ def hours_left_stream(stream, increment_size=duration('1m'), estimation_period=d
     # Returns:
     #     hours left until stream has value 0, calculated via linear extrapolation; is optimistic in
     #         that it uses the maximum hours left over the estimation_period
-    a = stream.min(over=increment_size)
-    b = a.timeshift(increment_size)
-    c = (a - b).max(over=estimation_period).below(0)
-    num_increments_per_hour = duration('1h') / increment_size
-    return (a / (-1 * num_increments_per_hour * c)).max(over=estimation_period)
+    a = stream.min(over=duration(increment_size))
+    b = a.timeshift(duration(increment_size))
+    c = (a - b).max(over=duration(estimation_period)).below(0)
+    num_increments_per_hour = duration('1h') / duration(increment_size)
+    return (a / (-1 * num_increments_per_hour * c)).max(over=duration(estimation_period))
 
 
 def hours_left_stream_incr(stream, maximum_capacity, increment_size=duration('1m'),
