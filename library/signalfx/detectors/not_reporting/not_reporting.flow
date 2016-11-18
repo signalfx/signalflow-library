@@ -26,7 +26,7 @@ def detector(stream, resource_identifier=None, duration=duration('15m')):
     annotations = [annotate(binary, "indicator signal", {'streamType': 'signal',
                                                          'staticFireThreshold': 1,
                                                          'staticFireType': 'below'})]
-    return detect(when(binary < 1, lasting(duration, 1.0)), annotations)
+    return detect(when(binary < 1, lasting(duration, 1.0)), annotations=annotations)
 
     # example
 
