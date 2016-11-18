@@ -19,14 +19,14 @@
 # @author joe
 
 
-def detector_helper(summary, fire_bot, clear_bot, clear_top, fire_top, orientation):
+def detector_helper(summary, fire_bot, clear_bot, clear_top, fire_top, orientation, annotations):
     if orientation == 'above':
-        return detect(when(summary > fire_top), when(summary < clear_top))
+        return detect(when(summary > fire_top), when(summary < clear_top), annotations=annotations)
     elif orientation == 'below':
-        return detect(when(summary < fire_bot), when(summary > clear_bot))
+        return detect(when(summary < fire_bot), when(summary > clear_bot), annotations=annotations)
     elif orientation == 'out_of_band':
         return detect(when(summary > fire_top or summary < fire_bot),
-                      when(summary < clear_top and summary > clear_bot))
+                      when(summary < clear_top and summary > clear_bot), annotations=annotations)
 
 
 def n_period_summary(stream, window_to_compare, space_between_windows, num_stddev,
@@ -79,10 +79,22 @@ def detector_growth_rate(stream, window_to_compare=duration('15m'),
                                 num_windows=num_windows, num_stddev=0,
                                 discard_historical_outliers=discard_historical_outliers)
     summary = stream.mean(over=duration(window_to_compare))
-    return detector_helper(summary, (1 - fire_growth_rate_threshold) * previous,
-                           (1 - clear_growth_rate_threshold) * previous,
-                           (1 + clear_growth_rate_threshold) * previous,
-                           (1 + fire_growth_rate_threshold) * previous, orientation)
+    fb = (1 - fire_growth_rate_threshold) * previous
+    cb = (1 - clear_growth_rate_threshold) * previous
+    ct = (1 + clear_growth_rate_threshold) * previous
+    ft = (1 + fire_growth_rate_threshold) * previous
+    annotations = [annotate(summary, 'rolling mean', {'streamType': 'signal'}),
+                   annotate(fb, 'lower fire threshold', {'streamType': 'lowerFireThreshold',
+                                                         'influencedBy': fire_growth_rate_threshold}),
+                   annotate(ft, 'upper fire threshold', {'streamType': 'upperFireThreshold',
+                                                         'influencedBy': fire_growth_rate_threshold}),
+                   annotate(cb, 'lower clear threshold',
+                            {'streamType': 'lowerClearThreshold',
+                             'influencedBy': clear_growth_rate_threshold}),
+                   annotate(ct, 'upper clear threshold',
+                            {'streamType': 'upperClearThreshold',
+                             'influencedBy': clear_growth_rate_threshold})]
+    return detector_helper(summary, fb, cb, ct, ft, orientation, annotations)
 
 
 def detector_mean_std(stream, window_to_compare=duration('15m'),
@@ -97,8 +109,22 @@ def detector_mean_std(stream, window_to_compare=duration('15m'),
                                 discard_historical_outliers=discard_historical_outliers)
 
     summary = stream.mean(over=duration(window_to_compare))
-    return detector_helper(summary, g(-1 * fire_num_stddev), g(-1 * clear_num_stddev),
-                           g(clear_num_stddev), g(fire_num_stddev), orientation)
+    fb = g(-1 * fire_num_stddev)
+    cb = g(-1 * clear_num_stddev)
+    ct = g(-1 * clear_num_stddev)
+    ft = g(fire_num_stddev)
+    annotations = [annotate(summary, 'rolling mean', {'streamType': 'signal'}),
+                   annotate(fb, 'lower fire threshold', {'streamType': 'lowerFireThreshold',
+                                                         'influencedBy': fire_num_stddev}),
+                   annotate(ft, 'upper fire threshold', {'streamType': 'upperFireThreshold',
+                                                         'influencedBy': fire_num_stddev}),
+                   annotate(cb, 'lower clear threshold',
+                            {'streamType': 'lowerClearThreshold',
+                             'influencedBy': clear_num_stddev}),
+                   annotate(ct, 'upper clear threshold',
+                            {'streamType': 'upperClearThreshold',
+                             'influencedBy': clear_num_stddev})]
+    return detector_helper(summary, fb, cb, ct, ft, orientation, annotations)
 
 # examples
 # some_data = data('jvm.cpu.load').mean()

@@ -21,14 +21,15 @@
 # @author joe
 
 
-def detector_helper(recent_min, recent_max, f_bot, c_bot, c_top, f_top, orientation):
+def detector_helper(recent_min, recent_max, f_bot, c_bot, c_top, f_top, orientation, annotations):
     if orientation == 'above':
-        return detect(when(recent_min > f_top), when(recent_max < c_top))
+        return detect(when(recent_min > f_top), when(recent_max < c_top), annotations=annotations)
     elif orientation == 'below':
-        return detect(when(recent_max < f_bot), when(recent_min > c_bot))
+        return detect(when(recent_max < f_bot), when(recent_min > c_bot), annotations=annotations)
     elif orientation == 'out_of_band':
         return detect(when(recent_min > f_top or recent_max < f_bot),
-                      when(recent_max < c_top and recent_min > c_bot))
+                      when(recent_max < c_top and recent_min > c_bot),
+                      annotations=annotations)
 
 
 def detector_mean_std(stream, current_window=duration('5m'),
@@ -56,13 +57,28 @@ def detector_mean_std(stream, current_window=duration('5m'),
     #           clear_num_stddev standard deviations above/below/of the mean of the
     #           preceding historical_window
     def h(x):
-        return stream.timeshift(duration(current_window)).mean_plus_stddev(stddevs=x, over=duration(historical_window))
+        return stream.timeshift(duration(current_window)).mean_plus_stddev(stddevs=x, over=duration(
+            historical_window))
 
     recent_min = stream.min(over=duration(current_window))
     recent_max = stream.max(over=duration(current_window))
-    return detector_helper(recent_min, recent_max, h(-1 * fire_num_stddev),
-                           h(-1 * clear_num_stddev), h(clear_num_stddev), h(
-            fire_num_stddev), orientation)
+    fb = h(-1 * fire_num_stddev)
+    cb = h(-1 * clear_num_stddev)
+    ct = h(clear_num_stddev)
+    ft = h(fire_num_stddev)
+    annotations = [annotate(recent_min, 'rolling minimum', {'streamType': 'signal'}),
+                   annotate(recent_max, 'rolling maximum', {'streamType': 'signal'}),
+                   annotate(fb, 'lower fire threshold', {'streamType': 'lowerFireThreshold',
+                                                         'influencedBy': fire_num_stddev}),
+                   annotate(ft, 'upper fire threshold', {'streamType': 'upperFireThreshold',
+                                                         'influencedBy': fire_num_stddev}),
+                   annotate(cb, 'lower clear threshold',
+                            {'streamType': 'lowerClearThreshold',
+                             'influencedBy': clear_num_stddev}),
+                   annotate(ct, 'upper clear threshold',
+                            {'streamType': 'upperClearThreshold',
+                             'influencedBy': clear_num_stddev})]
+    return detector_helper(recent_min, recent_max, fb, cb, ct, ft, orientation, annotations)
 
 
 def detector_percentile(stream, current_window=duration('5m'),
@@ -89,28 +105,45 @@ def detector_percentile(stream, current_window=duration('5m'),
     #           and clears when the last (current_window) of stream remains below (or above, or
     #           within band) the clear_percentile_threshold of the preceding historical_window
     def j(x):
-        return stream.timeshift(duration(current_window)).percentile(x, over=duration(historical_window))
+        return stream.timeshift(duration(current_window)).percentile(x, over=duration(
+            historical_window))
 
     recent_min = stream.min(over=duration(current_window))
     recent_max = stream.max(over=duration(current_window))
+
     if fire_percentile_threshold > 50:
-        return detector_helper(recent_min, recent_max, j(100 - fire_percentile_threshold),
-                               j(100 - clear_percentile_threshold), j(clear_percentile_threshold),
-                               j(fire_percentile_threshold), orientation)
+        fb = j(100 - fire_percentile_threshold)
+        cb = j(100 - clear_percentile_threshold)
+        ct = j(clear_percentile_threshold)
+        ft = j(fire_percentile_threshold)
     else:
-        return detector_helper(recent_min, recent_max, j(fire_percentile_threshold),
-                               j(clear_percentile_threshold), j(100 - clear_percentile_threshold),
-                               j(100 - fire_percentile_threshold), orientation)
+        fb = j(fire_percentile_threshold)
+        cb = j(clear_percentile_threshold)
+        ct = j(100 - clear_percentile_threshold)
+        ft = j(100 - fire_percentile_threshold)
+        annotations = [annotate(recent_min, 'rolling minimum', {'streamType': 'signal'}),
+                       annotate(recent_max, 'rolling maximum', {'streamType': 'signal'}),
+                       annotate(fb, 'lower fire threshold', {'streamType': 'lowerFireThreshold',
+                                                             'influencedBy': fire_percentile_threshold}),
+                       annotate(ft, 'upper fire threshold', {'streamType': 'upperFireThreshold',
+                                                             'influencedBy': fire_percentile_threshold}),
+                       annotate(cb, 'lower clear threshold',
+                                {'streamType': 'lowerClearThreshold',
+                                 'influencedBy': clear_percentile_threshold}),
+                       annotate(ct, 'upper clear threshold',
+                                {'streamType': 'upperClearThreshold',
+                                 'influencedBy': clear_percentile_threshold})]
+    return detector_helper(recent_min, recent_max, fb, cb, ct, ft, orientation, annotations)
 
 # examples
 # detector_mean_std(data('jvm.cpu.load').percentile(70), fire_num_stddev=2,
 #                         clear_num_stddev=1).publish('abover')
 
-#detector_percentile(data('jvm.cpu.load'), current_window=duration('10m'),
+# detector_percentile(data('jvm.cpu.load'), current_window=duration('10m'),
 #                                historical_window=duration('10m'), fire_percentile_threshold=90,
 #                                clear_percentile_threshold=75, orientation='out_of_band').publish('pctile')
 
 
-#detector_percentile(data('jvm.cpu.load'), current_window=duration('10m'),
+# detector_percentile(data('jvm.cpu.load'), current_window=duration('10m'),
 #                                historical_window=duration('10m'), fire_percentile_threshold=77,
 #                                clear_percentile_threshold=75, orientation='out_of_band').publish('pctile')

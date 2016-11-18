@@ -24,7 +24,7 @@ def detector(population_stream,
              group_by_property=None,
              fire_num_dev=3, fire_lasting=lasting('5m', 1.0),
              clear_num_dev=2.5, clear_lasting=lasting('5m', 1.0),
-             strategy='mean_stddev', orientation='above'):
+             strategy='median_MAD', orientation='above'):
     # Args:
     #     population_stream: data stream specifying a population of emitters
     #     group_by_property (optional, default=None): attribute by which to group population members
@@ -38,7 +38,7 @@ def detector(population_stream,
     #     clear_lasting (lasting): lasting object associated with clear threshold
     #           (optional, default=lasting('5m', 1.0))
     #     strategy (string): represents method for defining threshold (mean+stddev or median+MAD),
-    #           (optional, default='mean_stddev', one of 'mean_stddev', 'median_MAD')
+    #           (optional, default='median_MAD', one of 'mean_stddev', 'median_MAD')
     #     orientation (string): specifies whether detect fires when signal is above, below, or
     #           or out-of-band (optional, default='above', one of 'above', 'below', 'out_of_band')
     #     #
@@ -64,22 +64,34 @@ def detector(population_stream,
     clear_top = t(clear_num_dev)
     clear_bot = t(-1 * clear_num_dev)
     fire_bot = t(-1 * fire_num_dev)
+    annotations = [annotate(population_stream, 'population stream', {'streamType': 'signal'}),
+                   annotate(fire_top, 'upper fire threshold', {'streamType': 'upperFireThreshold',
+                                                               'influencedBy': fire_num_dev}),
+                   annotate(fire_bot, 'lower fire threshold', {'streamType': 'lowerFireThreshold',
+                                                               'influencedBy': fire_num_dev}),
+                   annotate(clear_bot, 'lower clear threshold',
+                            {'streamType': 'lowerClearThreshold',
+                             'influencedBy': clear_num_dev}),
+                   annotate(clear_top, 'upper clear threshold',
+                            {'streamType': 'upperClearThreshold',
+                             'influencedBy': clear_num_dev})]
     if orientation == 'above':
         return detect(when(population_stream > fire_top, fire_lasting),
-                      when(population_stream < clear_top, clear_lasting))
+                      when(population_stream < clear_top, clear_lasting),
+                      annotations=annotations)
     elif orientation == 'below':
         return detect(when(population_stream < fire_bot, fire_lasting),
-                      when(population_stream > clear_bot, clear_lasting))
+                      when(population_stream > clear_bot, clear_lasting),
+                      annotations=annotations)
     elif orientation == 'out_of_band':
         return detect(
             when(population_stream > fire_top or population_stream < fire_bot, fire_lasting),
-            when(population_stream < clear_top and population_stream > clear_bot, clear_lasting))
+            when(population_stream < clear_top and population_stream > clear_bot, clear_lasting),
+            annotations=annotations)
 
-
-
-#examples
-#some_data = data('jvm.cpu.load')
-#detector(some_data, strategy='median_MAD', orientation='out_of_band').publish('MAD_OOB')
-#detector(some_data, fire_num_dev=2, clear_num_dev=1, orientation='below').publish('mstd_below')
-#detector(some_data, group_by_property=['aws_instance_type'],
+# examples
+# some_data = data('jvm.cpu.load')
+# detector(some_data, strategy='median_MAD', orientation='out_of_band').publish('MAD_OOB')
+# detector(some_data, fire_num_dev=2, clear_num_dev=1, orientation='below').publish('mstd_below')
+# detector(some_data, group_by_property=['aws_instance_type'],
 #    fire_num_dev=2, clear_num_dev=1, orientation='below').publish('mstd_below')

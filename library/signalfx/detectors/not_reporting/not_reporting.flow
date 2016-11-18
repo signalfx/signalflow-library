@@ -23,15 +23,18 @@ def detector(stream, resource_identifier=None, duration=duration('15m')):
         binary = stream.map(lambda x: 1 if x is not None else 0)
     else:
         binary = stream.sum(by=resource_identifier).map(lambda x: 1 if x is not None else 0)
-    return detect(when(binary < 1, lasting(duration, 1.0)))
+    annotations = [annotate(binary, "indicator signal", {'streamType': 'signal',
+                                                         'staticFireThreshold': 1,
+                                                         'staticFireType': 'below'})]
+    return detect(when(binary < 1, lasting(duration, 1.0)), annotations)
 
-#example
+    # example
 
-#terminate_filter = filter("sf_tags", "sfhost_terminated")
-#aws_terminate_filter = filter("aws_state", "{Code: 48,Name: terminated}")
-#expect_dead = terminate_filter or aws_terminate_filter
-#detector(data('cpu.utilization', not expect_dead),
-#                       resource_identifier='aws_tag_Name').publish('is_down')
+    # terminate_filter = filter("sf_tags", "sfhost_terminated")
+    # aws_terminate_filter = filter("aws_state", "{Code: 48,Name: terminated}")
+    # expect_dead = terminate_filter or aws_terminate_filter
+    # detector(data('cpu.utilization', not expect_dead),
+    #                       resource_identifier='aws_tag_Name').publish('is_down')
 
-#detector(data('cpu.utilization', not expect_dead),
-#                      resource_identifier=['aws_tag_Name', 'host']).publish('is_down')
+    # detector(data('cpu.utilization', not expect_dead),
+    #                      resource_identifier=['aws_tag_Name', 'host']).publish('is_down')
