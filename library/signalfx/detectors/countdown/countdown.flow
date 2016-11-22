@@ -60,9 +60,8 @@ def hours_left_stream_detector(stream, lower_threshold=24, fire_lasting=lasting(
     #         exhausted for at least clear_threshold hours (for clear_lasting)
     hours_left = hours_left_stream(stream, increment_size=increment_size).fill()
     annotations = [annotate(hours_left, 'hours left', {'streamType': 'signal', 'influencedBy':
-        'increment_size', 'staticFireThreshold': lower_threshold, 'staticFireType': 'below',
-                                                       'clearFireThreshold': clear_threshold,
-                                                       'clearFireType': 'above'})]
+        'increment_size', 'staticLowerFireThreshold': lower_threshold,
+        'staticLowerClearThreshold': clear_threshold})]
     return detect(when(hours_left < lower_threshold, fire_lasting),
                   when(hours_left > clear_threshold, clear_lasting),
                   annotations=annotations)
