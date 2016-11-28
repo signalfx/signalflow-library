@@ -9,6 +9,7 @@ import argparse
 import requests
 import signalfx
 import subprocess
+import threading
 
 program = """
 ingests = filter('%s', 'signalboost-ingest*')
@@ -58,6 +59,15 @@ def dump_netstat(param, state):
         f.write(err)
 
 
+threads = []
+
+
+def threadit(target, args):
+    t = threading.Thread(target=target, args=args)
+    t.start()
+    threads.append(t)
+
+
 try:
     print('Executing {0} ...'.format(program))
     computation = flow.execute(program)
@@ -70,7 +80,8 @@ try:
         if isinstance(msg, signalfx.signalflow.messages.DataMessage):
             for k, v in state.items():
                 print('midway goroutines {0} {1}'.format(k, i))
-                dump_goroutines(k, "mid%d" % i)
+                threadit(dump_goroutines, (k, "mid%d" % i))
+                threadit(dump_netstat, (k, "mid%d" % i))
                 i += 1
             pass
         if isinstance(msg, signalfx.signalflow.messages.EventMessage):
@@ -79,18 +90,22 @@ try:
                 inputSources = msg.properties["inputs"]
                 for k, v in inputSources.items():
                     source = v["key"][args.dimension]
-                    print('excessive goroutines {0}'.format(source))
-                    dump_goroutines(source, is_state)
-                    dump_netstat(source, is_state)
+                    value = v["value"]
+                    print('excessive goroutines {0} {1}'.format(source, value))
+                    threadit(dump_goroutines, (source, is_state))
+                    threadit(dump_netstat, (source, is_state))
                     state[source] = True
             if is_state == 'ok':
                 inputSources = msg.properties["inputs"]
                 for k, v in inputSources.items():
                     source = v["key"][args.dimension]
-                    print('back to normal {0}'.format(source))
-                    dump_goroutines(source, is_state)
-                    dump_netstat(source, is_state)
+                    value = v["value"]
+                    print('back to normal {0} {1}'.format(source, value))
+                    threadit(dump_goroutines, (source, is_state))
+                    threadit(dump_netstat, (source, is_state))
                     del (state[source])
 
+    for t in threads:
+        t.join()
 finally:
     flow.close()
