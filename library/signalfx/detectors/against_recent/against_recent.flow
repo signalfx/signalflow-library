@@ -121,25 +121,25 @@ def detector_percentile(stream, current_window=duration('5m'),
         cb = j(clear_percentile_threshold)
         ct = j(100 - clear_percentile_threshold)
         ft = j(100 - fire_percentile_threshold)
-        annotations = [annotate(recent_min, 'rolling minimum', {'streamType': 'signal'}),
-                       annotate(recent_max, 'rolling maximum', {'streamType': 'signal'}),
-                       annotate(fb, 'lower fire threshold', {'streamType': 'lowerFireThreshold',
-                                                             'influencedBy': fire_percentile_threshold}),
-                       annotate(ft, 'upper fire threshold', {'streamType': 'upperFireThreshold',
-                                                             'influencedBy': fire_percentile_threshold}),
-                       annotate(cb, 'lower clear threshold',
-                                {'streamType': 'lowerClearThreshold',
-                                 'influencedBy': clear_percentile_threshold}),
-                       annotate(ct, 'upper clear threshold',
-                                {'streamType': 'upperClearThreshold',
-                                 'influencedBy': clear_percentile_threshold})]
+    annotations = [annotate(recent_min, 'rolling minimum', {'streamType': 'signal'}),
+                   annotate(recent_max, 'rolling maximum', {'streamType': 'signal'}),
+                   annotate(fb, 'lower fire threshold', {'streamType': 'lowerFireThreshold',
+                                                         'influencedBy': fire_percentile_threshold}),
+                   annotate(ft, 'upper fire threshold', {'streamType': 'upperFireThreshold',
+                                                         'influencedBy': fire_percentile_threshold}),
+                   annotate(cb, 'lower clear threshold',
+                            {'streamType': 'lowerClearThreshold',
+                             'influencedBy': clear_percentile_threshold}),
+                   annotate(ct, 'upper clear threshold',
+                            {'streamType': 'upperClearThreshold',
+                             'influencedBy': clear_percentile_threshold})]
     return detector_helper(recent_min, recent_max, fb, cb, ct, ft, orientation, annotations)
 
 # examples
 # detector_mean_std(data('jvm.cpu.load').percentile(70), fire_num_stddev=2,
 #                         clear_num_stddev=1).publish('abover')
 
-# detector_percentile(data('jvm.cpu.load'), current_window=duration('10m'),
+#detector_percentile(data('jvm.cpu.load'), current_window=duration('10m'),
 #                                historical_window=duration('10m'), fire_percentile_threshold=90,
 #                                clear_percentile_threshold=75, orientation='out_of_band').publish('pctile')
 
