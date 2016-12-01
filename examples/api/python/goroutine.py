@@ -4,6 +4,9 @@
 # specified threshold and start taking snapshots of goroutines and netstat
 # dumps for each host that exceeds the limit every time we get another
 # datapoint till the metric goes back below the threshold and then exit
+#
+# running it would look something like this: 
+# ./goroutine.py -t TOKEN -r 1050 -s ".signalfx.com" -u mwp -d sf_source
 
 import argparse
 import requests
