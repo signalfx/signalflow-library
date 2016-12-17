@@ -23,9 +23,14 @@ def detector(stream, resource_identifier=None, duration=duration('15m')):
         binary = stream.map(lambda x: 1 if x is not None else 0)
     else:
         binary = stream.sum(by=resource_identifier).map(lambda x: 1 if x is not None else 0)
-    annotations = [annotate(binary, "indicator signal", {'streamType': 'signal',
-                                                         'staticLowerFireThreshold': 1})]
-    return detect(when(binary < 1, lasting(duration, 1.0)), annotations=annotations)
+    lower_threshold_signal = const(1)
+    annotations = [
+        annotate(binary, "indicator signal", {'sfui_streamType': 'signal'}),
+        annotate(lower_threshold_signal, 'lower fire threshold', {'sfui_streamType': 'threshold',
+                                                                  'sfui_state':'fire',
+                                                                  'sfui_orientation':'below',
+                                                                  'sfui_trigger':'outside'})]
+    return detect(when(binary < lower_threshold_signal, lasting(duration, 1.0)), annotations=annotations)
 
     # example
 

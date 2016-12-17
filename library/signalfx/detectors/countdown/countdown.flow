@@ -59,11 +59,21 @@ def hours_left_stream_detector(stream, lower_threshold=24, fire_lasting=lasting(
     #         lower_threshold hours (for fire_lasting); clears when stream is estimated not to be
     #         exhausted for at least clear_threshold hours (for clear_lasting)
     hours_left = hours_left_stream(stream, increment_size=increment_size).fill()
-    annotations = [annotate(hours_left, 'hours left', {'streamType': 'signal', 'influencedBy':
-        'increment_size', 'staticLowerFireThreshold': lower_threshold,
-        'staticLowerClearThreshold': clear_threshold})]
-    return detect(when(hours_left < lower_threshold, fire_lasting),
-                  when(hours_left > clear_threshold, clear_lasting),
+    lower_threshold_signal = const(lower_threshold)
+    clear_threshold_signal = const(clear_threshold)
+    annotations = [annotate(hours_left, 'hours left', {'sfui_streamType': 'signal', 'influencedBy':
+        'increment_size'),
+        annotate(lower_threshold_signal, 'lower fire threshold', {'sfui_streamType': 'threshold',
+                                                                  'sfui_state':'fire',
+                                                                  'sfui_orientation':'below',
+                                                                  'sfui_trigger':'outside'}),
+        annotate(clear_threshold_signal, 'lower fire threshold', {'sfui_streamType': 'threshold',
+                                                                  'sfui_state':'clear',
+                                                                  'sfui_orientation':'below',
+                                                                  'sfui_trigger':'outside'})
+        ]
+    return detect(when(hours_left < lower_threshold_signal, fire_lasting),
+                  when(hours_left > clear_threshold_signal, clear_lasting),
                   annotations=annotations)
 
 
