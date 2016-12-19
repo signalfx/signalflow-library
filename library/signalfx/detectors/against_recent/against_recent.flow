@@ -72,24 +72,24 @@ def detector_mean_std(stream, current_window=duration('5m'),
                                                          'sfui_state':'fire',
                                                          'sfui_orientation':'below',
                                                          'sfui_trigger':'outside',
-                                                         'influencedBy': fire_num_stddev}),
+                                                         'influencedBy': 'fire_num_stddev'}),
                    annotate(ft, 'upper fire threshold', {'sfui_streamType': 'threshold',
                                                          'sfui_state':'fire',
                                                          'sfui_orientation':'above',
                                                          'sfui_trigger':'outside' ,
-                                                         'influencedBy': fire_num_stddev}),
+                                                         'influencedBy': 'fire_num_stddev'}),
                    annotate(cb, 'lower clear threshold',
                             {'sfui_streamType': 'threshold',
                              'sfui_state':'clear',
                              'sfui_orientation':'below',
                              'sfui_trigger':'outside' ,
-                             'influencedBy': clear_num_stddev}),
+                             'influencedBy': 'clear_num_stddev'}),
                    annotate(ct, 'upper clear threshold',
                             {'sfui_streamType': 'threshold',
                              'sfui_state':'clear',
                              'sfui_orientation':'above',
                              'sfui_trigger':'outside' ,
-                             'influencedBy': clear_num_stddev})]
+                             'influencedBy': 'clear_num_stddev'})]
     return detector_helper(recent_min, recent_max, fb, cb, ct, ft, orientation, annotations)
 
 
@@ -125,38 +125,40 @@ def detector_percentile(stream, current_window=duration('5m'),
 
     if fire_percentile_threshold > 50:
         fb = j(100 - fire_percentile_threshold)
-        cb = j(100 - clear_percentile_threshold)
-        ct = j(clear_percentile_threshold)
         ft = j(fire_percentile_threshold)
     else:
         fb = j(fire_percentile_threshold)
+        ft = j(100 - fire_percentile_threshold)
+    if clear_percentile_threshold > 50:
+        cb = j(100 - clear_percentile_threshold)
+        ct = j(clear_percentile_threshold)
+    else:
         cb = j(clear_percentile_threshold)
         ct = j(100 - clear_percentile_threshold)
-        ft = j(100 - fire_percentile_threshold)
     annotations = [annotate(recent_min, 'rolling minimum', {'sfui_streamType': 'signal'}),
                    annotate(recent_max, 'rolling maximum', {'sfui_streamType': 'signal'}),
                    annotate(fb, 'lower fire threshold', {'sfui_streamType': 'threshold',
                                                          'sfui_state':'fire',
                                                          'sfui_orientation':'below',
                                                          'sfui_trigger':'outside',
-                                                         'influencedBy': fire_percentile_threshold}),
+                                                         'influencedBy': 'fire_percentile_threshold'}),
                    annotate(ft, 'upper fire threshold', {'sfui_streamType': 'threshold',
                                                          'sfui_state':'fire',
                                                          'sfui_orientation':'above',
                                                          'sfui_trigger':'outside' ,
-                                                         'influencedBy': fire_percentile_threshold}),
+                                                         'influencedBy': 'fire_percentile_threshold'}),
                    annotate(cb, 'lower clear threshold',
                             {'sfui_streamType': 'threshold',
                              'sfui_state':'clear',
                              'sfui_orientation':'below',
                              'sfui_trigger':'outside' ,
-                             'influencedBy': clear_percentile_threshold}),
+                             'influencedBy': 'clear_percentile_threshold'}),
                    annotate(ct, 'upper clear threshold',
                             {'sfui_streamType': 'threshold',
                              'sfui_state':'clear',
                              'sfui_orientation':'above',
                              'sfui_trigger':'outside' ,
-                             'influencedBy': clear_percentile_threshold})]
+                             'influencedBy': 'clear_percentile_threshold'})]
     return detector_helper(recent_min, recent_max, fb, cb, ct, ft, orientation, annotations)
 
 # examples
