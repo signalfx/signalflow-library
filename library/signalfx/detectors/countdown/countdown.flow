@@ -62,7 +62,7 @@ def hours_left_stream_detector(stream, lower_threshold=24, fire_lasting=lasting(
     lower_threshold_signal = const(lower_threshold)
     clear_threshold_signal = const(clear_threshold)
     annotations = [annotate(hours_left, 'hours left', {'sfui_streamType': 'signal', 'influencedBy':
-        'increment_size'),
+        'increment_size'}),
         annotate(lower_threshold_signal, 'lower fire threshold', {'sfui_streamType': 'threshold',
                                                                   'sfui_state':'fire',
                                                                   'sfui_orientation':'below',
