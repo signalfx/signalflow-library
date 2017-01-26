@@ -123,7 +123,7 @@ def detector_mean_std(stream, window_to_compare=duration('15m'),
     summary = stream.mean(over=duration(window_to_compare))
     fb = g(-1 * fire_num_stddev)
     cb = g(-1 * clear_num_stddev)
-    ct = g(-1 * clear_num_stddev)
+    ct = g(clear_num_stddev)
     ft = g(fire_num_stddev)
     annotations = [annotate(summary, 'rolling mean', {'sfui_streamType': 'signal'}),
                    annotate(fb, 'lower fire threshold', {'sfui_streamType': 'threshold',
