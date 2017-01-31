@@ -1,0 +1,7 @@
+#!/bin/bash
+set -e
+
+_VERSION=$1;
+sed -e "s/###VERSION###/${_VERSION}/g" sfpkg.info.tmpl > library/sfpkg.info
+(cd library && zip ../signalfx-${_VERSION}.zip sfpkg.info $(find . \( -type d -o \( -type f -a -name "*.flow" \) \)))
+rm library/sfpkg.info
