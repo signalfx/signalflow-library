@@ -41,11 +41,27 @@ def n_period_summary(stream, window_to_compare, space_between_windows, num_stdde
             return median(f(1), f(2), f(3))
         elif num_periods == 4:
             return median(f(1), f(2), f(3), f(4))
+        elif num_periods == 5:
+            return median(f(1), f(2), f(3), f(4), f(5))
+        elif num_periods == 6:
+            return median(f(1), f(2), f(3), f(4), f(5), f(6))
+        elif num_periods == 7:
+            return median(f(1), f(2), f(3), f(4), f(5), f(6), f(7))
+        elif num_periods >= 8:
+            return median(f(1), f(2), f(3), f(4), f(5), f(6), f(7), f(8))
     else:
         if num_periods == 3:
             return mean(f(1), f(2), f(3))
         elif num_periods == 4:
             return mean(f(1), f(2), f(3), f(4))
+        elif num_periods == 5:
+            return mean(f(1), f(2), f(3), f(4), f(5))
+        elif num_periods == 6:
+            return mean(f(1), f(2), f(3), f(4), f(5), f(6))
+        elif num_periods == 7:
+            return mean(f(1), f(2), f(3), f(4), f(5), f(6), f(7))
+        elif num_periods >= 8:
+            return mean(f(1), f(2), f(3), f(4), f(5), f(6), f(7), f(8))
 
 
 def period_summaries(stream, window_to_compare=duration('15m'),
@@ -62,7 +78,7 @@ def period_summaries(stream, window_to_compare=duration('15m'),
                     stream.timeshift(2 * space_between_windows_dur).mean_plus_stddev(
                         stddevs=num_stddev,
                         over=window_to_compare_dur))
-    elif num_windows == 3 or num_windows == 4:
+    elif num_windows >= 3:
         return n_period_summary(stream, window_to_compare_dur, space_between_windows_dur,
                                 num_stddev,
                                 num_windows,

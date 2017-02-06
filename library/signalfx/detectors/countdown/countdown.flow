@@ -8,6 +8,7 @@
 def hours_left_stream(stream, increment_size=duration('1m')):
     # Args:
     #     stream: data stream, assumed to be decreasing and non-negative
+    #     *increment_size deprecated but still part of signature*
     #     increment_size (duration): interval length used to estimate rate of change
     #         (optional, default=duration('1m'))
     #     NB it is very important that increment_size be larger than data/job resolution,
@@ -16,13 +17,9 @@ def hours_left_stream(stream, increment_size=duration('1m')):
     #       function will be incorrect
     #
     # Returns:
-    #     hours left until stream has value 0, calculated via linear extrapolation; is optimistic in
-    #         that it uses the maximum hours left over the estimation_period
-    a = stream.min(over=duration(increment_size))
-    b = a.timeshift(duration(increment_size))
-    c = (a - b).below(0)
-    num_increments_per_hour = duration('1h') / duration(increment_size)
-    return (a / (-1 * num_increments_per_hour * c))
+    #     hours left until stream has value 0, calculated via linear extrapolation; null if stream
+    #     is increasing
+    return (stream / (-3600 * stream.rateofchange().below(0)))
 
 
 def hours_left_stream_incr(stream, maximum_capacity, increment_size=duration('1m')):
@@ -58,7 +55,7 @@ def hours_left_stream_detector(stream, lower_threshold=24, fire_lasting=lasting(
     #     detect block which fires when stream is estimated to "run out" (i.e., have value 0) within
     #         lower_threshold hours (for fire_lasting); clears when stream is estimated not to be
     #         exhausted for at least clear_threshold hours (for clear_lasting)
-    hours_left = hours_left_stream(stream, increment_size=increment_size).fill()
+    hours_left = hours_left_stream(stream, increment_size=increment_size)
     lower_threshold_signal = const(lower_threshold)
     clear_threshold_signal = const(clear_threshold)
     annotations = [annotate(hours_left, 'hours left', {'sfui_streamType': 'signal', 'influencedBy':
