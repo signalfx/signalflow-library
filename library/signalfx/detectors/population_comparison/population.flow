@@ -15,8 +15,8 @@
 
 
 def median_MAD_threshold(population_stream, group_by_property=None, num_MAD=1):
-    population_median = population_stream.median(by=group_by_property).promote(group_by_property)
-    population_MAD = (population_stream.promote(group_by_property) - population_median).abs().median(by=group_by_property).promote(group_by_property)
+    population_median = population_stream.median(by=group_by_property)
+    population_MAD = (population_stream.promote(group_by_property) - population_median).abs().median(by=group_by_property)
     return population_median + num_MAD * population_MAD
 
 
@@ -41,20 +41,16 @@ def detector(population_stream,
     #           (optional, default='median_MAD', one of 'mean_stddev', 'median_MAD')
     #     orientation (string): specifies whether detect fires when signal is above, below, or
     #           or out-of-band (optional, default='above', one of 'above', 'below', 'out_of_band')
-    #     #
+    #
     # Returns:
-    #     detect block that fires when a member of the population is at least
-    #
-    #
-    #         deviations above the population  (for parameters specified by fire_lasting) and
-    #
-    #
-    # clears
-    #         when that member is no more than clear_num_stddev standard deviations above the
-    #         poplation mean (for parameters specified by clear_lasting)
+    #     detect block that fires when a member of the population is at least fire_num_dev
+    #         standard/median absolute deviations above the population mean/median
+    #         (for parameters specified by fire_lasting) and
+    #      clears when that member is no more than clear_num_stddev standard/median absolute
+    #         deviations above the population mean/median (for parameters specified by clear_lasting)
     def t(x):
         if strategy == 'mean_stddev':
-            return population_stream.mean_plus_stddev(stddevs=x, by=group_by_property).promote(group_by_property)
+            return population_stream.mean_plus_stddev(stddevs=x, by=group_by_property)
         elif strategy == 'median_MAD':
             return median_MAD_threshold(population_stream,
                                         group_by_property=group_by_property,
@@ -104,6 +100,6 @@ def detector(population_stream,
 # examples
 # some_data = data('jvm.cpu.load')
 # detector(some_data, strategy='median_MAD', orientation='out_of_band').publish('MAD_OOB')
-# detector(some_data, fire_num_dev=2, clear_num_dev=1, orientation='below').publish('mstd_below')
+# detector(some_data, fire_num_dev=0.5, clear_num_dev=0.2, orientation='below').publish('mstd_below')
 # detector(some_data, group_by_property=['aws_instance_type'],
 #    fire_num_dev=2, clear_num_dev=1, orientation='below').publish('mstd_below')
