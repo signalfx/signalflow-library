@@ -1,0 +1,5 @@
+def correlation_coefficient(stream1, stream2, duration):
+    # calculates the correlation coefficient of stream1 and stream2 during duration
+    covariance = (stream1 * stream2).mean(over=duration) - (
+    stream1.mean(over=duration) * stream2.mean(over=duration))
+    return covariance / (stream1.stddev(over=duration) * stream2.stddev(over=duration))

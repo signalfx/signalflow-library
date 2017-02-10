@@ -1,0 +1,81 @@
+# These functions create detectors which are insensitive to missing values and irregular arrival
+# patterns. The key insight is that, since percentile calculations do not involve nulls,
+# "A > 7 for 80% of 10 minutes" is equivalent to
+# "the 10-minute 20th percentile of A is greater than 7."
+#
+# Additionally count transform and percentage above threshold functions are provided.
+#
+# @author joe
+
+
+def compare_streams_ignoring_nulls(stream1, stream2, lasting):
+    # returns a stream for which a positive value corresponds to the condition
+    #    "stream1 > stream2 for lasting",
+    #    ignoring missing values
+    # works around the problem of detectors not firing due to one missed point;
+    #    leads to better detectors for aperiodic data
+    return (stream1 - stream2).percentile(100 * (1.0 - lasting.at_least), over=lasting.duration)
+
+
+def one_sided_detector(stream1, stream2, lasting):
+    # detects when "stream1 > stream2 for lasting", ignoring missing values
+    return detect(when(compare_streams_ignoring_nulls(stream1, stream2, lasting) > 0))
+
+
+def generic_one_sided_detector_with_clear(fire_stream1, fire_stream2, fire_lasting, clear_stream1,
+                                          clear_stream2, clear_lasting):
+    # detects when "fire_stream1 > fire_stream2 for fire_lasting",
+    # clears when "clear_stream1 > clear_stream2 for clear_lasting",
+    # both ignoring missing values
+    return detect(
+        when(compare_streams_ignoring_nulls(fire_stream1, fire_stream2, fire_lasting) > 0),
+        when(compare_streams_ignoring_nulls(clear_stream1, clear_stream2, clear_lasting) > 0))
+
+
+def one_sided_detector_with_clear(stream, fire_threshold, fire_lasting, clear_threshold,
+                                  clear_lasting):
+    # fires when "stream > fire_threshold for fire_lasting",
+    # clears when "stream < clear_threshold for clear_lasting",
+    # both ignoring missing values
+    return generic_one_sided_detector_with_clear(stream, fire_threshold, fire_lasting,
+                                                 clear_threshold, stream, clear_lasting)
+
+
+def indicator(s, t):
+    # equals 1 when s > t, -1 when s < t, null when s = t
+    return (s - t) / (s - t).abs()
+
+
+def two_sided_detector(stream, upper_stream, lower_stream, lasting):
+    # detects when "stream > upper_stream OR stream < lower_stream for lasting",
+    # ignoring missing values
+    upper_indicator = indicator(stream, upper_stream)
+    lower_indicator = indicator(lower_stream, stream)
+    either_indicator = upper_indicator + lower_indicator  # 2 if both conditions, 0 if one, -2 if neither
+    return one_sided_detector(either_indicator, -1, lasting)
+
+
+def two_sided_detector_with_clear(stream, fire_upper_stream, fire_lower_stream, fire_lasting,
+                                  clear_upper_stream, clear_lower_stream, clear_lasting):
+    # detects when "stream > fire_upper_stream OR stream < fire_lower_stream for fire_lasting",
+    # clears when "stream < clear_upper_stream AND stream > clear_lower_stream for clear_lasting",
+    # ignoring missing values
+    fire_indicator = indicator(stream, fire_upper_stream) + indicator(fire_lower_stream,
+                                                                      stream)  # 2 if both conditions, 0 if one, -2 if neither
+    clear_indicator = indicator(clear_upper_stream, stream) + indicator(stream,
+                                                                        clear_lower_stream)  # 2 if both conditions, 0 if one, -2 if neither
+    return generic_one_sided_detector_with_clear(fire_indicator, -1, fire_lasting, clear_indicator,
+                                                 1, clear_lasting)
+
+
+def count_transform(stream, duration):
+    positive_stream = (stream.abs() + 1)
+    pos_mean = positive_stream.mean(over=duration)
+    pos_sum = positive_stream.sum(over=duration)
+    return (pos_sum / pos_mean).map(lambda x: x if x is not None else 0)
+
+
+def percentage_above_threshold(stream, threshold, duration):
+    good_count = count_transform(stream.above(threshold), duration)
+    total_count = count_transform(stream, duration)
+    return good_count / total_count
