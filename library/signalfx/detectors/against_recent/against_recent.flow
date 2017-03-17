@@ -21,15 +21,15 @@
 # @author joe
 
 
-def detector_helper(recent_min, recent_max, f_bot, c_bot, c_top, f_top, orientation, annotations):
+def detector_helper(recent_min, recent_max, f_bot, c_bot, c_top, f_top, orientation, annotations, event_annotations=None):
     if orientation == 'above':
-        return detect(when(recent_min > f_top), when(recent_max < c_top), annotations=annotations)
+        return detect(when(recent_min > f_top), when(recent_max < c_top), annotations=annotations, event_annotations=event_annotations)
     elif orientation == 'below':
-        return detect(when(recent_max < f_bot), when(recent_min > c_bot), annotations=annotations)
+        return detect(when(recent_max < f_bot), when(recent_min > c_bot), annotations=annotations, event_annotations=event_annotations)
     elif orientation == 'out_of_band':
         return detect(when(recent_min > f_top or recent_max < f_bot),
                       when(recent_max < c_top and recent_min > c_bot),
-                      annotations=annotations)
+                      annotations=annotations, event_annotations=event_annotations)
 
 
 def detector_mean_std(stream, current_window=duration('5m'),
@@ -61,15 +61,13 @@ def detector_mean_std(stream, current_window=duration('5m'),
             historical_window))
 
     current_window_duration = duration(current_window)
-    current_window_string = str(current_window_duration)
     recent_min = stream.min(over=current_window_duration)
     recent_max = stream.max(over=current_window_duration)
     fb = h(-1 * fire_num_stddev)
     cb = h(-1 * clear_num_stddev)
     ct = h(clear_num_stddev)
     ft = h(fire_num_stddev)
-    annotations = [annotate(current_window_string, 'current window'),
-                   annotate(recent_min, 'rolling minimum', {'sfui_streamType': 'signal'}),
+    annotations = [annotate(recent_min, 'rolling minimum', {'sfui_streamType': 'signal'}),
                    annotate(recent_max, 'rolling maximum', {'sfui_streamType': 'signal'}),
                    annotate(fb, 'lower fire threshold', {'sfui_streamType': 'threshold',
                                                          'sfui_state':'fire',
@@ -93,7 +91,8 @@ def detector_mean_std(stream, current_window=duration('5m'),
                              'sfui_orientation':'above',
                              'sfui_trigger':'outside' ,
                              'influencedBy': 'clear_num_stddev'})]
-    return detector_helper(recent_min, recent_max, fb, cb, ct, ft, orientation, annotations)
+    event_annotations = {'current_window', str(current_window_duration)}
+    return detector_helper(recent_min, recent_max, fb, cb, ct, ft, orientation, annotations, event_annotations)
 
 
 def detector_percentile(stream, current_window=duration('5m'),
@@ -123,8 +122,9 @@ def detector_percentile(stream, current_window=duration('5m'),
         return stream.timeshift(duration(current_window)).percentile(x, over=duration(
             historical_window))
 
-    recent_min = stream.min(over=duration(current_window))
-    recent_max = stream.max(over=duration(current_window))
+    current_window_duration = duration(current_window)
+    recent_min = stream.min(over=current_window_duration)
+    recent_max = stream.max(over=current_window_duration)
 
     if fire_percentile_threshold > 50:
         fb = j(100 - fire_percentile_threshold)
@@ -162,7 +162,8 @@ def detector_percentile(stream, current_window=duration('5m'),
                              'sfui_orientation':'above',
                              'sfui_trigger':'outside' ,
                              'influencedBy': 'clear_percentile_threshold'})]
-    return detector_helper(recent_min, recent_max, fb, cb, ct, ft, orientation, annotations)
+    event_annotations = {'current_window', str(current_window_duration)}
+    return detector_helper(recent_min, recent_max, fb, cb, ct, ft, orientation, annotations, event_annotations)
 
 # examples
 # detector_mean_std(data('jvm.cpu.load').percentile(70), fire_num_stddev=2,
