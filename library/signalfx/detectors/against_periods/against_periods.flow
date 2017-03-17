@@ -19,14 +19,14 @@
 # @author joe
 
 
-def detector_helper(summary, fire_bot, clear_bot, clear_top, fire_top, orientation, annotations):
+def detector_helper(summary, fire_bot, clear_bot, clear_top, fire_top, orientation, annotations, event_annotations=None):
     if orientation == 'above':
-        return detect(when(summary > fire_top), when(summary < clear_top), annotations=annotations)
+        return detect(when(summary > fire_top), when(summary < clear_top), annotations=annotations, event_annotations=event_annotations)
     elif orientation == 'below':
-        return detect(when(summary < fire_bot), when(summary > clear_bot), annotations=annotations)
+        return detect(when(summary < fire_bot), when(summary > clear_bot), annotations=annotations, event_annotations=event_annotations)
     elif orientation == 'out_of_band':
         return detect(when(summary > fire_top or summary < fire_bot),
-                      when(summary < clear_top and summary > clear_bot), annotations=annotations)
+                      when(summary < clear_top and summary > clear_bot), annotations=annotations, event_annotations=event_annotations)
 
 
 def n_period_summary(stream, window_to_compare, space_between_windows, num_stddev,
@@ -122,7 +122,8 @@ def detector_growth_rate(stream, window_to_compare=duration('15m'),
                              'sfui_orientation':'above',
                              'sfui_trigger':'outside' ,
                              'influencedBy': 'clear_growth_rate_threshold'})]
-    return detector_helper(summary, fb, cb, ct, ft, orientation, annotations)
+    event_annotations = {'current_window': str(window_to_compare)}
+    return detector_helper(summary, fb, cb, ct, ft, orientation, annotations, event_annotations)
 
 
 def detector_mean_std(stream, window_to_compare=duration('15m'),
@@ -164,7 +165,8 @@ def detector_mean_std(stream, window_to_compare=duration('15m'),
                              'sfui_orientation':'above',
                              'sfui_trigger':'outside' ,
                              'influencedBy': 'clear_num_stddev'})]
-    return detector_helper(summary, fb, cb, ct, ft, orientation, annotations)
+    event_annotations = {'current_window': str(window_to_compare)}
+    return detector_helper(summary, fb, cb, ct, ft, orientation, annotations, event_annotations)
 
 # examples
 # some_data = data('jvm.cpu.load').mean()
