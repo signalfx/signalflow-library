@@ -61,13 +61,14 @@ def detector_mean_std(stream, current_window=duration('5m'),
             historical_window))
 
     current_window_duration = duration(current_window)
+    current_window_string = str(current_window_duration)
     recent_min = stream.min(over=current_window_duration)
     recent_max = stream.max(over=current_window_duration)
     fb = h(-1 * fire_num_stddev)
     cb = h(-1 * clear_num_stddev)
     ct = h(clear_num_stddev)
     ft = h(fire_num_stddev)
-    annotations = [annotate(current_window, 'current window'),
+    annotations = [annotate(current_window_string, 'current window'),
                    annotate(recent_min, 'rolling minimum', {'sfui_streamType': 'signal'}),
                    annotate(recent_max, 'rolling maximum', {'sfui_streamType': 'signal'}),
                    annotate(fb, 'lower fire threshold', {'sfui_streamType': 'threshold',

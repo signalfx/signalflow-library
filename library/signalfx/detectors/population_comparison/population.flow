@@ -60,7 +60,8 @@ def detector(population_stream,
     clear_top = t(clear_num_dev)
     clear_bot = t(-1 * clear_num_dev)
     fire_bot = t(-1 * fire_num_dev)
-    annotations = [annotate(population_stream, 'population stream', {'sfui_streamType': 'signal'}),
+    promoted_population_stream = population_stream.promote(group_by_property)
+    annotations = [annotate(promoted_population_stream, 'population stream', {'sfui_streamType': 'signal'}),
                    annotate(fire_top, 'upper fire threshold', {'sfui_streamType': 'threshold',
                                                                'sfui_state':'fire',
                                                                'sfui_orientation':'above',
@@ -84,17 +85,17 @@ def detector(population_stream,
                              'sfui_trigger':'outside' ,
                              'influencedBy': 'clear_num_dev'})]
     if orientation == 'above':
-        return detect(when(population_stream.promote(group_by_property) > fire_top, fire_lasting),
-                      when(population_stream.promote(group_by_property) < clear_top, clear_lasting),
+        return detect(when(promoted_population_stream > fire_top, fire_lasting),
+                      when(promoted_population_stream < clear_top, clear_lasting),
                       annotations=annotations)
     elif orientation == 'below':
-        return detect(when(population_stream.promote(group_by_property) < fire_bot, fire_lasting),
-                      when(population_stream.promote(group_by_property) > clear_bot, clear_lasting),
+        return detect(when(promoted_population_stream < fire_bot, fire_lasting),
+                      when(promoted_population_stream > clear_bot, clear_lasting),
                       annotations=annotations)
     elif orientation == 'out_of_band':
         return detect(
-            when(population_stream.promote(group_by_property) > fire_top or population_stream.promote(group_by_property) < fire_bot, fire_lasting),
-            when(population_stream.promote(group_by_property) < clear_top and population_stream.promote(group_by_property) > clear_bot, clear_lasting),
+            when(promoted_population_stream > fire_top or promoted_population_stream < fire_bot, fire_lasting),
+            when(promoted_population_stream < clear_top and promoted_population_stream > clear_bot, clear_lasting),
             annotations=annotations)
 
 # examples
