@@ -85,6 +85,7 @@ def period_summaries(stream, window_to_compare=duration('15m'),
                                 discard_historical_outliers=discard_historical_outliers)
 
 
+
 def detector_growth_rate(stream, window_to_compare=duration('15m'),
                          space_between_windows=duration('1w'),
                          num_windows=4, fire_growth_rate_threshold=0.2,
