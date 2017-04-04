@@ -1,4 +1,4 @@
-The `against_recent` module contains two functions. Both detect when the recent values of a signal different from the values of the immediately preceding time period. One uses mean plus standard deviation to define a baseline, and the other uses a percentile.
+The `against_recent` module contains two functions. Both detect when the recent values of a signal different from the values of the immediately preceding time period. One uses mean plus standard deviation to define a baseline, and the other uses a percentile. This SignalFx UI refers to this module as Sudden Change.
 
 
 ## Mean plus standard deviation
@@ -8,8 +8,8 @@ The `detector_mean_std` function has the following parameters. Parameters with n
 |Parameter name|Type|Description|Default value|
 |:---|:---|:---|:---|
 |stream|stream|data being monitored|*None*|
-|current_window|duration|window whose behavior is being tested for abnormality|duration('5m')|
-|historical_window|duration|window whose behavior is used to define normality|duration('1h')|
+|current_window|duration|window being tested for anomalous values|duration('5m')|
+|historical_window|duration|window that defines normal values|duration('1h')|
 |fire_num_stddev|number|number of standard deviations different from historical mean required to trigger, should be >= 0 |3|
 |clear_num_stddev|number|number of standard deviations different from historical mean required to clear, should be >= 0|2.5|
 |orientation|string|specifies whether detect fires when signal is above, below, or out-of-band (options  'above', 'below', 'out_of_band')|'above'|
@@ -37,8 +37,8 @@ The `detector_percentile` function has the following parameters. Parameters with
 |Parameter name|Type|Description|Default value|
 |:---|:---|:---|:---|
 |stream|stream|data being monitored|*None*|
-|current_window|duration|window whose behavior is being tested for abnormality|duration('5m')|
-|historical_window|duration|window whose behavior is used to define normality|duration('1h')|
+|current_window|duration|window being tested for anomalous values|duration('5m')|
+|historical_window|duration|window that defines normal values|duration('1h')|
 |fire_percentile_threshold|number|percentile of historical_window used as a trigger threshold, must be between 0 and 100|99|
 |clear_percentile_threshold|number|percentile of historical_window used as a clear threshold, must be between 0 and 100|95|
 |orientation|string|specifies whether detect fires when signal is above, below, or out-of-band (options  'above', 'below', 'out_of_band')|'above'|
