@@ -17,7 +17,7 @@ Explanations of parameters and example usages can be found in the README file of
 
 The functions in the library can also be accessed via the SignalFx UI. The following table maps the directories in this repository to the Alert Conditions in the UI.
 
-|repository name|UI name|
+|Repository name|UI name|
 |---|---|
 |not_reporting|Heartbeat Check|
 |countdown|Resource Running Out|
