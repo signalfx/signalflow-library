@@ -6,7 +6,7 @@ The `against_recent` module contains two functions. Both detect when the recent 
 The `detector_mean_std` function has the following parameters. Parameters with no default value are required.
 
 |Parameter name|Type|Description|Default value|
-|---|---|---|---|
+|:---|:---|:---|:---|
 |stream|stream|data being monitored|*None*|
 |current_window|duration|window whose behavior is being tested for abnormality|duration('5m')|
 |historical_window|duration|window whose behavior is used to define normality|duration('1h')|
@@ -35,7 +35,7 @@ against_recent.detector_mean_std(service_cpu, current_window=duration('3m'),
 The `detector_percentile` function has the following parameters. Parameters with no default value are required.
 
 |Parameter name|Type|Description|Default value|
-|---|---|---|---|
+|:---|:---|:---|:---|
 |stream|stream|data being monitored|*None*|
 |current_window|duration|window whose behavior is being tested for abnormality|duration('5m')|
 |historical_window|duration|window whose behavior is used to define normality|duration('1h')|
