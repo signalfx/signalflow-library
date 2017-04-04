@@ -1,11 +1,11 @@
 The `against_recent` module contains two functions. Both detect when the recent values of a signal different from the values of the immediately preceding time period. One uses mean plus standard deviation to define a baseline, and the other uses a percentile.
 
 
-## Mean plus standard deviation
+## Mean Plus Standard Deviation
 
 The `detector_mean_std` function has the following parameters. Parameters with no default value are required.
 
-|parameter name|type|description|default value|
+|Parameter name|Type|Description|Default value|
 |---|---|---|---|
 |stream|stream|data being monitored|*None*|
 |current_window|duration|window whose behavior is being tested for abnormality|duration('5m')|
@@ -17,7 +17,7 @@ The `detector_mean_std` function has the following parameters. Parameters with n
 It returns a detect block that triggers when the last `current_window` of `stream` is at least `fire_num_stddev` standard deviations above/below/away from the mean of the `preceding historical_window`, and clears when the last `current_window` of `stream` remains below/above/within `clear_num_stddev` standard deviations above/below/of the mean of the preceding `historical_window`.
 
 
-#### Example usage:
+#### Example Usage
 ~~~~~~~~~~~~~~~~~~~~
 from signalfx.detectors.against_recent import against_recent
 
@@ -34,7 +34,7 @@ against_recent.detector_mean_std(service_cpu, current_window=duration('3m'),
 
 The `detector_percentile` function has the following parameters. Parameters with no default value are required.
 
-|parameter name|type|description|default value|
+|Parameter name|Type|Description|Default value|
 |---|---|---|---|
 |stream|stream|data being monitored|*None*|
 |current_window|duration|window whose behavior is being tested for abnormality|duration('5m')|
@@ -46,7 +46,7 @@ The `detector_percentile` function has the following parameters. Parameters with
 It returns a detect block that fires when the last `current_window` of `stream` exceeds (or drops below, or goes out of band) the `fire_percentile_threshold` of the preceding `historical_window`, and clears when the last `current_window` of `stream` remains below (or above, or within band) the `clear_percentile_threshold` of the preceding `historical_window`.
     
    
-#### Example usage:
+#### Example Usage
 ~~~~~~~~~~~~~~~~~~~~
 from signalfx.detectors.against_recent import against_recent
 
