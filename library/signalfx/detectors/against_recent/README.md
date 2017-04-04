@@ -43,7 +43,7 @@ The `detector_percentile` function has the following parameters. Parameters with
 |clear_percentile_threshold|number|percentile of historical_window used as a clear threshold, must be between 0 and 100|95|
 |orientation|string|specifies whether detect fires when signal is above, below, or out-of-band (options  'above', 'below', 'out_of_band')|'above'|
 
-It returns a detect block that fires when the last `current_window` of `stream` exceeds (or drops below, or goes out of band) the `fire_percentile_threshold` of the preceding `historical_window`, and clears when the last `current_window` of `stream` remains below (or above, or within band) the `clear_percentile_threshold` of the preceding `historical_window`.
+It returns a detect block that triggers when the last `current_window` of `stream` exceeds (or drops below, or goes out of band) the `fire_percentile_threshold` of the preceding `historical_window`, and clears when the last `current_window` of `stream` remains below (or above, or within band) the `clear_percentile_threshold` of the preceding `historical_window`.
     
    
 #### Example usage
