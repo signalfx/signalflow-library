@@ -17,7 +17,7 @@ The `detector_growth_rate` function has the following parameters. Parameters wit
 |discard_historical_outliers|boolean|whether to take the median (True) or mean (False) of historical windows|True|
 |orientation|string|specifies whether detect fires when signal is above, below, or out-of-band (options  'above', 'below', 'out_of_band')|'above'|
 
-It returns a detect block that triggers when the ........
+It returns a detect block that triggers when TODO
     
    
 #### Example usage
@@ -48,7 +48,7 @@ The `detector_mean_std` function has the following parameters. Parameters with n
 |discard_historical_outliers|boolean|whether to take the median (True) or mean (False) of historical windows|True|
 |orientation|string|specifies whether detect fires when signal is above, below, or out-of-band (options  'above', 'below', 'out_of_band')|'above'|
 
-It returns a detect block that triggers when ...
+It returns a detect block that triggers when TODO
 
 
 #### Example usage
