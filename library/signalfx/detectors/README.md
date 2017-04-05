@@ -12,7 +12,7 @@ against_recent.detector_percentile(service_cpu, current_window=duration('3m'),
   orientation='out_of_band').publish('custom_cpu_detector')
 ~~~~~~~~~~~~~~~~~~~~
 
-Explanations of parameters and example usages can be found in the README file of each subdirectory of this directory.
+Explanations of parameters and example usages can be found in the README file of each directory.
 
 
 The functions in the library can also be accessed via the SignalFx UI. The following table maps the directories in this repository to the Alert Conditions in the UI.
