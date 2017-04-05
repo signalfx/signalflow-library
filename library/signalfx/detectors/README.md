@@ -26,4 +26,3 @@ The functions in the library can also be accessed via the SignalFx UI. The follo
 |against_periods|Historical Anomaly|
 |aperiodic|*not available*|
 |multivariate|*not available*|
-|advanced|*not available*|
