@@ -1,4 +1,4 @@
-The `against_recent` module contains two functions. Both detect when the recent values of a signal different from the values of the immediately preceding time period. One uses mean plus standard deviation to define a baseline, and the other uses a percentile. This SignalFx UI refers to this module as Sudden Change.
+The `against_recent` module contains two main functions. Both detect when the recent values of a signal differ from the values of the immediately preceding time period. One uses mean plus standard deviation to define a baseline, and the other uses a percentile. The SignalFx UI refers to this module as Sudden Change.
 
 
 ## Mean plus standard deviation
@@ -14,7 +14,7 @@ The `detector_mean_std` function has the following parameters. Parameters with n
 |clear_num_stddev|number|number of standard deviations different from historical mean required to clear, should be >= 0|2.5|
 |orientation|string|specifies whether detect fires when signal is above, below, or out-of-band (options  'above', 'below', 'out_of_band')|'above'|
     
-It returns a detect block that triggers when the last `current_window` of `stream` is at least `fire_num_stddev` standard deviations away from the mean of the `historical_window`, and clears when the last `current_window` of `stream` remains within `clear_num_stddev` standard deviations of the mean of the preceding `historical_window`. The value of `orientation` determines whether the `current_window` is required to be above or below (or either) the norm established by the `historical_window`.
+It returns a detect block that triggers when all the values of the last `current_window` of `stream` are at least `fire_num_stddev` standard deviations away from the mean of the preceding `historical_window`, and clears when all the values of the last `current_window` of `stream` remain within `clear_num_stddev` standard deviations of the mean of the preceding `historical_window`. The value of `orientation` determines whether the `current_window` is required to be above or below (or either) the norm established by the `historical_window`.
     
 
 #### Example usage
@@ -43,7 +43,9 @@ The `detector_percentile` function has the following parameters. Parameters with
 |clear_percentile_threshold|number|percentile of historical_window used as a clear threshold, must be between 0 and 100|95|
 |orientation|string|specifies whether detect fires when signal is above, below, or out-of-band (options  'above', 'below', 'out_of_band')|'above'|
 
-It returns a detect block that triggers when the last `current_window` of `stream` exceeds (or drops below, or goes out of band) the `fire_percentile_threshold` of the preceding `historical_window`, and clears when the last `current_window` of `stream` remains below (or above, or within band) the `clear_percentile_threshold` of the preceding `historical_window`. The value of `orientation` determines whether the `current_window` is required to be above or below (or either) the norm established by the `historical_window`.
+It returns a detect block that triggers when all the values of the last `current_window` of `stream` exceed (or drop below) the `fire_percentile_threshold` percentile of the preceding `historical_window`, and clears when all the values of the last `current_window` of `stream` remain below (or above) the `clear_percentile_threshold` percentile of the preceding `historical_window`. The value of `orientation` determines whether the `current_window` is required to be above or below the norm established by the `historical_window`; the value 'out_of_band' detects change in either direction.
+
+Implementation note: if 'below' is selected for `orientation`, the trigger threshold is the smaller of the `fire_percentile_threshold` and `100 - fire_percentile_threshold` percentiles, and the clear threshold is the smaller of the analogous quantities. Similarly, the larger of the two quantities is used when 'above' is selected. If 'out_of_band' is selected, the bands are symmetric about the value 50. The thresholds should satisfy `|fire_percentile_threshold - 50| >= |clear_percentile_threshold - 50|` for the detector to behave as expected.
     
    
 #### Example usage
