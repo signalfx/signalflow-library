@@ -1,4 +1,4 @@
-The `against_periods` module contains two main functions. Both detect when the recent values of a signal differ from its historical values. One uses mean plus standard deviation to construct a threshold from historical values, and the other uses mean plus percentage change. This SignalFx UI refers to this module as Historical Anomaly.
+The `against_periods` module contains two main functions. Both detect when the recent values of a signal differ from its historical values. One uses mean plus standard deviation to construct a threshold from historical values, and the other uses mean plus percentage change. The SignalFx UI refers to this module as Historical Anomaly.
 
 
 
