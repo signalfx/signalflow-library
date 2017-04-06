@@ -1,4 +1,4 @@
-The `population_comparison` module contains one main function. It detects when one member of a group of emitters is different from the norm of that group. This SignalFx UI refers to this module as Outlier Detection.
+The `population_comparison` module contains one main function. It detects when one member of a group of emitters is different from the norm of that group. The SignalFx UI refers to this module as Outlier Detection.
 
 The `detector` function has the following parameters. Parameters with no default value are required.                         
 
