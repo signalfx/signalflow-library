@@ -1,4 +1,4 @@
-The `against_periods` module contains two functions. Both detect when the recent values of a signal different from its historical values. One uses mean plus standard deviation to construct a threshold from historical values, and the other uses mean plus percentage change. This SignalFx UI refers to this module as Historical Anomaly.
+The `against_periods` module contains two main functions. Both detect when the recent values of a signal different from its historical values. One uses mean plus standard deviation to construct a threshold from historical values, and the other uses mean plus percentage change. This SignalFx UI refers to this module as Historical Anomaly.
 
 
 
@@ -17,8 +17,7 @@ The `detector_growth_rate` function has the following parameters. Parameters wit
 |discard_historical_outliers|boolean|whether to take the median (True) or mean (False) of historical windows|True|
 |orientation|string|specifies whether detect fires when signal is above, below, or out-of-band (options  'above', 'below', 'out_of_band')|'above'|
 
-It returns a detect block that triggers when TODO
-    
+It returns a detect block that triggers when the mean of the last `window_to_compare` of `stream` differs from the historical norm of `stream`. The historical norm is formed from the previous `num_windows` periods of length `window_to_compare`, spaced `space_between_windows` apart. Take either the median (`discard_historical_outliers`=True) or the mean (`discard_historical_outliers`=False) of the `num_periods` historical means. This triggers when the current value is `fire_growth_rate_threshold` larger (or smaller, or either, depending on the value of `orientation`) than the historical norm and clears when the current value is within `clear_growth_rate_threshold` of the historical norm.
    
 #### Example usage
 ~~~~~~~~~~~~~~~~~~~~
@@ -48,8 +47,7 @@ The `detector_mean_std` function has the following parameters. Parameters with n
 |discard_historical_outliers|boolean|whether to take the median (True) or mean (False) of historical windows|True|
 |orientation|string|specifies whether detect fires when signal is above, below, or out-of-band (options  'above', 'below', 'out_of_band')|'above'|
 
-It returns a detect block that triggers when TODO
-
+It returns a detect block that triggers when the mean of the last `window_to_compare` of `stream` differs from the historical norm of `stream`. The historical norm is formed from the previous `num_windows` periods of length `window_to_compare`, spaced `space_between_windows` apart. To define a trigger threshold, take either the median (`discard_historical_outliers`=True) or the mean (`discard_historical_outliers`=False) of the `num_periods` historical mean + `fire_num_stddev` standard deviations. Use the same procedure with `clear_num_stddev` for the clear threshold. This triggers when the current value is larger (or smaller, or either, depending on the value of `orientation`) than the historically defined trigger threshold and clears when the current value is on the corresponding side of the clear threshold.
 
 #### Example usage
 ~~~~~~~~~~~~~~~~~~~~
