@@ -14,8 +14,8 @@ The `detector_mean_std` function has the following parameters. Parameters with n
 |clear_num_stddev|number|number of standard deviations different from historical mean required to clear, should be >= 0|2.5|
 |orientation|string|specifies whether detect fires when signal is above, below, or out-of-band (options  'above', 'below', 'out_of_band')|'above'|
     
-It returns a detect block that triggers when the last `current_window` of `stream` is at least `fire_num_stddev` standard deviations above/below/away from the mean of the `preceding historical_window`, and clears when the last `current_window` of `stream` remains below/above/within `clear_num_stddev` standard deviations above/below/of the mean of the preceding `historical_window`.
-
+It returns a detect block that triggers when the last `current_window` of `stream` is at least `fire_num_stddev` standard deviations away from the mean of the `historical_window`, and clears when the last `current_window` of `stream` remains within `clear_num_stddev` standard deviations of the mean of the preceding `historical_window`. The value of `orientation` determines whether the `current_window` is required to be above or below (or either) the norm established by the `historical_window`.
+    
 
 #### Example usage
 ~~~~~~~~~~~~~~~~~~~~
@@ -43,7 +43,7 @@ The `detector_percentile` function has the following parameters. Parameters with
 |clear_percentile_threshold|number|percentile of historical_window used as a clear threshold, must be between 0 and 100|95|
 |orientation|string|specifies whether detect fires when signal is above, below, or out-of-band (options  'above', 'below', 'out_of_band')|'above'|
 
-It returns a detect block that triggers when the last `current_window` of `stream` exceeds (or drops below, or goes out of band) the `fire_percentile_threshold` of the preceding `historical_window`, and clears when the last `current_window` of `stream` remains below (or above, or within band) the `clear_percentile_threshold` of the preceding `historical_window`.
+It returns a detect block that triggers when the last `current_window` of `stream` exceeds (or drops below, or goes out of band) the `fire_percentile_threshold` of the preceding `historical_window`, and clears when the last `current_window` of `stream` remains below (or above, or within band) the `clear_percentile_threshold` of the preceding `historical_window`. The value of `orientation` determines whether the `current_window` is required to be above or below (or either) the norm established by the `historical_window`.
     
    
 #### Example usage
