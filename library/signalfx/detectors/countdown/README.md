@@ -5,9 +5,9 @@ The `hours_left_stream_detector` function has the following parameters. Paramete
 |Parameter name|Type|Description|Default value|
 |:---|:---|:---|:---|
 |stream|data stream|assumed to be decreasing|*None*|
-|lower_threshold|number|threshold for triggering (number of hours)|24|
+|lower_threshold|number|threshold for triggering (number of hours), should be > 0|24|
 |fire_lasting|lasting|lasting object associated with lower_threshold|lasting('10m', 1.0)|
-|clear_threshold|number|threshold for clearing (number of hours)|36|
+|clear_threshold|number|threshold for clearing (number of hours), should be > 0|36|
 |clear_lasting|lasting|lasting object associated with clear threshold|lasting('10m', 1.0)|
 
 
@@ -19,9 +19,9 @@ The `hours_left_stream_incr_detector` function has in addition a required `maxim
 |:---|:---|:---|:---|
 |stream|data stream|assumed to be increasing|*None*|
 |maximum_capacity|number|value at which stream is exhausted|*None*|
-|lower_threshold|number|threshold for triggering (number of hours)|24|
+|lower_threshold|number|threshold for triggering (number of hours), should be > 0|24|
 |fire_lasting|lasting|lasting object associated with lower_threshold|lasting('10m', 1.0)|
-|clear_threshold|number|threshold for clearing (number of hours)|36|
+|clear_threshold|number|threshold for clearing (number of hours), should be > 0|36|
 |clear_lasting|lasting|lasting object associated with clear threshold|lasting('10m', 1.0)|
 
    
