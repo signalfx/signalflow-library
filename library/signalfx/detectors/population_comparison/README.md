@@ -4,7 +4,7 @@ The `detector` function has the following parameters. Parameters with no default
 
 |Parameter name|Type|Description|Default value|
 |:---|:---|:---|:---|
-|population_stream|stream|data being monitored|*None*|
+|population_stream|stream|population being monitored for outliers|*None*|
 |group_by_property|string or list of strings|dimension(s)/property(ies) by which to group the population|None|
 |fire_num_dev|number|number of deviations from population norm required to trigger|3|
 |fire_lasting|lasting|percent of duration associated with trigger threshold|lasting('5m', 1.0)|
