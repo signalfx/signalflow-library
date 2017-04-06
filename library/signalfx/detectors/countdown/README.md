@@ -1,4 +1,4 @@
-The `countdown` module contains two main functions. Both perform linear extrapolation on a signal and trigger when the extrapolation hits some value (0, or user-provided) within a certain number of hours. One function assumes the signal is increasing, and the other assumes it is decreasing. This SignalFx UI refers to this module as Resource Running Out.
+The `countdown` module contains two main functions. Both perform linear extrapolation on a signal and trigger when the extrapolation hits some value (0, or user-provided) within a certain number of hours. One function assumes the signal is increasing, and the other assumes it is decreasing. The SignalFx UI refers to this module as Resource Running Out.
 
 The `hours_left_stream_detector` function has the following parameters. Parameters with no default value are required.                         
 
