@@ -11,7 +11,7 @@ The `hours_left_stream_detector` function has the following parameters. Paramete
 |clear_lasting|lasting|lasting object associated with clear threshold|lasting('10m', 1.0)|
 
 
-It returns a detect block that triggers when the estimate that `stream` is projected to reach zero within `lower threshold` hours holds for `fire_lasting`, and clears when the estimated time left remains above `clear_threshold` hours for `clear_lasting`. The `stream` is assumed be decreasing; periods during which `stream` increases count against it for the purposes of the `fire_lasting` parameter.
+It returns a detect block that triggers when the estimate that `stream` is projected to reach zero within `lower threshold` hours holds for `fire_lasting`, and clears when the estimated time left remains above `clear_threshold` hours for `clear_lasting`. The `stream` is assumed to be decreasing; periods during which `stream` increases count against it for the purposes of the `fire_lasting` parameter.
 
 The `hours_left_stream_incr_detector` function has in addition a required `maximum_capacity` parameter; it returns a detect block that triggers when the estimate that `stream` is projected to reach `maximum_capacity` within `lower threshold` hours holds for `fire_lasting`, and clears when the estimated time left remains above `clear_threshold` hours for `clear_lasting`. Here, `stream` is assumed to be increasing. This function really just applies `hours_left_stream_detector` to the stream `maximum_capacity - stream`.
 
