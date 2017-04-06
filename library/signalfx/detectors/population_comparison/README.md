@@ -1,4 +1,4 @@
-The `population_comparison` module contains one function. It detects when one member of a group of emitters is different from the norm of that group. This SignalFx UI refers to this module as Outlier Detection.
+The `population_comparison` module contains one main function. It detects when one member of a group of emitters is different from the norm of that group. This SignalFx UI refers to this module as Outlier Detection.
 
 The `detector` function has the following parameters. Parameters with no default value are required.                         
 
@@ -13,7 +13,7 @@ The `detector` function has the following parameters. Parameters with no default
 |strategy|string|represents method for defining outliers, options 'mean_stddev' (mean plus standard deviation) and 'median_MAD' (median plus median absolute deviations)|'median_MAD'|
 |orientation|string|specifies whether detect fires when signal is above, below, or out-of-band (options  'above', 'below', 'out_of_band')|'above'|
 
-It returns a detect block that triggers when TODO
+It returns a detect block that triggers when a member of `population_stream` is more than `fire_num_dev` standard (resp. median absolute) deviations away from the population mean (resp. median) for `fire_lasting`, and clears when that member is within `clear_num_dev` standard (resp. median absolute) deviations away from the population mean (resp. median) for `clear_lasting`. The value of `strategy` determines whether mean plus standard deviation or median plus median absolute deviation is used, and `orientation` determines whether the member is required to be above or below (or either) the population norm.
     
    
 #### Example usage FIXME
