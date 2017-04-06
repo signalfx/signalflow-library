@@ -5,7 +5,8 @@ from signalfx.detectors.against_recent import against_recent
 
 service_cpu = data('cpu.utilization').mean(by=['aws_tag_service'])
 
-against_recent.detector_percentile(service_cpu).publish('cpu_detector') # uses default values
+# use default values
+against_recent.detector_percentile(service_cpu).publish('cpu_detector')
 
 against_recent.detector_percentile(service_cpu, current_window=duration('3m'),
   historical_window=duration('2h'), fire_percentile_threshold=95, clear_percentile_threshold=85,
