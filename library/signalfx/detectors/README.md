@@ -20,10 +20,10 @@ The functions in the library can also be accessed via the SignalFx UI. The follo
 
 |Repository name|UI name|
 |:---|:---|
-|not_reporting|Heartbeat Check|
-|countdown|Resource Running Out|
-|population_comparison|Outlier Detection|
-|against_recent|Sudden Change|
-|against_periods|Historical Anomaly|
+|not_reporting|[Heartbeat Check](https://docs.signalfx.com/en/latest/detect-alert/alert-condition-reference/heartbeat-check.html)|
+|countdown|[Resource Running Out](https://docs.signalfx.com/en/latest/detect-alert/alert-condition-reference/resource-running-out.html)|
+|population_comparison|[Outlier Detection](https://docs.signalfx.com/en/latest/detect-alert/alert-condition-reference/outlier-detection.html)|
+|against_recent|[Sudden Change](https://docs.signalfx.com/en/latest/detect-alert/alert-condition-reference/sudden-change.html)|
+|against_periods|[Historical Anomaly](https://docs.signalfx.com/en/latest/detect-alert/alert-condition-reference/hist-anomaly.html)|
 |aperiodic|*not available*|
 |multivariate|*not available*|
