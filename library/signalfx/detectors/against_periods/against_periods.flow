@@ -29,6 +29,50 @@ def detector_helper(summary, fire_bot, clear_bot, clear_top, fire_top, orientati
                       when(summary < clear_top and summary > clear_bot), annotations=annotations, event_annotations=event_annotations)
 
 
+def n_period_trimmed_var_plus_mean_sq(s, w, sp, n):
+    ### needs to condition on mean!! otherwise this may be smaller than square of trimmed_mean
+    # s= stream, w = window_to_compare, sp = space_between_windows, n = num_periods
+    def f(x): # mean^2 + var of shifted window
+        mn = s.timeshift(x * duration(sp)).mean(over=duration(w))
+        var = s.timeshift(x * duration(sp)).variance(over=duration(w))
+        return var + mn * mn
+    if n == 1:
+        return 0, 0, f(1)
+    elif n == 2:
+        return 0, 0, mean(f(1), f(2))
+    elif n == 3:
+        return min(f(1), f(2), f(3)), max(f(1), f(2), f(3)), median(f(1), f(2), f(3))
+    else:
+        new_min = min(f(n), n_period_trimmed_mean(s, w, sp, n-1)[0])
+        new_max = max(f(n), n_period_trimmed_mean(s, w, sp, n-1)[1])
+        tt = n_period_trimmed_var_plus_mean_sq(s, w, sp, n-1)[1] if f(n) > n_period_trimmed_var_plus_mean_sq(s, w, sp, n-1)[1] else f(n)
+        ss = n_period_trimmed_var_plus_mean_sq(s, w, sp, n-1)[0] if n_period_trimmed_var_plus_mean_sq(s, w, sp, n-1)[0] > f(n) else tt
+        new_trimmed = ((n-3) * n_period_trimmed_var_plus_mean_sq(s, w, sp, n-1)[2] + ss)/ (n - 2)
+        return new_min, new_max, new_trimmed
+
+def n_period_trimmed_mean(s, w, sp, n):
+    # s= stream, w = window_to_compare, sp = space_between_windows, n = num_periods
+    def f(x): # mean of shifted window
+        return s.timeshift(x * duration(sp)).mean(over=duration(w))
+    if n == 1:
+        return 0, 0, f(1)
+    elif n == 2:
+        return 0, 0, mean(f(1), f(2))
+    elif n == 3:
+        return min(f(1), f(2), f(3)), max(f(1), f(2), f(3)), median(f(1), f(2), f(3))
+    else:
+        new_min = min(f(n), n_period_trimmed_mean(s, w, sp, n-1)[0])
+        new_max = max(f(n), n_period_trimmed_mean(s, w, sp, n-1)[1])
+        tt = n_period_trimmed_mean(s, w, sp, n-1)[1] if f(n) > n_period_trimmed_mean(s, w, sp, n-1)[1] else f(n)
+        ss = n_period_trimmed_mean(s, w, sp, n-1)[0] if n_period_trimmed_mean(s, w, sp, n-1)[0] > f(n) else tt
+        new_trimmed = ((n-3) * n_period_trimmed_mean(s, w, sp, n-1)[2] + ss)/ (n - 2)
+        return new_min, new_max, new_trimmed
+
+def n_period_trimmed_threshold(s, w, sp, n, num_stddev):
+    var = n_period_trimmed_var_plus_mean_sq(s, w, sp, n)[2] - n_period_trimmed_mean(s, w, sp, n)[2] * n_period_trimmed_mean(s, w, sp, n)[2]
+    std = var.sqrt() # var can be negative since it's not really the variance of anything!
+    return n_period_trimmed_mean(s, w, sp, n)[2] + num_stddev * std
+
 def n_period_summary(stream, window_to_compare, space_between_windows, num_stddev,
                      num_periods, discard_historical_outliers=True):
     def f(x):
