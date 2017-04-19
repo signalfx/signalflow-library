@@ -1,4 +1,4 @@
-The signalflow-library is a collection of signalflow programs, each of which captures a common analytical pattern used in alerting. For the most part, each function takes a required stream (signal) argument and some parameters (e.g. a percent of duration) and outputs a detector. A representative use is as follows:
+The SignalFlow Library is a collection of SignalFlow functions, each of which captures a common analytical pattern used in alerting. For the most part, each function takes a required stream (signal) argument and some parameters (e.g. a percent of duration) and outputs a detector. A representative use is as follows:
 
 ~~~~~~~~~~~~~~~~~~~~
 from signalfx.detectors.against_recent import against_recent
