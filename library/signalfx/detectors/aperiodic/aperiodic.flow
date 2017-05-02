@@ -68,14 +68,8 @@ def two_sided_detector_with_clear(stream, fire_upper_stream, fire_lower_stream, 
                                                  1, clear_lasting)
 
 
-def count_transform(stream, duration):
-    positive_stream = (stream.abs() + 1)
-    pos_mean = positive_stream.mean(over=duration)
-    pos_sum = positive_stream.sum(over=duration)
-    return (pos_sum / pos_mean).map(lambda x: x if x is not None else 0)
-
-
+# utility for visualization of lasting conditions
 def percentage_above_threshold(stream, threshold, duration):
-    good_count = count_transform(stream.above(threshold), duration)
-    total_count = count_transform(stream, duration)
+    good_count = stream.above(threshold).count(over=duration)
+    total_count = stream.count(over=duration)
     return good_count / total_count

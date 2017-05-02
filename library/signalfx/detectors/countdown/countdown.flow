@@ -5,24 +5,24 @@
 #
 # @author joe
 
-def hours_left_stream(stream, increment_size=duration('1m')):
+def hours_left_stream(stream, increment_size=duration('1m'), imputed_value=None):
     # Args:
     #     stream: data stream, assumed to be decreasing and non-negative
-    #     *increment_size deprecated but still part of signature*
-    #     increment_size (duration): interval length used to estimate rate of change
-    #         (optional, default=duration('1m'))
-    #     NB it is very important that increment_size be larger than data/job resolution,
-    #       else it will be silently replaced by that resolution in the calculation of "c",
-    #       but not in that of "num_increments_per_hour", and the stream returned by this
-    #       function will be incorrect
+    #     *increment_size deprecated but still part of signature; previously
+    #           used to estimate rate of change
+    #     imputed_value: if a number is provided, use this value when stream.rateofchange() > 0;
+    #           otherwise output stream will be null in this case (default=None)
     #
     # Returns:
     #     hours left until stream has value 0, calculated via linear extrapolation; null if stream
     #     is increasing
-    return (stream / (-3600 * stream.rateofchange().below(0)))
+    if imputed_value is None:
+        return (stream / (-3600 * stream.rateofchange().below(0)))
+    else:
+        return (stream / (-3600 * stream.rateofchange().below(0))) if stream.rateofchange() < 0 else imputed_value
 
 
-def hours_left_stream_incr(stream, maximum_capacity, increment_size=duration('1m')):
+def hours_left_stream_incr(stream, maximum_capacity, increment_size=duration('1m'), imputed_value=None):
     # Args:
     #     stream: data stream, assumed to be increasing
     #     maximum_capacity (number): value at which stream is exhausted,
@@ -33,14 +33,15 @@ def hours_left_stream_incr(stream, maximum_capacity, increment_size=duration('1m
     # Returns:
     #     hours left until stream has value maximum_capacity, calculated via linear extrapolation;
     #         is optimistic in that it uses the maximum hours left over the estimation_period
-    return hours_left_stream(maximum_capacity - stream, increment_size=increment_size)
+    return hours_left_stream(maximum_capacity - stream, increment_size=increment_size, imputed_value=imputed_value)
 
 
-def hours_left_stream_detector(stream, lower_threshold=24, fire_lasting=lasting('10m', 1.0),
+def hours_left_stream_detector(stream, minimum_value=0, lower_threshold=24, fire_lasting=lasting('10m', 1.0),
                                clear_threshold=36, clear_lasting=lasting('10m', 1.0),
                                increment_size=duration('1m')):
     # Args:
     #     stream: data stream, assumed to be decreasing
+    #     minimum_value (number): value at which stream is considered empty (optional, default=0)
     #     lower_threshold (number):  threshold for firing (number of hours) (optional, default=24)
     #     fire_lasting (lasting): lasting object associated with lower_threshold;
     #         note the estimation_period serves as a quasi-duration argument
@@ -55,7 +56,7 @@ def hours_left_stream_detector(stream, lower_threshold=24, fire_lasting=lasting(
     #     detect block which fires when stream is estimated to "run out" (i.e., have value 0) within
     #         lower_threshold hours (for fire_lasting); clears when stream is estimated not to be
     #         exhausted for at least clear_threshold hours (for clear_lasting)
-    hours_left = hours_left_stream(stream, increment_size=increment_size)
+    hours_left = hours_left_stream(stream - minimum_value, increment_size=increment_size, imputed_value=clear_threshold + 1)
     lower_threshold_signal = const(lower_threshold)
     clear_threshold_signal = const(clear_threshold)
     annotations = [annotate(hours_left, 'hours left', {'sfui_streamType': 'signal', 'influencedBy':
