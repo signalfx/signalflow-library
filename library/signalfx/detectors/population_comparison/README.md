@@ -18,19 +18,19 @@ It returns a detect block that triggers when a member of `population_stream` is 
    
 #### Example usage
 ~~~~~~~~~~~~~~~~~~~~
-from signalfx.detectors.population_comparison import population_comparison
+from signalfx.detectors.population_comparison import population
 
 cpu = data('cpu.utilization')
 
 # use this to compare each emitter to the entire population
-population_comparison.detector(cpu).publish('cpu_detector_1')
+population.detector(cpu).publish('cpu_detector_1')
 
 # use this to compare each emitter to those with the same aws_tag_service
-population_comparison.detector(cpu, group_by_property='aws_tag_service').publish('cpu_detector_2')
+population.detector(cpu, group_by_property='aws_tag_service').publish('cpu_detector_2')
 
 # this will compare aws_tag_services
 service_cpu = data('cpu.utilization').mean(by='aws_tag_service')
-population_comparison.detector(service_cpu).publish('cpu_detector_3')
+population.detector(service_cpu).publish('cpu_detector_3')
 
 ~~~~~~~~~~~~~~~~~~~~
 
