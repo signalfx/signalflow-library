@@ -14,8 +14,8 @@ def hours_left_stream(stream, increment_size=duration('1m'), imputed_value=None)
     #           otherwise output stream will be null in this case (default=None)
     #
     # Returns:
-    #     hours left until stream has value 0, calculated via linear extrapolation; null if stream
-    #     is increasing
+    #     hours left until stream has value 0, calculated via linear extrapolation; null or imputed value
+    #           if stream is increasing
     if imputed_value is None:
         return (stream / (-3600 * stream.rateofchange().below(0)))
     else:
