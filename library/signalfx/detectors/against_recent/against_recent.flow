@@ -59,7 +59,6 @@ def detector_mean_std(stream, current_window=duration('5m'),
     assert fire_num_stddev >= clear_num_stddev, {'fire_num_stddev' : fire_num_stddev, 'clear_num_stddev' : clear_num_stddev,
        'sfui_errorKeys' : ['fire_num_stddev', 'clear_num_stddev'],
        'sfui_errorTemplate': "change {{fire_num_stddev}} to a value greater than or equal to {{clear_num_stddev}} (or change {{clear_num_stddev}})"}
-    def t(x):
     def h(x):
         return stream.timeshift(duration(current_window)).mean_plus_stddev(stddevs=x, over=duration(
             historical_window))
