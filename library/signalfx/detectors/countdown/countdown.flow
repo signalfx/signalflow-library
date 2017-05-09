@@ -56,6 +56,9 @@ def hours_left_stream_detector(stream, minimum_value=0, lower_threshold=24, fire
     #     detect block which fires when stream is estimated to "run out" (i.e., have value 0) within
     #         lower_threshold hours (for fire_lasting); clears when stream is estimated not to be
     #         exhausted for at least clear_threshold hours (for clear_lasting)
+    assert lower_threshold <= clear_threshold, {'lower_threshold' : lower_threshold, 'clear_threshold' : clear_threshold,
+          'sfui_error_keys' : ['lower_threshold', 'clear_threshold'],
+          'sfui_errorTemplate': "{{lower_threshold}} should be less than or equal to {{clear_threshold}}"}
     hours_left = hours_left_stream(stream - minimum_value, increment_size=increment_size, imputed_value=clear_threshold + 1)
     lower_threshold_signal = const(lower_threshold)
     clear_threshold_signal = const(clear_threshold)
