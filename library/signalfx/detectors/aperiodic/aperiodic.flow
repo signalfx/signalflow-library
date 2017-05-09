@@ -43,7 +43,7 @@ def generic_condition(stream, threshold_1, threshold_2, orientation, lasting, mo
         total_count = denominator.count(over=lasting.duration)
     elif mode == 'expected':
         total_count = denominator.size(over=lasting.duration)
-    return when((true_count / total_count) > lasting.at_least)
+    return when((true_count / total_count) >= lasting.at_least)
 
 
 def generic_detector(stream, threshold_1, threshold_2, orientation, observed_lasting,
