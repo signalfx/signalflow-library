@@ -48,6 +48,9 @@ def detector(population_stream,
     #         (for parameters specified by fire_lasting) and
     #      clears when that member is no more than clear_num_stddev standard/median absolute
     #         deviations above the population mean/median (for parameters specified by clear_lasting)
+    assert fire_num_dev >= clear_num_dev, {'fire_num_dev' : fire_num_dev, 'clear_num_dev' : clear_num_dev,
+       'sfui_errorKeys' : ['fire_num_dev', 'clear_num_dev'],
+       'sfui_errorTemplate': "change {{fire_num_dev}} to a value greater than or equal to {{clear_num_dev}} (or change {{clear_num_dev}})"}
     def t(x):
         if strategy == 'mean_stddev':
             return population_stream.mean_plus_stddev(stddevs=x, by=group_by_property)
