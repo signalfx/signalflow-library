@@ -122,8 +122,8 @@ def detector_percentile(stream, current_window=duration('5m'),
     #           preceding historical_window,
     #           and clears when the last (current_window) of stream remains below (or above, or
     #           within band) the clear_percentile_threshold of the preceding historical_window
-    fire_derived = (fire_percentile_threshold - 50).abs()
-    clear_derived = (clear_percentile_threshold - 50).abs()
+    fire_derived = abs(fire_percentile_threshold - 50)
+    clear_derived = abs(clear_percentile_threshold - 50)
     assert fire_derived >= clear_derived, {'fire_percentile_threshold' : fire_derived, 'clear_percentile_threshold' : clear_derived,
        'sfui_errorKeys' : ['fire_percentile_threshold', 'clear_percentile_threshold'],
        'sfui_errorTemplate': "you need to change something"}
