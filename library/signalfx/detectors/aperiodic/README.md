@@ -28,7 +28,7 @@ from signalfx.detectors.aperiodic import aperiodic
 
 cpu = data('cpu.utilization').mean()
 
-aperiodic.above_or_below_detector(cpu, 80, 'above', lasting('10m', 0.9)).publish('cpu_above_80'')
+aperiodic.above_or_below_detector(cpu, 80, 'above', lasting('10m', 0.9)).publish('cpu_above_80')
 
 ~~~~~~~~~~~~~~~~~~~~
 
