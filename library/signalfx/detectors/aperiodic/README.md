@@ -2,7 +2,7 @@ The `aperiodic` module contains functions that facilitate the creation of detect
 
 If instead one were to import this module and publish `aperiodic.above_or_below_detector(S, T, 'above', lasting('5m', 1.0))`, the detector would trigger, as it requires 100% of the datapoints *received* in a five-minute window to be above the threshold.
 
-This module is not currently exposed via the SignalFx UI. For all functions in this module, all parameters are required.                         
+This module is not currently exposed via the SignalFx UI.
 
 ### Caution
 Supposing `L` is a lasting object and `S` and `T` are as above, `detect(when(S > T, L))` and `aperiodic.above_or_below_detector(S, T, 'above', L)` may behave differently when the duration of `L` is very large. This is because `aperiodic` is implemented via analytics with the duration of `L` as a transformation parameter, which influences the resolution of the resulting job. The job resulting from `detect(when(S > T, L))`, on the other hand, will have resolution dictated only by `S` and `T` even when the duration of `L` is large. In general the resolution of `aperiodic.above_or_below_detector(S, T, 'above', L)` will be coarser than that of `detect(when(S > T, L))`. Similar comments apply to the other functions in this module.
