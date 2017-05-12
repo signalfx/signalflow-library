@@ -90,15 +90,18 @@ def detector(population_stream,
     if orientation == 'above':
         return detect(when(promoted_population_stream > fire_top, fire_lasting),
                       when(promoted_population_stream < clear_top, clear_lasting),
+                      mode='split',
                       annotations=annotations)
     elif orientation == 'below':
         return detect(when(promoted_population_stream < fire_bot, fire_lasting),
                       when(promoted_population_stream > clear_bot, clear_lasting),
+                      mode='split',
                       annotations=annotations)
     elif orientation == 'out_of_band':
         return detect(
             when(promoted_population_stream > fire_top or promoted_population_stream < fire_bot, fire_lasting),
             when(promoted_population_stream < clear_top and promoted_population_stream > clear_bot, clear_lasting),
+            mode='split',
             annotations=annotations)
 
 # examples

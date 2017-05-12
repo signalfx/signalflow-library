@@ -76,6 +76,7 @@ def hours_left_stream_detector(stream, minimum_value=0, lower_threshold=24, fire
         ]
     return detect(when(hours_left < lower_threshold_signal, fire_lasting),
                   when(hours_left > clear_threshold_signal, clear_lasting),
+                  mode='split',
                   annotations=annotations)
 
 

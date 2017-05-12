@@ -58,18 +58,10 @@ def generic_detector(stream, threshold_1, threshold_2, orientation, observed_las
     #       event_annotations (dict): (optional, default=None)
     # Returns:
     #       detect block
-    # denominator = denominator_stream(stream, threshold_1, threshold_2, orientation)
-    # observed_true = true_count(stream, threshold_1, threshold_2, orientation, observed_lasting.duration)
-    # observed_total = denominator.count(over=observed_lasting.duration)
-    # observed_condition = count_condition(observed_true, observed_total, observed_lasting.at_least)
     if expected_lasting is None:
-        # return detect(observed_condition, event_annotations=event_annotations)
         return detect(generic_condition(stream, threshold_1, threshold_2, orientation, observed_lasting,
                                         mode='observed'), event_annotations=event_annotations)
     else:
-        # expected_true = true_count(stream, threshold_1, threshold_2, orientation, expected_lasting.duration)
-        # expected_total = denominator.size(over=expected_lasting.duration)
-        # expected_condition = count_condition(expected_true, expected_total, expected_lasting.at_least)
         return detect(generic_condition(stream, threshold_1, threshold_2, orientation, observed_lasting,
                                         mode='observed') and generic_condition(stream, threshold_1, threshold_2,
                                                                                orientation, expected_lasting,
@@ -94,24 +86,12 @@ def above_or_below_detector(stream, threshold, orientation, observed_lasting,
     #       detect block
     return generic_detector(stream, threshold, None, orientation, observed_lasting,
                             expected_lasting=expected_lasting, event_annotations=event_annotations)
-    #
-    # denominator = denominator_stream(stream, threshold, None, orientation)
-    # observed_true = true_count(stream, threshold, None, orientation, observed_lasting.duration)
-    # observed_total = denominator.count(over=observed_lasting.duration)
-    # observed_condition = count_condition(observed_true, observed_total, observed_lasting.at_least)
-    # if expected_lasting is None:
-    #     return detect(observed_condition, event_annotations=event_annotations)
-    # else:
-    #     expected_true = true_count(stream, threshold, None, orientation, expected_lasting.duration)
-    #     expected_total = denominator.size(over=expected_lasting.duration)
-    #     expected_condition = count_condition(expected_true, expected_total, expected_lasting.at_least)
-    #     return detect(observed_condition and expected_condition, event_annotations=event_annotations)
 
 
 def range_detector(stream, lower_threshold, upper_threshold, orientation, observed_lasting,
                             expected_lasting=None, event_annotations=None):
-    # fires when (R is true in observed_lasting.duration) / (observed data points in
-    #    observed.duration) is larger than observed_lasting.at least, and (RR is
+    # fires when (range condition is true in observed_lasting.duration) / (observed data points in
+    #    observed.duration) is larger than observed_lasting.at least, and (range condition is
     #    true in expected_lasting.duration) / (expected data points in expected_lasting.duration)
     #    is larger than expected_lasting.at_least
     #       stream (stream): data stream
@@ -125,19 +105,6 @@ def range_detector(stream, lower_threshold, upper_threshold, orientation, observ
     #       detect block
     return generic_detector(stream, lower_threshold, upper_threshold, orientation, observed_lasting,
                             expected_lasting=expected_lasting, event_annotations=event_annotations)
-    # denominator = denominator_stream(stream, lower_threshold, upper_threshold, orientation)
-    # observed_true = true_count(stream, lower_threshold, upper_threshold, orientation, observed_lasting.duration)
-    # observed_total = denominator.count(over=observed_lasting.duration)
-    # observed_condition = count_condition(observed_true, observed_total, observed_lasting.at_least)
-    # if expected_lasting is None:
-    #     return detect(observed_condition, event_annotations=event_annotations)
-    # else:
-    #     expected_true = true_count(stream, lower_threshold, upper_threshold, orientation, expected_lasting.duration)
-    #     expected_total = denominator.size(over=expected_lasting.duration)
-    #     expected_condition = when(expected_true, expected_total, expected_lasting.at_least)
-    #     return detect(observed_condition and expected_condition, event_annotations=event_annotations)
-
-
 
 
 def compare_streams_ignoring_nulls(stream1, stream2, lasting):

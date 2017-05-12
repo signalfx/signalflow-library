@@ -26,7 +26,7 @@ def detector_helper(summary, fire_bot, clear_bot, clear_top, fire_top, orientati
         return detect(when(summary < fire_bot), when(summary > clear_bot), annotations=annotations, event_annotations=event_annotations)
     elif orientation == 'out_of_band':
         return detect(when(summary > fire_top or summary < fire_bot),
-                      when(summary < clear_top and summary > clear_bot), annotations=annotations, event_annotations=event_annotations)
+                      when(summary < clear_top and summary > clear_bot), mode='split', annotations=annotations, event_annotations=event_annotations)
 
 
 def n_period_summary(stream, window_to_compare, space_between_windows, num_stddev,
