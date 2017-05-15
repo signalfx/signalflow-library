@@ -82,7 +82,7 @@ def generic_detector(stream, threshold_1, threshold_2, orientation, observed_las
     #       detect block
     if expected_lasting is None:
         return detect(generic_condition(stream, threshold_1, threshold_2, orientation, observed_lasting,
-                                        denominator_mode='observed'), mode=mode, annotations=annotations,
+                                        denominator_mode='observed'), annotations=annotations,
                                         event_annotations=event_annotations)
     else:
         return detect(generic_condition(stream, threshold_1, threshold_2, orientation, observed_lasting,
