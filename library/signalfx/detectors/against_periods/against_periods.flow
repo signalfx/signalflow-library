@@ -96,11 +96,11 @@ def detector_growth_rate(stream, window_to_compare=duration('15m'),
     assert fire_growth_rate_threshold >= clear_growth_rate_threshold, {'fire_growth_rate_threshold' : fire_growth_rate_threshold,
        'clear_growth_rate_threshold' : clear_growth_rate_threshold,
        'sfui_errorKeys' : ['fire_growth_rate_threshold', 'clear_growth_rate_threshold'],
-       'sfui_errorTemplate': "change {{fire_growth_rate_threshold}} to a value greater than or equal to {{clear_growth_rate_threshold}} (or change {{clear_growth_rate_threshold}})"}
+       'sfui_errorTemplate': "{{{fire_growth_rate_threshold}}} must be greater than or equal to {{{clear_growth_rate_threshold}}}."}
     assert space_between_windows_dur >= window_to_compare_dur, {'space_between_windows' : space_between_windows_dur,
        'window_to_compare' : window_to_compare_dur,
        'sfui_errorKeys' : ['space_between_windows', 'window_to_compare'],
-       'sfui_errorTemplate': "change {{space_between_windows}} to a duration longer than or equal to {{window_to_compare}} (or change {{window_to_compare}})"}
+       'sfui_errorTemplate': "{{{space_between_windows}}} must be greater than or equal to {{{window_to_compare}}}."}
     previous = period_summaries(stream, window_to_compare=window_to_compare_dur,
                                 space_between_windows=space_between_windows_dur,
                                 num_windows=num_windows, num_stddev=0,
@@ -145,11 +145,11 @@ def detector_mean_std(stream, window_to_compare=duration('15m'),
     window_to_compare_dur = duration(window_to_compare)
     assert fire_num_stddev >= clear_num_stddev, {'fire_num_stddev' : fire_num_stddev, 'clear_num_stddev' : clear_num_stddev,
        'sfui_errorKeys' : ['fire_num_stddev', 'clear_num_stddev'],
-       'sfui_errorTemplate': "change {{fire_num_stddev}} to a value greater than or equal to {{clear_num_stddev}} (or change {{clear_num_stddev}})"}
+       'sfui_errorTemplate': "{{{fire_num_stddev}}} must be greater than or equal to {{{clear_num_stddev}}}."}
     assert space_between_windows_dur >= window_to_compare_dur, {'space_between_windows' : space_between_windows_dur,
        'window_to_compare' : window_to_compare_dur,
        'sfui_errorKeys' : ['space_between_windows', 'window_to_compare'],
-       'sfui_errorTemplate': "change {{space_between_windows}} to a duration longer than or equal to {{window_to_compare}} (or change {{window_to_compare}})"}
+       'sfui_errorTemplate': "{{{space_between_windows}}} must be greater than or equal to {{{window_to_compare}}}."}
     def g(x):
         return period_summaries(stream, window_to_compare=window_to_compare_dur,
                                 space_between_windows=space_between_windows_dur,

@@ -58,7 +58,7 @@ def hours_left_stream_detector(stream, minimum_value=0, lower_threshold=24, fire
     #         exhausted for at least clear_threshold hours (for clear_lasting)
     assert lower_threshold <= clear_threshold, {'lower_threshold' : lower_threshold, 'clear_threshold' : clear_threshold,
           'sfui_errorKeys' : ['lower_threshold', 'clear_threshold'],
-          'sfui_errorTemplate': "change {{lower_threshold}} to a value less than or equal to {{clear_threshold}} (or change {{clear_threshold}})"}
+          'sfui_errorTemplate': "{{{lower_threshold}}} must be less than or equal to {{{clear_threshold}}}."}
     diff = stream - minimum_value
     hours_left = hours_left_stream(diff, increment_size=increment_size, imputed_value=clear_threshold + 1)
     lower_threshold_signal = const(lower_threshold)
