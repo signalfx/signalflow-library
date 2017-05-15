@@ -158,16 +158,14 @@ def generic_detector_with_clear(stream, fire_threshold_1, fire_threshold_2, fire
                                            fire_observed_lasting, denominator_mode='observed')
     else:
         fire_condition = generic_condition(stream, fire_threshold_1, fire_threshold_2, fire_orientation,
-                                           fire_observed_lasting, denominator_mode='observed') and
-                         generic_condition(stream, fire_threshold_1, fire_threshold_2, fire_orientation,
+                                           fire_observed_lasting, denominator_mode='observed') and generic_condition(stream, fire_threshold_1, fire_threshold_2, fire_orientation,
                                            fire_expected_lasting, denominator_mode='expected')
     if clear_expected_lasting is None:
         clear_condition = generic_condition(stream, clear_threshold_1, clear_threshold_2, clear_orientation,
                                            clear_observed_lasting, denominator_mode='observed')
     else:
         clear_condition = generic_condition(stream, clear_threshold_1, clear_threshold_2, clear_orientation,
-                                           clear_observed_lasting, denominator_mode='observed') and
-                         generic_condition(stream, clear_threshold_1, clear_threshold_2, clear_orientation,
+                                           clear_observed_lasting, denominator_mode='observed') and generic_condition(stream, clear_threshold_1, clear_threshold_2, clear_orientation,
                                            clear_expected_lasting, denominator_mode='expected')
     return detect(fire_condition, off=clear_condition, mode=mode, annotations=annotations, event_annotations=event_annotations)
 
@@ -218,7 +216,7 @@ def range_detector_with_clear(stream, fire_lower_threshold, fire_upper_threshold
     # Returns:
     #       detect block
     return generic_detector_with_clear(stream, fire_lower_threshold, fire_upper_threshold, orientation,
-                                       fire_observed_lasting, clear_lower_threshold, clear_upper_threhsold,
+                                       fire_observed_lasting, clear_lower_threshold, clear_upper_threshold,
                                        opposite_orientation(orientation), clear_observed_lasting,
                                        fire_expected_lasting=fire_expected_lasting,
                                        clear_expected_lasting=clear_expected_lasting,
