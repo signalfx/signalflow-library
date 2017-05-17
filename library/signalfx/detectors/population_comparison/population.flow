@@ -95,24 +95,24 @@ def detector(population_stream,
         if orientation == 'above':
             return detect(when(promoted_population_stream > fire_top, fire_lasting),
                           when(promoted_population_stream < clear_top, clear_lasting),
-                          mode='split',
+                          mode='paired',
                           annotations=annotations)
         elif orientation == 'below':
             return detect(when(promoted_population_stream < fire_bot, fire_lasting),
                           when(promoted_population_stream > clear_bot, clear_lasting),
-                          mode='split',
+                          mode='paired',
                           annotations=annotations)
         elif orientation == 'out_of_band':
             return detect(
                 when(promoted_population_stream > fire_top or promoted_population_stream < fire_bot, fire_lasting),
                 when(promoted_population_stream < clear_top and promoted_population_stream > clear_bot, clear_lasting),
-                mode='split',
+                mode='paired',
                 annotations=annotations)
     elif denominator_mode == 'observed':
         return aperiodic.generic_detector_with_clear(promoted_population_stream, fire_bot, fire_top, orientation,
                                 fire_lasting, clear_bot, clear_top, aperiodic.opposite_orientation(orientation),
                                 clear_lasting, fire_expected_lasting=None, clear_expected_lasting=None,
-                                mode='split', annotations=annotations, event_annotations=None)
+                                mode='paired', annotations=annotations, event_annotations=None)
 
 
 # examples
