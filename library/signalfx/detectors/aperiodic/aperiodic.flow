@@ -19,7 +19,7 @@ def opposite_orientation(orientation):
         return 'within_range'
 
 
-def true_stream(stream, threshold_1, threshold_2, orientation):
+def numerator_stream(stream, threshold_1, threshold_2, orientation):
     # Args:
     #       stream (stream): data stream
     #       threshold_1 (number or data stream):
@@ -58,13 +58,14 @@ def generic_condition(stream, threshold_1, threshold_2, orientation, lasting, de
     #       orientation (string): one of 'above', 'below', 'within_range', 'out_of_band'
     #       lasting (lasting):
     #       denominator_mode (string): one of 'observed', 'expected'
-    true_count = true_stream(stream, threshold_1, threshold_2, orientation).count(over=lasting.duration)
+    true_count = numerator_stream(stream, threshold_1, threshold_2, orientation).count(over=lasting.duration)
     denominator = denominator_stream(stream, threshold_1, threshold_2, orientation)
     if denominator_mode == 'observed':
         total_count = denominator.count(over=lasting.duration)
     elif denominator_mode == 'expected':
         total_count = denominator.size(over=lasting.duration)
-    return when((true_count / total_count) >= lasting.at_least)
+    true_proportion = true_count / total_count
+    return when(true_proportion >= lasting.at_least)
 
 
 def generic_detector(stream, threshold_1, threshold_2, orientation, observed_lasting,
