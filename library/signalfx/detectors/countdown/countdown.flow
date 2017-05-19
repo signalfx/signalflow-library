@@ -153,8 +153,8 @@ def hours_left_stream_dewma_detector(stream, stream_threshold=0,
                                                 'sfui_errorKeys': ['lower_threshold',
                                                                    'clear_threshold'],
                                                 'sfui_errorTemplate': "{{{lower_threshold}}} must be less than or equal to {{{clear_threshold}}}."}
-    fire_forecast = stream.dewma(alpha, beta, forecast=lower_threshold, damping=damping)
-    clear_forecast = stream.dewma(alpha, beta, forecast=clear_threshold, damping=damping)
+    fire_forecast = stream.double_ewma(alpha, beta, forecast=lower_threshold, damping=damping)
+    clear_forecast = stream.double_ewma(alpha, beta, forecast=clear_threshold, damping=damping)
     threshold_signal_below = const(stream_threshold)
     threshold_signal_above = const(stream_threshold)
     def fire_clear_pair(orient):
