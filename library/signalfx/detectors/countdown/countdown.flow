@@ -19,7 +19,7 @@ def hours_left_stream(stream, increment_size=duration('1m'), imputed_value=None)
     if imputed_value is None:
         return (stream / (-3600 * stream.rateofchange().below(0)))
     else:
-        return imputed_value if stream.rateofchange() >= 0 else (stream / (-3600 * stream.rateofchange().below(0))).fill()
+        return (imputed_value if stream.rateofchange() >= 0 else (stream / (-3600 * stream.rateofchange().below(0)))).fill()
 
 def hours_left_stream_incr(stream, maximum_capacity, increment_size=duration('1m'),
                            imputed_value=None):
