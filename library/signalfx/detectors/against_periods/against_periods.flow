@@ -19,21 +19,25 @@
 # @author joe
 
 
-def detector_helper(summary, fire_bot, clear_bot, clear_top, fire_top, orientation, annotations, event_annotations=None):
+def detector_helper(summary, fire_bot, clear_bot, clear_top, fire_top, orientation, annotations,
+                    event_annotations=None):
     if orientation == 'above':
-        return detect(when(summary > fire_top), when(summary < clear_top), annotations=annotations, event_annotations=event_annotations)
+        return detect(when(summary > fire_top), when(summary < clear_top), annotations=annotations,
+                      event_annotations=event_annotations)
     elif orientation == 'below':
-        return detect(when(summary < fire_bot), when(summary > clear_bot), annotations=annotations, event_annotations=event_annotations)
+        return detect(when(summary < fire_bot), when(summary > clear_bot), annotations=annotations,
+                      event_annotations=event_annotations)
     elif orientation == 'out_of_band':
         return detect(when(summary > fire_top or summary < fire_bot),
-                      when(summary < clear_top and summary > clear_bot), mode='split', annotations=annotations, event_annotations=event_annotations)
+                      when(summary < clear_top and summary > clear_bot), mode='split',
+                      annotations=annotations, event_annotations=event_annotations)
 
 
 def h(s, w, sp, n):
     # s= stream, w = window_to_compare, sp = space_between_windows, n = num_periods
-    def f(x): # mean of shifted window
+    def f(x):  # mean of shifted window
         return s.timeshift(x * duration(sp)).mean(over=duration(w))
-    def g(x): # mean^2 + var of shifted window
+    def g(x):  # mean^2 + var of shifted window
         mn = s.timeshift(x * duration(sp)).mean(over=duration(w))
         var = s.timeshift(x * duration(sp)).variance(over=duration(w))
         return var + mn * mn
@@ -41,28 +45,28 @@ def h(s, w, sp, n):
         return 0, 0, 0, 0, g(1)
     elif n == 2:
         return 0, 0, 0, 0, mean(g(1), g(2))
-    clumsy = g(2) if f(2) <= min(f(1), f(2), f(3)) else g(3)
-    clumsy_2 = g(1) if f(1) <= min(f(1), f(2), f(3)) else clumsy
-    clumsy_3 = g(2) if f(2) >= max(f(1), f(2), f(3)) else g(3)
-    clumsy_4 = g(1) if f(1) >= max(f(1), f(2), f(3)) else clumsy_3
-    clumsy_5 = g(2) if f(2) == median(f(1), f(2), f(3)) else g(3)
-    clumsy_6 = g(1) if f(1) == median(f(1), f(2), f(3)) else clumsy_5
     elif n == 3:
-        return clumsy_2, min(f(1), f(2), f(3)), clumsy_4, max(f(1), f(2), f(3)), clumsy_6
+        c_1 = g(2) if f(2) <= min(f(1), f(2), f(3)) else g(3)
+        c_2 = g(1) if f(1) <= min(f(1), f(2), f(3)) else c_1
+        c_3 = g(2) if f(2) >= max(f(1), f(2), f(3)) else g(3)
+        c_4 = g(1) if f(1) >= max(f(1), f(2), f(3)) else c_3
+        c_5 = g(2) if f(2) == median(f(1), f(2), f(3)) else g(3)
+        c_6 = g(1) if f(1) == median(f(1), f(2), f(3)) else c_5
+        return c_2, min(f(1), f(2), f(3)), c_4, max(f(1), f(2), f(3)), c_6
     else:
-        new_min_mean = min(f(n), h(s, w, sp, n-1)[1])
-        new_max_mean = max(f(n), h(s, w, sp, n-1)[3])
-        associated_min = g(n) if f(n) <= new_min_mean else h(s, w, sp, n-1)[0]
-        associated_max = g(n) if f(n) >= new_max_mean else h(s, w, sp, n-1)[2]
-        tt = h(s, w, sp, n-1)[2] if f(n) > h(s, w, sp, n-1)[3] else g(n)
-        ss = h(s, w, sp, n-1)[0] if h(s, w, sp, n-1)[1] > f(n) else tt
-        new_trimmed = ((n-3) * h(s, w, sp, n-1)[4] + ss)/ (n - 2)
+        new_min_mean = min(f(n), h(s, w, sp, n - 1)[1])
+        new_max_mean = max(f(n), h(s, w, sp, n - 1)[3])
+        associated_min = g(n) if f(n) <= new_min_mean else h(s, w, sp, n - 1)[0]
+        associated_max = g(n) if f(n) >= new_max_mean else h(s, w, sp, n - 1)[2]
+        tt = h(s, w, sp, n - 1)[2] if f(n) > h(s, w, sp, n - 1)[3] else g(n)
+        ss = h(s, w, sp, n - 1)[0] if h(s, w, sp, n - 1)[1] > f(n) else tt
+        new_trimmed = ((n - 3) * h(s, w, sp, n - 1)[4] + ss) / (n - 2)
         return associated_min, new_min_mean, associated_max, new_max_mean, new_trimmed
 
 
 def n_period_trimmed_mean(s, w, sp, n):
     # s= stream, w = window_to_compare, sp = space_between_windows, n = num_periods
-    def f(x): # mean of shifted window
+    def f(x):  # mean of shifted window
         return s.timeshift(x * duration(sp)).mean(over=duration(w))
     if n == 1:
         return 0, 0, f(1)
@@ -71,36 +75,58 @@ def n_period_trimmed_mean(s, w, sp, n):
     elif n == 3:
         return min(f(1), f(2), f(3)), max(f(1), f(2), f(3)), median(f(1), f(2), f(3))
     else:
-        new_min = min(f(n), n_period_trimmed_mean(s, w, sp, n-1)[0])
-        new_max = max(f(n), n_period_trimmed_mean(s, w, sp, n-1)[1])
-        tt = n_period_trimmed_mean(s, w, sp, n-1)[1] if f(n) > n_period_trimmed_mean(s, w, sp, n-1)[1] else f(n)
-        ss = n_period_trimmed_mean(s, w, sp, n-1)[0] if n_period_trimmed_mean(s, w, sp, n-1)[0] > f(n) else tt
-        new_trimmed = ((n-3) * n_period_trimmed_mean(s, w, sp, n-1)[2] + ss)/ (n - 2)
+        new_min = min(f(n), n_period_trimmed_mean(s, w, sp, n - 1)[0])
+        new_max = max(f(n), n_period_trimmed_mean(s, w, sp, n - 1)[1])
+        tt = n_period_trimmed_mean(s, w, sp, n - 1)[1] if f(n) > \
+                                                          n_period_trimmed_mean(s, w, sp, n - 1)[
+                                                              1] else f(n)
+        ss = n_period_trimmed_mean(s, w, sp, n - 1)[0] if n_period_trimmed_mean(s, w, sp, n - 1)[
+                                                              0] > f(n) else tt
+        new_trimmed = ((n - 3) * n_period_trimmed_mean(s, w, sp, n - 1)[2] + ss) / (n - 2)
         return new_min, new_max, new_trimmed
 
-def n_period_trimmed_threshold(s, w, sp, n, num_stddev):
-    var = h(s, w, sp, n)[4] - n_period_trimmed_mean(s, w, sp, n)[2] * n_period_trimmed_mean(s, w, sp, n)[2]
+
+def n_period_trimmed_threshold(stream, window, space, num_periods, num_stddev):
+    var = h(stream, window, space, num_periods)[4] - \
+          n_period_trimmed_mean(stream, window, space, num_periods)[2] * \
+          n_period_trimmed_mean(stream, window, space, num_periods)[2]
     std = var.sqrt()
-    return n_period_trimmed_mean(s, w, sp, n)[2] + num_stddev * std
+    return n_period_trimmed_mean(stream, window, space, num_periods)[2] + num_stddev * std
 
 
-d = data('cpu.utilization').mean()
-w = duration('5m')
-sp = duration('1h')
-n = 4
-ns = 2
-
-n_period_trimmed_threshold(d,w,sp,n,ns).publish('thr')
-
-rm = d.mean(over=w)
-
-rm.timeshift('1h').publish('1h')
-rm.timeshift('2h').publish('2h')
-rm.timeshift('3h').publish('3h')
-rm.timeshift('4h').publish('4h')
-
+def n_period_mean_and_var_plus_msq(s, w, sp, n):
+    # s= stream, w = window_to_compare, sp = space_between_windows, n = num_periods
+    def f(x):  # mean of shifted window
+        return s.timeshift(x * duration(sp)).mean(over=duration(w))
+    def g(x):  # mean^2 + var of shifted window
+        mn = s.timeshift(x * duration(sp)).mean(over=duration(w))
+        var = s.timeshift(x * duration(sp)).variance(over=duration(w))
+        return var + mn * mn
+    if n == 1:
+        return f(1), g(1)
+    elif n >= 2:
+        return ((n - 1) * n_period_mean_and_var_plus_msq(s, w, sp, n - 1)[0] + f(n)) / n, (
+            (n - 1) * n_period_mean_and_var_plus_msq(s, w, sp, n - 1)[1] + g(n)) / n
 
 
+def n_period_untrimmed_threshold(stream, window, space, num_periods, num_stddev):
+    mn, var_plus_mn_sq = n_period_mean_and_var_plus_msq(stream, window, space, num_periods)
+    var = var_plus_mn_sq - mn * mn
+    std = var.sqrt()
+    return mn + num_stddev * std
+
+
+def across_period_summaries(stream, window_to_compare=duration('15m'),
+                     space_between_windows=duration('1w'),
+                     num_windows=4, num_stddev=0, discard_historical_outliers=True):
+    space_between_windows_dur = duration(space_between_windows)
+    window_to_compare_dur = duration(window_to_compare)
+    if discard_historical_outliers:
+        return n_period_trimmed_threshold(stream, window_to_compare_dur, space_between_windows_dur,
+                                          num_windows, num_stddev)
+    else:
+        return n_period_untrimmed_threshold(stream, window_to_compare_dur,
+                                            space_between_windows_dur, num_windows, num_stddev)
 
 
 def n_period_summary(stream, window_to_compare, space_between_windows, num_stddev,
@@ -109,7 +135,6 @@ def n_period_summary(stream, window_to_compare, space_between_windows, num_stdde
         return stream.timeshift(x * duration(space_between_windows)).mean_plus_stddev(
             stddevs=num_stddev,
             over=duration(window_to_compare))
-
     if discard_historical_outliers:
         if num_periods == 3:
             return median(f(1), f(2), f(3))
@@ -159,7 +184,6 @@ def period_summaries(stream, window_to_compare=duration('15m'),
                                 discard_historical_outliers=discard_historical_outliers)
 
 
-
 def detector_growth_rate(stream, window_to_compare=duration('15m'),
                          space_between_windows=duration('1w'),
                          num_windows=4, fire_growth_rate_threshold=0.2,
@@ -167,14 +191,16 @@ def detector_growth_rate(stream, window_to_compare=duration('15m'),
                          discard_historical_outliers=True, orientation='above'):
     space_between_windows_dur = duration(space_between_windows)
     window_to_compare_dur = duration(window_to_compare)
-    assert fire_growth_rate_threshold >= clear_growth_rate_threshold, {'fire_growth_rate_threshold' : fire_growth_rate_threshold,
-       'clear_growth_rate_threshold' : clear_growth_rate_threshold,
-       'sfui_errorKeys' : ['fire_growth_rate_threshold', 'clear_growth_rate_threshold'],
-       'sfui_errorTemplate': "{{{fire_growth_rate_threshold}}} must be greater than or equal to {{{clear_growth_rate_threshold}}}."}
-    assert space_between_windows_dur >= window_to_compare_dur, {'space_between_windows' : space_between_windows_dur,
-       'window_to_compare' : window_to_compare_dur,
-       'sfui_errorKeys' : ['space_between_windows', 'window_to_compare'],
-       'sfui_errorTemplate': "{{{space_between_windows}}} must be greater than or equal to {{{window_to_compare}}}."}
+    assert fire_growth_rate_threshold >= clear_growth_rate_threshold, {
+        'fire_growth_rate_threshold': fire_growth_rate_threshold,
+        'clear_growth_rate_threshold': clear_growth_rate_threshold,
+        'sfui_errorKeys': ['fire_growth_rate_threshold', 'clear_growth_rate_threshold'],
+        'sfui_errorTemplate': "{{{fire_growth_rate_threshold}}} must be greater than or equal to {{{clear_growth_rate_threshold}}}."}
+    assert space_between_windows_dur >= window_to_compare_dur, {
+        'space_between_windows': space_between_windows_dur,
+        'window_to_compare': window_to_compare_dur,
+        'sfui_errorKeys': ['space_between_windows', 'window_to_compare'],
+        'sfui_errorTemplate': "{{{space_between_windows}}} must be greater than or equal to {{{window_to_compare}}}."}
     previous = period_summaries(stream, window_to_compare=window_to_compare_dur,
                                 space_between_windows=space_between_windows_dur,
                                 num_windows=num_windows, num_stddev=0,
@@ -186,26 +212,26 @@ def detector_growth_rate(stream, window_to_compare=duration('15m'),
     ft = (1 + fire_growth_rate_threshold) * previous
     annotations = [annotate(summary, 'rolling mean', {'sfui_streamType': 'signal'}),
                    annotate(fb, 'lower fire threshold', {'sfui_streamType': 'threshold',
-                                                         'sfui_state':'fire',
-                                                         'sfui_orientation':'below',
-                                                         'sfui_trigger':'outside',
+                                                         'sfui_state': 'fire',
+                                                         'sfui_orientation': 'below',
+                                                         'sfui_trigger': 'outside',
                                                          'influencedBy': 'fire_growth_rate_threshold'}),
                    annotate(ft, 'upper fire threshold', {'sfui_streamType': 'threshold',
-                                                         'sfui_state':'fire',
-                                                         'sfui_orientation':'above',
-                                                         'sfui_trigger':'outside' ,
+                                                         'sfui_state': 'fire',
+                                                         'sfui_orientation': 'above',
+                                                         'sfui_trigger': 'outside',
                                                          'influencedBy': 'fire_growth_rate_threshold'}),
                    annotate(cb, 'lower clear threshold',
                             {'sfui_streamType': 'threshold',
-                             'sfui_state':'clear',
-                             'sfui_orientation':'below',
-                             'sfui_trigger':'outside' ,
+                             'sfui_state': 'clear',
+                             'sfui_orientation': 'below',
+                             'sfui_trigger': 'outside',
                              'influencedBy': 'clear_growth_rate_threshold'}),
                    annotate(ct, 'upper clear threshold',
                             {'sfui_streamType': 'threshold',
-                             'sfui_state':'clear',
-                             'sfui_orientation':'above',
-                             'sfui_trigger':'outside' ,
+                             'sfui_state': 'clear',
+                             'sfui_orientation': 'above',
+                             'sfui_trigger': 'outside',
                              'influencedBy': 'clear_growth_rate_threshold'})]
     event_annotations = {'current_window': str(window_to_compare_dur)}
     return detector_helper(summary, fb, cb, ct, ft, orientation, annotations, event_annotations)
@@ -214,23 +240,32 @@ def detector_growth_rate(stream, window_to_compare=duration('15m'),
 def detector_mean_std(stream, window_to_compare=duration('15m'),
                       space_between_windows=duration('1w'),
                       num_windows=4, fire_num_stddev=3, clear_num_stddev=2.5,
-                      discard_historical_outliers=True, orientation='above'):
+                      discard_historical_outliers=True, orientation='above', calculation_mode='within'):
     space_between_windows_dur = duration(space_between_windows)
     window_to_compare_dur = duration(window_to_compare)
-    assert fire_num_stddev >= clear_num_stddev, {'fire_num_stddev' : fire_num_stddev, 'clear_num_stddev' : clear_num_stddev,
-       'sfui_errorKeys' : ['fire_num_stddev', 'clear_num_stddev'],
-       'sfui_errorTemplate': "{{{fire_num_stddev}}} must be greater than or equal to {{{clear_num_stddev}}}."}
-    assert space_between_windows_dur >= window_to_compare_dur, {'space_between_windows' : space_between_windows_dur,
-       'window_to_compare' : window_to_compare_dur,
-       'sfui_errorKeys' : ['space_between_windows', 'window_to_compare'],
-       'sfui_errorTemplate': "{{{space_between_windows}}} must be greater than or equal to {{{window_to_compare}}}."}
+    assert fire_num_stddev >= clear_num_stddev, {'fire_num_stddev': fire_num_stddev,
+                                                 'clear_num_stddev': clear_num_stddev,
+                                                 'sfui_errorKeys': ['fire_num_stddev',
+                                                                    'clear_num_stddev'],
+                                                 'sfui_errorTemplate': "{{{fire_num_stddev}}} must be greater than or equal to {{{clear_num_stddev}}}."}
+    assert space_between_windows_dur >= window_to_compare_dur, {
+        'space_between_windows': space_between_windows_dur,
+        'window_to_compare': window_to_compare_dur,
+        'sfui_errorKeys': ['space_between_windows', 'window_to_compare'],
+        'sfui_errorTemplate': "{{{space_between_windows}}} must be greater than or equal to {{{window_to_compare}}}."}
+
     def g(x):
-        return period_summaries(stream, window_to_compare=window_to_compare_dur,
+        if calculation_mode == 'within':
+            return period_summaries(stream, window_to_compare=window_to_compare_dur,
                                 space_between_windows=space_between_windows_dur,
                                 num_windows=num_windows,
                                 num_stddev=x,
                                 discard_historical_outliers=discard_historical_outliers)
-
+        elif calculation_mode == 'across':
+            return across_period_summaries(stream, window_to_compare=window_to_compare_dur,
+                                           space_between_windows=space_between_windows_dur,
+                                           num_windows=num_windows, num_stddev=x,
+                                           discard_historical_outliers=discard_historical_outliers)
     summary = stream.mean(over=window_to_compare_dur)
     fb = g(-1 * fire_num_stddev)
     cb = g(-1 * clear_num_stddev)
@@ -238,26 +273,26 @@ def detector_mean_std(stream, window_to_compare=duration('15m'),
     ft = g(fire_num_stddev)
     annotations = [annotate(summary, 'rolling mean', {'sfui_streamType': 'signal'}),
                    annotate(fb, 'lower fire threshold', {'sfui_streamType': 'threshold',
-                                                         'sfui_state':'fire',
-                                                         'sfui_orientation':'below',
-                                                         'sfui_trigger':'outside',
+                                                         'sfui_state': 'fire',
+                                                         'sfui_orientation': 'below',
+                                                         'sfui_trigger': 'outside',
                                                          'influencedBy': 'fire_num_stddev'}),
                    annotate(ft, 'upper fire threshold', {'sfui_streamType': 'threshold',
-                                                         'sfui_state':'fire',
-                                                         'sfui_orientation':'above',
-                                                         'sfui_trigger':'outside' ,
+                                                         'sfui_state': 'fire',
+                                                         'sfui_orientation': 'above',
+                                                         'sfui_trigger': 'outside',
                                                          'influencedBy': 'fire_num_stddev'}),
                    annotate(cb, 'lower clear threshold',
                             {'sfui_streamType': 'threshold',
-                             'sfui_state':'clear',
-                             'sfui_orientation':'below',
-                             'sfui_trigger':'outside' ,
+                             'sfui_state': 'clear',
+                             'sfui_orientation': 'below',
+                             'sfui_trigger': 'outside',
                              'influencedBy': 'clear_num_stddev'}),
                    annotate(ct, 'upper clear threshold',
                             {'sfui_streamType': 'threshold',
-                             'sfui_state':'clear',
-                             'sfui_orientation':'above',
-                             'sfui_trigger':'outside' ,
+                             'sfui_state': 'clear',
+                             'sfui_orientation': 'above',
+                             'sfui_trigger': 'outside',
                              'influencedBy': 'clear_num_stddev'})]
     event_annotations = {'current_window': str(window_to_compare_dur)}
     return detector_helper(summary, fb, cb, ct, ft, orientation, annotations, event_annotations)
