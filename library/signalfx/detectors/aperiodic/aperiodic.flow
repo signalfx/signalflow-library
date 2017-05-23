@@ -8,6 +8,222 @@
 # @author joe
 
 
+def opposite_orientation(orientation):
+    if orientation == 'above':
+        return 'below'
+    elif orientation == 'below':
+        return 'above'
+    elif orientation == 'within_range':
+        return 'out_of_band'
+    elif orientation == 'out_of_band':
+        return 'within_range'
+
+
+def numerator_stream(stream, threshold_1, threshold_2, orientation):
+    # Args:
+    #       stream (stream): data stream
+    #       threshold_1 (number or data stream):
+    #       threshold_2 (number or data stream):
+    #       orientation (string): one of 'above', 'below', 'within_range', 'out_of_band'
+    if orientation == 'above':
+        return (1 if stream > threshold_1 else None)
+    elif orientation == 'below':
+        return (1 if stream < threshold_1 else None)
+    elif orientation == 'within_range':
+        return (1 if stream > threshold_1 and stream < threshold_2 else None)
+    elif orientation == 'out_of_band':
+        return (1 if stream < threshold_1 or stream > threshold_2 else None)
+
+
+def denominator_stream(stream, threshold_1, threshold_2, orientation):
+    # Args:
+    #       stream (stream): data stream
+    #       threshold_1 (number or data stream):
+    #       threshold_2 (number or data stream):
+    #       orientation (string): one of 'above', 'below', 'within_range', 'out_of_band'
+    if orientation == 'above' or orientation == 'below':
+        return (1 if stream is not None and threshold_1 is not None else None)
+    elif orientation == 'within_range':
+        return (1 if stream is not None and threshold_1 is not None and threshold_2 is not None else None)
+    elif orientation == 'out_of_band':
+        either_threshold = (1 if threshold_1 is not None or threshold_2 is not None else None)
+        return (1 if stream is not None and either_threshold is not None else None)
+
+
+def generic_condition(stream, threshold_1, threshold_2, orientation, lasting, denominator_mode):
+    # Args:
+    #       stream (stream): data stream
+    #       threshold_1 (number or data stream):
+    #       threshold_2 (number or data stream):
+    #       orientation (string): one of 'above', 'below', 'within_range', 'out_of_band'
+    #       lasting (lasting):
+    #       denominator_mode (string): one of 'observed', 'expected'
+    true_count = numerator_stream(stream, threshold_1, threshold_2, orientation).count(over=lasting.duration)
+    denominator = denominator_stream(stream, threshold_1, threshold_2, orientation)
+    if denominator_mode == 'observed':
+        total_count = denominator.count(over=lasting.duration)
+    elif denominator_mode == 'expected':
+        total_count = denominator.size(over=lasting.duration)
+    true_proportion = true_count / total_count
+    return when(true_proportion >= lasting.at_least)
+
+
+def generic_detector(stream, threshold_1, threshold_2, orientation, observed_lasting,
+                            expected_lasting=None, annotations=None, event_annotations=None):
+    # Args:
+    #       stream (stream): data stream
+    #       threshold_1 (number or data stream):
+    #       threshold_2
+    #       orientation (string): one of 'above', 'below', 'within_range', 'out_of_band'
+    #       observed_lasting (lasting):
+    #       expected_lasting (lasting): (optional, default=None)
+    #       annotations (dict): (optional, default=None)
+    #       event_annotations (dict): (optional, default=None)
+    # Returns:
+    #       detect block
+    if expected_lasting is None:
+        return detect(generic_condition(stream, threshold_1, threshold_2, orientation, observed_lasting,
+                                        denominator_mode='observed'), annotations=annotations,
+                                        event_annotations=event_annotations)
+    else:
+        return detect(generic_condition(stream, threshold_1, threshold_2, orientation, observed_lasting,
+                                        denominator_mode='observed') and generic_condition(stream, threshold_1, threshold_2,
+                                                                               orientation, expected_lasting,
+                                                                               denominator_mode='expected'),
+                      annotations=annotations, event_annotations=event_annotations)
+
+
+def above_or_below_detector(stream, threshold, orientation, observed_lasting,
+                            expected_lasting=None, annotations=None, event_annotations=None):
+    # fires when (stream > (or <) threshold is true in observed_lasting.duration) / (observed data points in
+    #    observed.duration) is larger than observed_lasting.at least, and (stream > (or <) threshold is
+    #    true in expected_lasting.duration) / (expected data points in expected_lasting.duration)
+    #    is larger than expected_lasting.at_least
+    # Args:
+    #       stream (stream): data stream
+    #       threshold (number or data stream):
+    #       orientation (string): one of 'above', 'below'
+    #       observed_lasting (lasting):
+    #       expected_lasting (lasting): (optional, default=None)
+    #       annotations (dict): (optional, default=None)
+    #       event_annotations (dict): (optional, default=None)
+    # Returns:
+    #       detect block
+    return generic_detector(stream, threshold, None, orientation, observed_lasting,
+                            expected_lasting=expected_lasting, annotations=annotations, event_annotations=event_annotations)
+
+
+def range_detector(stream, lower_threshold, upper_threshold, orientation, observed_lasting,
+                            expected_lasting=None, annotations=None, event_annotations=None):
+    # fires when (range condition is true in observed_lasting.duration) / (observed data points in
+    #    observed.duration) is larger than observed_lasting.at least, and (range condition is
+    #    true in expected_lasting.duration) / (expected data points in expected_lasting.duration)
+    #    is larger than expected_lasting.at_least
+    #       stream (stream): data stream
+    #       lower_threshold (number or data stream):
+    #       upper_threshold (number or data stream):
+    #       orientation (string): one of 'within_range', 'out_of_band'
+    #       observed_lasting (lasting):
+    #       expected_lasting (lasting): (optional, default=None)
+    #       annotations (dict): (optional, default=None)
+    #       event_annotations (dict): (optional, default=None)
+    # Returns:
+    #       detect block
+    return generic_detector(stream, lower_threshold, upper_threshold, orientation, observed_lasting,
+                            expected_lasting=expected_lasting, annotations=annotations, event_annotations=event_annotations)
+
+
+def generic_detector_with_clear(stream, fire_threshold_1, fire_threshold_2, fire_orientation,
+                                fire_observed_lasting, clear_threshold_1, clear_threshold_2, clear_orientation,
+                                clear_observed_lasting, fire_expected_lasting=None, clear_expected_lasting=None,
+                                mode='paired', annotations=None, event_annotations=None):
+    # Args:
+    #       stream (stream): data stream
+    #       fire_threshold_1 (number or data stream):
+    #       fire_threshold_2
+    #       fire_orientation (string): one of 'above', 'below', 'within_range', 'out_of_band'
+    #       fire_observed_lasting (lasting):
+    #       clear_threshold_1 (number or data stream):
+    #       clear_threshold_2
+    #       clear_orientation (string): one of 'above', 'below', 'within_range', 'out_of_band'
+    #       clear_observed_lasting (lasting):
+    #       fire_expected_lasting (lasting): (optional, default=None)
+    #       clear_expected_lasting (lasting): (optional, default=None)
+    #       mode (string): one of 'split', 'paired'
+    #       annotations (dict): (optional, default=None)
+    #       event_annotations (dict): (optional, default=None)
+    # Returns:
+    #       detect block
+    if fire_expected_lasting is None:
+        fire_condition = generic_condition(stream, fire_threshold_1, fire_threshold_2, fire_orientation,
+                                           fire_observed_lasting, denominator_mode='observed')
+    else:
+        fire_condition = generic_condition(stream, fire_threshold_1, fire_threshold_2, fire_orientation,
+                                           fire_observed_lasting, denominator_mode='observed') and generic_condition(stream, fire_threshold_1, fire_threshold_2, fire_orientation,
+                                           fire_expected_lasting, denominator_mode='expected')
+    if clear_expected_lasting is None:
+        clear_condition = generic_condition(stream, clear_threshold_1, clear_threshold_2, clear_orientation,
+                                           clear_observed_lasting, denominator_mode='observed')
+    else:
+        clear_condition = generic_condition(stream, clear_threshold_1, clear_threshold_2, clear_orientation,
+                                           clear_observed_lasting, denominator_mode='observed') and generic_condition(stream, clear_threshold_1, clear_threshold_2, clear_orientation,
+                                           clear_expected_lasting, denominator_mode='expected')
+    return detect(fire_condition, off=clear_condition, mode=mode, annotations=annotations, event_annotations=event_annotations)
+
+
+def above_or_below_detector_with_clear(stream, fire_threshold, fire_observed_lasting,
+                                        clear_threshold, clear_observed_lasting, orientation,
+                                        fire_expected_lasting=None, clear_expected_lasting=None, mode='paired',
+                                        annotations=None, event_annotations=None):
+    # Args:
+    #       stream (stream): data stream
+    #       fire_threshold (number or data stream):
+    #       fire_observed_lasting (lasting):
+    #       clear_threshold (number or data stream):
+    #       clear_observed_lasting (lasting):
+    #       orientation (string): one of 'above', 'below'
+    #       fire_expected_lasting (lasting): (optional, default=None)
+    #       clear_expected_lasting (lasting): (optional, default=None)
+    #       mode (string): one of 'split', 'paired' (optional, default='paired')
+    #       annotations (dict): (optional, default=None)
+    #       event_annotations (dict): (optional, default=None)
+    # Returns:
+    #       detect block
+    return generic_detector_with_clear(stream, fire_threshold, None, orientation, fire_observed_lasting,
+                                        clear_threshold, None, opposite_orientation(orientation),
+                                        clear_observed_lasting, fire_expected_lasting=fire_expected_lasting,
+                                        clear_expected_lasting=clear_expected_lasting, mode=mode,
+                                        annotations=annotations, event_annotations=event_annotations)
+
+
+def range_detector_with_clear(stream, fire_lower_threshold, fire_upper_threshold, fire_observed_lasting,
+                                clear_lower_threshold, clear_upper_threshold, clear_observed_lasting,
+                                orientation, fire_expected_lasting=None, clear_expected_lasting=None,
+                                mode='paired', annotations=None, event_annotations=None):
+    # Args:
+    #       stream (stream): data stream
+    #       fire_lower_threshold (number or data stream):
+    #       fire_upper_threshold (number or data stream):
+    #       fire_observed_lasting (lasting):
+    #       clear_lower_threshold (number or data stream):
+    #       clear_upper_threshold (number or data stream):
+    #       clear_observed_lasting (lasting):
+    #       orientation (string): one of 'within_range', 'out_of_band'
+    #       fire_expected_lasting (lasting): (optional, default=None)
+    #       clear_expected_lasting (lasting): (optional, default=None)
+    #       mode (string): one of 'split', 'paired' (optional, default='paired')
+    #       annotations (dict): (optional, default=None)
+    #       event_annotations (dict): (optional, default=None)
+    # Returns:
+    #       detect block
+    return generic_detector_with_clear(stream, fire_lower_threshold, fire_upper_threshold, orientation,
+                                       fire_observed_lasting, clear_lower_threshold, clear_upper_threshold,
+                                       opposite_orientation(orientation), clear_observed_lasting,
+                                       fire_expected_lasting=fire_expected_lasting,
+                                       clear_expected_lasting=clear_expected_lasting,
+                                       mode=mode, annotations=annotations, event_annotations=event_annotations)
+
+
 def compare_streams_ignoring_nulls(stream1, stream2, lasting):
     # returns a stream for which a positive value corresponds to the condition
     #    "stream1 > stream2 for lasting",
@@ -68,14 +284,8 @@ def two_sided_detector_with_clear(stream, fire_upper_stream, fire_lower_stream, 
                                                  1, clear_lasting)
 
 
-def count_transform(stream, duration):
-    positive_stream = (stream.abs() + 1)
-    pos_mean = positive_stream.mean(over=duration)
-    pos_sum = positive_stream.sum(over=duration)
-    return (pos_sum / pos_mean).map(lambda x: x if x is not None else 0)
-
-
+# utility for visualization of lasting conditions
 def percentage_above_threshold(stream, threshold, duration):
-    good_count = count_transform(stream.above(threshold), duration)
-    total_count = count_transform(stream, duration)
+    good_count = stream.above(threshold).count(over=duration)
+    total_count = stream.count(over=duration)
     return good_count / total_count

@@ -29,6 +29,7 @@ def detector_helper(recent_min, recent_max, f_bot, c_bot, c_top, f_top, orientat
     elif orientation == 'out_of_band':
         return detect(when(recent_min > f_top or recent_max < f_bot),
                       when(recent_max < c_top and recent_min > c_bot),
+                      mode='split',
                       annotations=annotations, event_annotations=event_annotations)
 
 
@@ -56,6 +57,9 @@ def detector_mean_std(stream, current_window=duration('5m'),
     #           and clears when the last (current_window) of stream remains below/above/within
     #           clear_num_stddev standard deviations above/below/of the mean of the
     #           preceding historical_window
+    assert fire_num_stddev >= clear_num_stddev, {'fire_num_stddev' : fire_num_stddev, 'clear_num_stddev' : clear_num_stddev,
+       'sfui_errorKeys' : ['fire_num_stddev', 'clear_num_stddev'],
+       'sfui_errorTemplate': "{{{fire_num_stddev}}} must be greater than or equal to {{{clear_num_stddev}}}."}
     def h(x):
         return stream.timeshift(duration(current_window)).mean_plus_stddev(stddevs=x, over=duration(
             historical_window))
@@ -118,10 +122,14 @@ def detector_percentile(stream, current_window=duration('5m'),
     #           preceding historical_window,
     #           and clears when the last (current_window) of stream remains below (or above, or
     #           within band) the clear_percentile_threshold of the preceding historical_window
+    fire_derived = abs(fire_percentile_threshold - 50)
+    clear_derived = abs(clear_percentile_threshold - 50)
+    assert fire_derived >= clear_derived, {'fire_percentile_threshold' : fire_derived, 'clear_percentile_threshold' : clear_derived,
+       'sfui_errorKeys' : ['fire_percentile_threshold', 'clear_percentile_threshold'],
+       'sfui_errorTemplate': "{{{fire_percentile_threshold}}} must be further from 50 than {{{clear_percentile_threshold}}}."}
     def j(x):
         return stream.timeshift(duration(current_window)).percentile(x, over=duration(
             historical_window))
-
     current_window_duration = duration(current_window)
     recent_min = stream.min(over=current_window_duration)
     recent_max = stream.max(over=current_window_duration)
@@ -164,6 +172,98 @@ def detector_percentile(stream, current_window=duration('5m'),
                              'influencedBy': 'clear_percentile_threshold'})]
     event_annotations = {'current_window': str(current_window_duration)}
     return detector_helper(recent_min, recent_max, fb, cb, ct, ft, orientation, annotations, event_annotations)
+
+
+def generic_detector_growth_rate(stream, current_window=duration('5m'),
+                      historical_window=duration('1h'), alpha=0.5,
+                      fire_growth_rate_threshold=0.2, clear_growth_rate_threshold=0.1,
+                      orientation='above', calculation_mode='vanilla'):
+    # Args:
+    #       stream: data stream
+    #       current_window (duration) : the window whose behavior is being tested for abnormality
+    #           (optional, default=duration('5m'))
+    #       historical_window (duration): the window whose behavior is used to define normality
+    #           (optional, default=duration('1h'))
+    #       fire_growth_rate_threshold (number): percentage change over historical mean
+    #           required to fire (optional, default=0.2)
+    #       clear_growth_rate_threshold (number): percentage change over historical mean
+    #           required to clear (optional, default=0.1)
+    #       orientation (string): specifies whether detect fires when signal is above, below, or
+    #           or out-of-band (optional, default='above', one of 'above', 'below', 'out_of_band')
+    #       calculation_mode (string): specifies whether to use rolling mean or exponentially
+    #           weighted mean (optional, default='vanilla', one of 'vanilla', 'ewma')
+    #  Returns:
+    #       detect block that fires when the last (current_window) of stream exhibits percentage change of at least
+    #           fire_growth_rate_threshold (positive, negative, or either) compared to the mean of the
+    #           preceding historical_window,
+    #           and clears when the last (current_window) of stream exhibits percentage change of no more than
+    #           clear_growth_rate_threshold compared to the mean of the
+    #           preceding historical_window
+    assert fire_growth_rate_threshold >= clear_growth_rate_threshold, {
+        'fire_growth_rate_threshold': fire_growth_rate_threshold,
+        'clear_growth_rate_threshold': clear_growth_rate_threshold,
+        'sfui_errorKeys': ['fire_growth_rate_threshold', 'clear_growth_rate_threshold'],
+        'sfui_errorTemplate': "{{{fire_growth_rate_threshold}}} must be greater than or equal to {{{clear_growth_rate_threshold}}}."}
+    if calculation_mode == 'vanilla':
+        previous = stream.timeshift(duration(current_window)).mean(over=duration(historical_window))
+    elif calculation_mode == 'ewma':
+        previous = stream.timeshift(duration(current_window)).ewma(alpha)
+    current_window_duration = duration(current_window)
+    recent_min = stream.min(over=current_window_duration)
+    recent_max = stream.max(over=current_window_duration)
+    fb = (1 - fire_growth_rate_threshold) * previous
+    cb = (1 - clear_growth_rate_threshold) * previous
+    ct = (1 + clear_growth_rate_threshold) * previous
+    ft = (1 + fire_growth_rate_threshold) * previous
+    annotations = [annotate(recent_min, 'rolling minimum', {'sfui_streamType': 'signal'}),
+                   annotate(recent_max, 'rolling maximum', {'sfui_streamType': 'signal'}),
+                   annotate(fb, 'lower fire threshold', {'sfui_streamType': 'threshold',
+                                                         'sfui_state':'fire',
+                                                         'sfui_orientation':'below',
+                                                         'sfui_trigger':'outside',
+                                                         'influencedBy': 'fire_growth_rate_threshold'}),
+                   annotate(ft, 'upper fire threshold', {'sfui_streamType': 'threshold',
+                                                         'sfui_state':'fire',
+                                                         'sfui_orientation':'above',
+                                                         'sfui_trigger':'outside' ,
+                                                         'influencedBy': 'fire_growth_rate_threshold'}),
+                   annotate(cb, 'lower clear threshold',
+                            {'sfui_streamType': 'threshold',
+                             'sfui_state':'clear',
+                             'sfui_orientation':'below',
+                             'sfui_trigger':'outside' ,
+                             'influencedBy': 'clear_growth_rate_threshold'}),
+                   annotate(ct, 'upper clear threshold',
+                            {'sfui_streamType': 'threshold',
+                             'sfui_state':'clear',
+                             'sfui_orientation':'above',
+                             'sfui_trigger':'outside' ,
+                             'influencedBy': 'clear_growth_rate_threshold'})]
+    event_annotations = {'current_window': str(current_window_duration)}
+    return detector_helper(recent_min, recent_max, fb, cb, ct, ft, orientation, annotations, event_annotations)
+
+
+def detector_growth_rate_vanilla(stream, current_window=duration('5m'),
+                                 historical_window=duration('1h'),
+                                 fire_growth_rate_threshold=0.2, clear_growth_rate_threshold=0.1,
+                                 orientation='above'):
+    return generic_detector_growth_rate(stream, current_window=current_window,
+                                        historical_window=historical_window, alpha=None,
+                                        fire_growth_rate_threshold=fire_growth_rate_threshold,
+                                        clear_growth_rate_threshold=clear_growth_rate_threshold,
+                                        orientation=orientation, calculation_mode='vanilla')
+
+
+def detector_growth_rate_ewma(stream, current_window=duration('5m'),
+                              alpha=0.5,
+                              fire_growth_rate_threshold=0.2, clear_growth_rate_threshold=0.1,
+                              orientation='above'):
+    return generic_detector_growth_rate(stream, current_window=current_window,
+                                        historical_window=None, alpha=alpha,
+                                        fire_growth_rate_threshold=fire_growth_rate_threshold,
+                                        clear_growth_rate_threshold=clear_growth_rate_threshold,
+                                        orientation=orientation, calculation_mode='ewma')
+
 
 # examples
 # detector_mean_std(data('jvm.cpu.load').percentile(70), fire_num_stddev=2,
