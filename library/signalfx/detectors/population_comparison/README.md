@@ -51,7 +51,13 @@ The `detector_growth_rate` function has the following parameters. Parameters wit
 |strategy|string|represents method for defining norm, options 'mean' (mean) and 'median' (median)|'median'|
 |orientation|string|specifies whether detect fires when signal is above, below, or out-of-band (options  'above', 'below', 'out_of_band')|'above'|
 
-It returns a detect block that triggers when a member of `population_stream` is more than `fire_growth_rate_threshold` % away from the population mean (resp. median) for `fire_lasting`, and clears when that member is within `clear_growth_rate_threshold` % of the population mean (resp. median) for `clear_lasting`. The value of `strategy` determines whether mean or median is used, and `orientation` determines whether the member is required to be above or below (or either) the population norm.
+It returns a detect block that triggers when a member of `population_stream` is more than `100 * fire_growth_rate_threshold` % away from the population mean (resp. median) for `fire_lasting`, and clears when that member is within `100 * clear_growth_rate_threshold` % of the population mean (resp. median) for `clear_lasting`. The value of `strategy` determines whether mean or median is used, and `orientation` determines whether the member is required to be above or below (or either) the population norm.
                             
-                     
 
+#### Example usage
+~~~~~~~~~~~~~~~~~~~~
+from signalfx.detectors.population_comparison import population
+
+cpu = data('cpu.utilization')
+
+population.detector_growth_rate(cpu).publish('cpu_detector_4')
