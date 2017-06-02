@@ -83,7 +83,7 @@ def hours_left_stream_detector(stream, minimum_value=0, lower_threshold=24,
                    ]
     return detect(when(hours_left < lower_threshold_signal, fire_lasting),
                   when(hours_left > clear_threshold_signal, clear_lasting),
-                  mode='paired',
+                  mode='split',
                   annotations=annotations)
 
 
@@ -175,11 +175,11 @@ def hours_left_stream_dewma_detector(stream, stream_threshold=0,
     if orientation == 'to_empty':
         return detect(when(fire_forecast < threshold_signal_below, fire_lasting),
                       when(clear_forecast > threshold_signal_above, clear_lasting),
-                      mode='paired', annotations=annotations)
+                      mode='split', annotations=annotations)
     elif orientation == 'to_capacity':
         return detect(when(fire_forecast > threshold_signal_above, fire_lasting),
                       when(clear_forecast < threshold_signal_below, clear_lasting),
-                      mode='paired', annotations=annotations)
+                      mode='split', annotations=annotations)
 
 # examples
 # hours_left_stream(100 - data('disk.summary_utilization')).publish('b')

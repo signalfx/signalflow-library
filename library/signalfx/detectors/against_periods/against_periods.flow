@@ -34,10 +34,10 @@ def detector_helper(summary, fire_bot, clear_bot, clear_top, fire_top, orientati
 
 
 def h(s, w, sp, n):
-    # s= stream, w = window_to_compare, sp = space_between_windows, n = num_periods
+    #s = stream, w = window_to_compare, sp = space_between_windows, n = num_periods
     def f(x):  # mean of shifted window
         return s.timeshift(x * duration(sp)).mean(over=duration(w))
-    def g(x):  # mean^2 + var of shifted window
+    def g(x):  # mean^2 + variance of shifted window
         mn = s.timeshift(x * duration(sp)).mean(over=duration(w))
         var = s.timeshift(x * duration(sp)).variance(over=duration(w))
         return var + mn * mn
@@ -65,7 +65,7 @@ def h(s, w, sp, n):
 
 
 def n_period_trimmed_mean(s, w, sp, n):
-    # s= stream, w = window_to_compare, sp = space_between_windows, n = num_periods
+    # s = stream, w = window_to_compare, sp = space_between_windows, n = num_periods
     def f(x):  # mean of shifted window
         return s.timeshift(x * duration(sp)).mean(over=duration(w))
     if n == 1:
@@ -87,6 +87,9 @@ def n_period_trimmed_mean(s, w, sp, n):
 
 
 def n_period_trimmed_threshold(stream, window, space, num_periods, num_stddev):
+    # intentionally do *not* use count of points in each period so that older periods, which have
+    # fewer points due to 1s data expiring, contribute equally to the mean; this may bias the
+    # standard deviation downward somewhat
     var = h(stream, window, space, num_periods)[4] - \
           n_period_trimmed_mean(stream, window, space, num_periods)[2] * \
           n_period_trimmed_mean(stream, window, space, num_periods)[2]
@@ -95,7 +98,7 @@ def n_period_trimmed_threshold(stream, window, space, num_periods, num_stddev):
 
 
 def n_period_mean_and_var_plus_msq(s, w, sp, n):
-    # s= stream, w = window_to_compare, sp = space_between_windows, n = num_periods
+    # s = stream, w = window_to_compare, sp = space_between_windows, n = num_periods
     def f(x):  # mean of shifted window
         return s.timeshift(x * duration(sp)).mean(over=duration(w))
     def g(x):  # mean^2 + var of shifted window
@@ -110,6 +113,9 @@ def n_period_mean_and_var_plus_msq(s, w, sp, n):
 
 
 def n_period_untrimmed_threshold(stream, window, space, num_periods, num_stddev):
+    # intentionally do *not* use count of points in each period so that older periods, which have
+    # fewer points due to 1s data expiring, contribute equally to the mean; this may bias the
+    # standard deviation downward somewhat
     mn, var_plus_mn_sq = n_period_mean_and_var_plus_msq(stream, window, space, num_periods)
     var = var_plus_mn_sq - mn * mn
     std = var.sqrt()
