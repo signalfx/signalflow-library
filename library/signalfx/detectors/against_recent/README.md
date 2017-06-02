@@ -104,7 +104,7 @@ The `detector_growth_rate_ewma` function has the following parameters. Parameter
 |clear_growth_rate_threshold|number|percentage different from historical mean required to clear, should be >= 0|0.1|
 |orientation|string|specifies whether detect fires when signal is above, below, or out-of-band (options  'above', 'below', 'out_of_band')|'above'|
     
-It returns a detect block that triggers when all the values of the last `current_window` of `stream` are at least `100 * fire_growth_rate_threshold` % away from the exponentially weighted moving average (with smoothing parameter `alpha`) of the preceding window, and clears when all the values of the last `current_window` of `stream` remain within `100 * clear_growth_rate_threshold` % of the exponentially weighted moving average (with smoothing parameter `alpha`) of the preceding window. The value of `orientation` determines whether the `current_window` is required to be above or below (or either) the norm established by the `historical_window`.
+It returns a detect block that triggers when all the values of the last `current_window` of `stream` are at least `100 * fire_growth_rate_threshold` % away from the exponentially weighted moving average (with smoothing parameter `alpha`) of the preceding window, and clears when all the values of the last `current_window` of `stream` remain within `100 * clear_growth_rate_threshold` % of the exponentially weighted moving average (with smoothing parameter `alpha`) of the preceding window. The value of `orientation` determines whether the `current_window` is required to be above or below (or either) the norm established by the window preceding it.
     
 
 #### Example usage
@@ -113,7 +113,7 @@ from signalfx.detectors.against_recent import against_recent
 
 service_cpu = data('cpu.utilization').mean(by=['aws_tag_service'])
 
-against_recent.detector_growth_rate_ewma(service_cpu).publish('cpu_detector') # uses default values
+against_recent.detector_growth_rate_ewma(service_cpu, alpha=0.2).publish('cpu_detector')
 
 ~~~~~~~~~~~~~~~~~~~~
 
