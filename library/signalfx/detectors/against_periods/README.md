@@ -44,10 +44,13 @@ The `detector_mean_std` function has the following parameters. Parameters with n
 |num_windows|integer|number of previous cycles used to define baseline, must be > 0|4|
 |fire_num_stddev|number|number of standard deviations from historical mean required to trigger, should be >= 0|3|
 |clear_num_stddev|number|number of standard deviations from historical mean required to clear, should be >= 0|2.5|
-|discard_historical_outliers|boolean|whether to take the median (True) or mean (False) of historical windows|True|
+|calculation_mode|string|whether to calculate standard deviations across periods ('across') or within periods ('within')|'within'|
+|discard_historical_outliers|boolean|whether to take the median (True) or mean (False) of historical windows in case calculation_mode='within'; whether to take trimmed (True) or untrimmed (False) mean in case calculation_mode='across'|True|
 |orientation|string|specifies whether detect fires when signal is above, below, or out-of-band (options  'above', 'below', 'out_of_band')|'above'|
 
-It returns a detect block that triggers when the mean of the last `window_to_compare` of `stream` differs from the historical norm of `stream`. The historical norm is formed from the previous `num_windows` periods of length `window_to_compare`, spaced `space_between_windows` apart. To define a trigger threshold, take either the median (`discard_historical_outliers`=True) or the mean (`discard_historical_outliers`=False) of the `num_periods` historical mean + `fire_num_stddev` standard deviations. Use the same procedure with `clear_num_stddev` for the clear threshold. This triggers when the current value is larger (or smaller, or either, depending on the value of `orientation`) than the historically defined trigger threshold and clears when the current value is on the corresponding side of the clear threshold.
+It returns a detect block that triggers when the mean of the last `window_to_compare` of `stream` differs from the historical norm of `stream`. The historical norm is formed from the previous `num_windows` periods of length `window_to_compare`, spaced `space_between_windows` apart. For `calculation_mode='within'`, to define a trigger threshold, take either the median (`discard_historical_outliers`=True) or the mean (`discard_historical_outliers`=False) of the `num_periods` historical mean + `fire_num_stddev` standard deviations. For `calculation_mode='across'`, to define a trigger threshold, take the mean + `fire_num_stddev` standard deviations across all `num_periods` periods (`discard_historical_outliers`=False), or across the `num_periods - 2` periods gotten by discarding the periods with largest and smallest mean (`discard_historical_outliers`=True).
+
+Use the same procedure with `clear_num_stddev` for the clear threshold. This triggers when the current value is larger (or smaller, or either, depending on the value of `orientation`) than the historically defined trigger threshold and clears when the current value is on the corresponding side of the clear threshold.
 
 #### Example usage
 ~~~~~~~~~~~~~~~~~~~~
