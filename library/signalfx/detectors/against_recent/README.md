@@ -1,4 +1,4 @@
-The `against_recent` module contains two main functions. Both detect when the recent values of a signal differ from the values of the immediately preceding time period. One uses mean plus standard deviation to define a baseline, and the other uses a percentile. The SignalFx UI refers to this module as Sudden Change.
+The `against_recent` module contains four main functions. Both detect when the recent values of a signal differ from the values of the immediately preceding time period. One uses mean plus standard deviation to define a baseline, and the other uses a percentile. The SignalFx UI refers to this module as Sudden Change.
 
 
 ## Mean plus standard deviation
@@ -60,3 +60,62 @@ against_recent.detector_percentile(service_cpu, current_window=duration('3m'),
   historical_window=duration('2h'), fire_percentile_threshold=95, clear_percentile_threshold=85,
   orientation='out_of_band').publish('custom_cpu_detector')
 ~~~~~~~~~~~~~~~~~~~~
+
+
+
+## Mean plus percentage change
+
+The `detector_growth_rate_vanilla` function has the following parameters. Parameters with no default value are required.
+
+|Parameter name|Type|Description|Default value|
+|:---|:---|:---|:---|
+|stream|stream|data being monitored|*None*|
+|current_window|duration|window being tested for anomalous values|duration('5m')|
+|historical_window|duration|window that defines normal values|duration('1h')|
+|fire_growth_rate_threshold|number|percentage different from historical mean required to trigger, should be >= 0 |0.2|
+|clear_growth_rate_threshold|number|percentage different from historical mean required to clear, should be >= 0|0.1|
+|orientation|string|specifies whether detect fires when signal is above, below, or out-of-band (options  'above', 'below', 'out_of_band')|'above'|
+    
+It returns a detect block that triggers when all the values of the last `current_window` of `stream` are at least `100 * fire_growth_rate_threshold` % away from the mean of the preceding `historical_window`, and clears when all the values of the last `current_window` of `stream` remain within `100 * clear_growth_rate_threshold` % of the mean of the preceding `historical_window`. The value of `orientation` determines whether the `current_window` is required to be above or below (or either) the norm established by the `historical_window`.
+    
+
+#### Example usage
+~~~~~~~~~~~~~~~~~~~~
+from signalfx.detectors.against_recent import against_recent
+
+service_cpu = data('cpu.utilization').mean(by=['aws_tag_service'])
+
+against_recent.detector_growth_rate_vanilla(service_cpu).publish('cpu_detector') # uses default values
+
+~~~~~~~~~~~~~~~~~~~~
+
+
+
+## Exponentially weighted mean plus percentage changee
+
+The `detector_growth_rate_ewma` function has the following parameters. Parameters with no default value are required.
+
+|Parameter name|Type|Description|Default value|
+|:---|:---|:---|:---|
+|stream|stream|data being monitored|*None*|
+|current_window|duration|window being tested for anomalous values|duration('5m')|
+|alpha|number|smoothing parameter for exponentially weighted moving average, must be between 0 and 1|0.5|
+|fire_growth_rate_threshold|number|percentage different from historical mean required to trigger, should be >= 0 |0.2|
+|clear_growth_rate_threshold|number|percentage different from historical mean required to clear, should be >= 0|0.1|
+|orientation|string|specifies whether detect fires when signal is above, below, or out-of-band (options  'above', 'below', 'out_of_band')|'above'|
+    
+It returns a detect block that triggers when all the values of the last `current_window` of `stream` are at least `100 * fire_growth_rate_threshold` % away from the exponentially weighted moving average (with smoothing parameter `alpha`) of the preceding window, and clears when all the values of the last `current_window` of `stream` remain within `100 * clear_growth_rate_threshold` % of the exponentially weighted moving average (with smoothing parameter `alpha`) of the preceding window. The value of `orientation` determines whether the `current_window` is required to be above or below (or either) the norm established by the `historical_window`.
+    
+
+#### Example usage
+~~~~~~~~~~~~~~~~~~~~
+from signalfx.detectors.against_recent import against_recent
+
+service_cpu = data('cpu.utilization').mean(by=['aws_tag_service'])
+
+against_recent.detector_growth_rate_ewma(service_cpu).publish('cpu_detector') # uses default values
+
+~~~~~~~~~~~~~~~~~~~~
+
+
+
