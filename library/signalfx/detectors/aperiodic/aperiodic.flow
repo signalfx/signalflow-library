@@ -22,11 +22,11 @@ def opposite_orientation(orientation):
 def numerator_stream(stream, threshold_1, threshold_2, orientation):
     # Args:
     #       stream (stream): data stream
-    #       threshold_1 (number or data stream):
-    #       threshold_2 (number or data stream):
+    #       threshold_1 (number or data stream): lower threshold (i.e. condition is stream < threshold_1)
+    #       threshold_2 (number or data stream): upper threshold (i.e. condition is stream > threshold_2)
     #       orientation (string): one of 'above', 'below', 'within_range', 'out_of_band'
     if orientation == 'above':
-        return (1 if stream > threshold_1 else None)
+        return (1 if stream > threshold_2 else None)
     elif orientation == 'below':
         return (1 if stream < threshold_1 else None)
     elif orientation == 'within_range':
@@ -38,10 +38,12 @@ def numerator_stream(stream, threshold_1, threshold_2, orientation):
 def denominator_stream(stream, threshold_1, threshold_2, orientation):
     # Args:
     #       stream (stream): data stream
-    #       threshold_1 (number or data stream):
-    #       threshold_2 (number or data stream):
+    #       threshold_1 (number or data stream): lower threshold (i.e. condition is stream < threshold_1)
+    #       threshold_2 (number or data stream): upper threshold (i.e. condition is stream > threshold_2)
     #       orientation (string): one of 'above', 'below', 'within_range', 'out_of_band'
-    if orientation == 'above' or orientation == 'below':
+    if orientation == 'above':
+        return (1 if stream is not None and threshold_2 is not None else None)
+    elif orientation == 'below':
         return (1 if stream is not None and threshold_1 is not None else None)
     elif orientation == 'within_range':
         return (1 if stream is not None and threshold_1 is not None and threshold_2 is not None else None)
@@ -109,7 +111,7 @@ def above_or_below_detector(stream, threshold, orientation, observed_lasting,
     #       event_annotations (dict): (optional, default=None)
     # Returns:
     #       detect block
-    return generic_detector(stream, threshold, None, orientation, observed_lasting,
+    return generic_detector(stream, threshold, threshold, orientation, observed_lasting,
                             expected_lasting=expected_lasting, annotations=annotations, event_annotations=event_annotations)
 
 
@@ -189,8 +191,8 @@ def above_or_below_detector_with_clear(stream, fire_threshold, fire_observed_las
     #       event_annotations (dict): (optional, default=None)
     # Returns:
     #       detect block
-    return generic_detector_with_clear(stream, fire_threshold, None, orientation, fire_observed_lasting,
-                                        clear_threshold, None, opposite_orientation(orientation),
+    return generic_detector_with_clear(stream, fire_threshold, fire_threshold, orientation, fire_observed_lasting,
+                                        clear_threshold, clear_threshold, opposite_orientation(orientation),
                                         clear_observed_lasting, fire_expected_lasting=fire_expected_lasting,
                                         clear_expected_lasting=clear_expected_lasting, mode=mode,
                                         annotations=annotations, event_annotations=event_annotations)
