@@ -124,7 +124,7 @@ def hours_left_stream_dewma_detector(stream, stream_threshold=0,
                                      fire_lasting=lasting('10m', 1.0),
                                      clear_threshold=duration('36h'),
                                      clear_lasting=lasting('10m', 1.0),
-                                     alpha=0.5, beta=0.5, damping=0.9):
+                                     alpha=0.1, beta=0.1, damping=0.9):
     # Args:
     #     stream: data stream, assumed to be decreasing
     #     stream_threshold (number): value at which stream is considered empty or full (optional, default=0)

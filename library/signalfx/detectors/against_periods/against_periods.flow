@@ -34,7 +34,8 @@ def detector_helper(summary, fire_bot, clear_bot, clear_top, fire_top, orientati
 
 
 def h(s, w, sp, n):
-    #s = stream, w = window_to_compare, sp = space_between_windows, n = num_periods
+    # computes variance + mean^2 excluding the smallest and largest windows
+    # s = stream, w = window_to_compare, sp = space_between_windows, n = num_periods
     def f(x):  # mean of shifted window
         return s.timeshift(x * duration(sp)).mean(over=duration(w))
     def g(x):  # mean^2 + variance of shifted window
@@ -188,6 +189,27 @@ def period_summaries(stream, window_to_compare=duration('15m'),
                                 num_stddev,
                                 num_windows,
                                 discard_historical_outliers=discard_historical_outliers)
+
+
+def triple_ewma(stream, num_cycles=4, cycle_length=duration('1w'), alpha=0.1, beta=0.1, gamma=0.4,
+                damping=0.8, forecast=duration(0)):
+    cyc_len = duration(cycle_length)
+    forecast_ = duration(forecast)
+    assert forecast_ < cyc_len
+    def f(n, shift_amount):
+        if n == 0:
+            c_ = stream.timeshift(num_cycles * cyc_len - shift_amount) / stream.timeshift(
+                num_cycles * cyc_len - shift_amount).mean(over=cyc_len)
+            c = (c_ + c_.timeshift(cyc_len) + c_.timeshift(2 * cyc_len)) / 3
+            return c
+        else:
+            s = (stream.timeshift((num_cycles - n) * cyc_len - shift_amount) / f(n - 1, shift_amount)).double_ewma(
+                alpha, beta, damping=damping)
+            c = gamma * (stream.timeshift((num_cycles - n) * cyc_len - shift_amount) / s) + (1 - gamma) * (
+                                                                                      f(n - 1, shift_amount))
+            return c
+    return (stream / (f(num_cycles - 1, duration(0)))).double_ewma(alpha, beta, forecast=forecast_,
+                                                                   damping=damp) * (f(num_cycles - 1, forecast_))
 
 
 def detector_growth_rate(stream, window_to_compare=duration('15m'),

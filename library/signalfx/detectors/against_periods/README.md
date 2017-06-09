@@ -65,3 +65,26 @@ against_periods.detector_mean_std(service_cpu, window_to_compare=duration('10m')
 ~~~~~~~~~~~~~~~~~~~~
 
 
+### Triple exponential smoothing
+
+There is also a `triple_ewma` function that performs triple exponential smoothing, and returns the smoothed series as a stream.
+
+|Parameter name|Type|Description|Default value|
+|:---|:---|:---|:---|
+|stream|stream|data being monitored|*None*|
+|num_cycles|number|number of previous cycles used to define baseline, must be > 0 |4|
+|cycle_length|duration|time range reflecting the cyclicity of the data stream|duration('1w')|
+|alpha|number|smoothing parameter for the level term, must be between 0 and 1|0.1|
+|beta|number|smoothing parameter for the trend term, must be between 0 and 1|0.1|
+|gamma|number|smoothing parameter for the seasonal change term, must be between 0 and 1|0.4|
+|damping|number|damping parameter for forecasting, must be between 0 and 1|0.8|
+|forecast|duration|amount ahead to forecast|duration(0)|
+
+#### Example usage
+~~~~~~~~~~~~~~~~~~~~
+from signalfx.detectors.against_periods import against_periods
+
+cpu_mean = data('cpu.utilization').mean()
+
+against_periods.triple_ewma(service_cpu, forecast=duration('5m')).publish('cpu_in_5_min_stream')
+~~~~~~~~~~~~~~~~~~~~

@@ -255,7 +255,7 @@ def detector_growth_rate_vanilla(stream, current_window=duration('5m'),
 
 
 def detector_growth_rate_ewma(stream, current_window=duration('5m'),
-                              alpha=0.5,
+                              alpha=0.05,
                               fire_growth_rate_threshold=0.2, clear_growth_rate_threshold=0.1,
                               orientation='above'):
     return generic_detector_growth_rate(stream, current_window=current_window,

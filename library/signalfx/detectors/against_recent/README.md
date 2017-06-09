@@ -1,4 +1,4 @@
-The `against_recent` module contains four main functions. Both detect when the recent values of a signal differ from the values of the immediately preceding time period. One uses mean plus standard deviation to define a baseline, and the other uses a percentile. The SignalFx UI refers to this module as Sudden Change.
+The `against_recent` module contains four main functions. They detect when the recent values of a signal differ from the values of the immediately preceding time period. The SignalFx UI refers to this module as Sudden Change.
 
 
 ## Mean plus standard deviation
@@ -99,7 +99,7 @@ The `detector_growth_rate_ewma` function has the following parameters. Parameter
 |:---|:---|:---|:---|
 |stream|stream|data being monitored|*None*|
 |current_window|duration|window being tested for anomalous values|duration('5m')|
-|alpha|number|smoothing parameter for exponentially weighted moving average, must be between 0 and 1|0.5|
+|alpha|number|smoothing parameter for exponentially weighted moving average, must be between 0 and 1|0.05|
 |fire_growth_rate_threshold|number|percentage different from historical mean required to trigger, should be >= 0 |0.2|
 |clear_growth_rate_threshold|number|percentage different from historical mean required to clear, should be >= 0|0.1|
 |orientation|string|specifies whether detect fires when signal is above, below, or out-of-band (options  'above', 'below', 'out_of_band')|'above'|
