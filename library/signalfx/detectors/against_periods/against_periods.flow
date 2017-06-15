@@ -18,6 +18,7 @@
 #
 # @author joe
 
+RECURSION_LIMIT = 10
 
 def detector_helper(summary, fire_bot, clear_bot, clear_top, fire_top, orientation, annotations,
                     event_annotations=None):
@@ -36,6 +37,7 @@ def detector_helper(summary, fire_bot, clear_bot, clear_top, fire_top, orientati
 def h(s, w, sp, n):
     # computes variance + mean^2 excluding the smallest and largest windows
     # s = stream, w = window_to_compare, sp = space_between_windows, n = num_periods
+    assert n <= RECURSION_LIMIT
     def f(x):  # mean of shifted window
         return s.timeshift(x * duration(sp)).mean(over=duration(w))
     def g(x):  # mean^2 + variance of shifted window
@@ -55,18 +57,20 @@ def h(s, w, sp, n):
         c_6 = g(1) if f(1) == median(f(1), f(2), f(3)) else c_5
         return c_2, min(f(1), f(2), f(3)), c_4, max(f(1), f(2), f(3)), c_6
     else:
-        new_min_mean = min(f(n), h(s, w, sp, n - 1)[1])
-        new_max_mean = max(f(n), h(s, w, sp, n - 1)[3])
-        associated_min = g(n) if f(n) <= new_min_mean else h(s, w, sp, n - 1)[0]
-        associated_max = g(n) if f(n) >= new_max_mean else h(s, w, sp, n - 1)[2]
-        tt = h(s, w, sp, n - 1)[2] if f(n) > h(s, w, sp, n - 1)[3] else g(n)
-        ss = h(s, w, sp, n - 1)[0] if h(s, w, sp, n - 1)[1] > f(n) else tt
-        new_trimmed = ((n - 3) * h(s, w, sp, n - 1)[4] + ss) / (n - 2)
+        old_min, old_min_mean, old_max, old_max_mean, old_trimmed = h(s, w, sp, n - 1)
+        new_min_mean = min(f(n), old_min_mean)
+        new_max_mean = max(f(n), old_max_mean)
+        associated_min = g(n) if f(n) <= new_min_mean else old_min
+        associated_max = g(n) if f(n) >= new_max_mean else old_max
+        tt = old_max if f(n) > old_max_mean else g(n)
+        ss = old_min if old_min_mean > f(n) else tt
+        new_trimmed = ((n - 3) * old_trimmed + ss) / (n - 2)
         return associated_min, new_min_mean, associated_max, new_max_mean, new_trimmed
 
 
 def n_period_trimmed_mean(s, w, sp, n):
     # s = stream, w = window_to_compare, sp = space_between_windows, n = num_periods
+    assert n <= RECURSION_LIMIT
     def f(x):  # mean of shifted window
         return s.timeshift(x * duration(sp)).mean(over=duration(w))
     if n == 1:
@@ -76,29 +80,28 @@ def n_period_trimmed_mean(s, w, sp, n):
     elif n == 3:
         return min(f(1), f(2), f(3)), max(f(1), f(2), f(3)), median(f(1), f(2), f(3))
     else:
-        new_min = min(f(n), n_period_trimmed_mean(s, w, sp, n - 1)[0])
-        new_max = max(f(n), n_period_trimmed_mean(s, w, sp, n - 1)[1])
-        tt = n_period_trimmed_mean(s, w, sp, n - 1)[1] if f(n) > \
-                                                          n_period_trimmed_mean(s, w, sp, n - 1)[
-                                                              1] else f(n)
-        ss = n_period_trimmed_mean(s, w, sp, n - 1)[0] if n_period_trimmed_mean(s, w, sp, n - 1)[
-                                                              0] > f(n) else tt
-        new_trimmed = ((n - 3) * n_period_trimmed_mean(s, w, sp, n - 1)[2] + ss) / (n - 2)
+        old_min, old_max, old_trimmed = n_period_trimmed_mean(s, w, sp, n - 1)
+        new_min = min(f(n), old_min)
+        new_max = max(f(n), old_max)
+        tt = old_max if f(n) > old_max else f(n)
+        ss = old_min if old_min > f(n) else tt
+        new_trimmed = ((n - 3) * old_trimmed + ss) / (n - 2)
         return new_min, new_max, new_trimmed
 
 
 def n_period_trimmed_threshold(stream, window, space, num_periods, num_stddev):
+    assert num_periods <= RECURSION_LIMIT
     # intentionally do *not* use count of points in each period so that older periods, which have
     # fewer points due to 1s data expiring, contribute equally to the mean; this may bias the
     # standard deviation downward somewhat
-    var = h(stream, window, space, num_periods)[4] - \
-          n_period_trimmed_mean(stream, window, space, num_periods)[2] * \
-          n_period_trimmed_mean(stream, window, space, num_periods)[2]
+    trimmed = n_period_trimmed_mean(stream, window, space, num_periods)[2]
+    var = h(stream, window, space, num_periods)[4] - trimmed * trimmed
     std = var.sqrt()
-    return n_period_trimmed_mean(stream, window, space, num_periods)[2] + num_stddev * std
+    return trimmed + num_stddev * std
 
 
 def n_period_mean_and_var_plus_msq(s, w, sp, n):
+    assert n <= RECURSION_LIMIT
     # s = stream, w = window_to_compare, sp = space_between_windows, n = num_periods
     def f(x):  # mean of shifted window
         return s.timeshift(x * duration(sp)).mean(over=duration(w))
@@ -109,11 +112,12 @@ def n_period_mean_and_var_plus_msq(s, w, sp, n):
     if n == 1:
         return f(1), g(1)
     elif n >= 2:
-        return ((n - 1) * n_period_mean_and_var_plus_msq(s, w, sp, n - 1)[0] + f(n)) / n, (
-            (n - 1) * n_period_mean_and_var_plus_msq(s, w, sp, n - 1)[1] + g(n)) / n
+        old_m, old_v_msq = n_period_mean_and_var_plus_msq(s, w, sp, n - 1)
+        return ((n - 1) * old_m + f(n)) / n, ((n - 1) * old_v_msq + g(n)) / n
 
 
 def n_period_untrimmed_threshold(stream, window, space, num_periods, num_stddev):
+    assert num_periods <= RECURSION_LIMIT
     # intentionally do *not* use count of points in each period so that older periods, which have
     # fewer points due to 1s data expiring, contribute equally to the mean; this may bias the
     # standard deviation downward somewhat
@@ -126,6 +130,7 @@ def n_period_untrimmed_threshold(stream, window, space, num_periods, num_stddev)
 def across_period_summaries(stream, window_to_compare=duration('15m'),
                      space_between_windows=duration('1w'),
                      num_windows=4, num_stddev=0, discard_historical_outliers=True):
+    assert num_windows <= RECURSION_LIMIT
     space_between_windows_dur = duration(space_between_windows)
     window_to_compare_dur = duration(window_to_compare)
     if discard_historical_outliers:
@@ -196,6 +201,11 @@ def triple_ewma(stream, num_cycles=4, cycle_length=duration('1w'), alpha=0.1, be
     cyc_len = duration(cycle_length)
     forecast_ = duration(forecast)
     assert forecast_ < cyc_len
+    assert num_cycles <= RECURSION_LIMIT
+    assert gamma >= 0 and gamma <= 1, {
+        'gamma': gamma,
+        'sfui_errorKeys': ['gamma'],
+        'sfui_errorTemplate': "{{{gamma}}} must be between 0 and 1."}
     def f(n, shift_amount):
         if n == 0:
             c_ = stream.timeshift(num_cycles * cyc_len - shift_amount) / stream.timeshift(
@@ -203,13 +213,13 @@ def triple_ewma(stream, num_cycles=4, cycle_length=duration('1w'), alpha=0.1, be
             c = (c_ + c_.timeshift(cyc_len) + c_.timeshift(2 * cyc_len)) / 3
             return c
         else:
-            s = (stream.timeshift((num_cycles - n) * cyc_len - shift_amount) / f(n - 1, shift_amount)).double_ewma(
-                alpha, beta, damping=damping)
-            c = gamma * (stream.timeshift((num_cycles - n) * cyc_len - shift_amount) / s) + (1 - gamma) * (
-                                                                                      f(n - 1, shift_amount))
+            old_c = f(n - 1, shift_amount)
+            location = (num_cycles - n) * cyc_len - shift_amount
+            s = (stream.timeshift(location) / old_c).double_ewma(alpha, beta, damping=damping)
+            c = gamma * (stream.timeshift(location) / s) + (1 - gamma) * old_c
             return c
     return (stream / (f(num_cycles - 1, duration(0)))).double_ewma(alpha, beta, forecast=forecast_,
-                                                                   damping=damp) * (f(num_cycles - 1, forecast_))
+                                                                   damping=damping) * (f(num_cycles - 1, forecast_))
 
 
 def detector_growth_rate(stream, window_to_compare=duration('15m'),
@@ -271,6 +281,11 @@ def detector_mean_std(stream, window_to_compare=duration('15m'),
                       discard_historical_outliers=True, orientation='above', calculation_mode='within'):
     space_between_windows_dur = duration(space_between_windows)
     window_to_compare_dur = duration(window_to_compare)
+    assert num_windows <= RECURSION_LIMIT, {
+        'num_windows': num_windows,
+        'limit': RECURSION_LIMIT,
+        'sfui_errorKeys': ['num_windows'],
+        'sfui_errorTemplate': "{{{num_windows}}} must be less than or equal to 10."}
     assert fire_num_stddev >= clear_num_stddev, {'fire_num_stddev': fire_num_stddev,
                                                  'clear_num_stddev': clear_num_stddev,
                                                  'sfui_errorKeys': ['fire_num_stddev',
