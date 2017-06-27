@@ -204,7 +204,7 @@ def triple_ewma(stream, num_cycles=4, cycle_length=duration('1w'), alpha=0.1, be
     assert num_cycles <= RECURSION_LIMIT, {
         'num_cycles': num_cycles,
         'sfui_errorKeys': ['num_cycles'],
-        'sfui_errorTemplate': "{{{num_cycles}}} must be less than or equal to 10.""}
+        'sfui_errorTemplate': "{{{num_cycles}}} must be less than or equal to 10."}
     assert gamma >= 0 and gamma <= 1, {
         'gamma': gamma,
         'sfui_errorKeys': ['gamma'],
@@ -286,7 +286,6 @@ def detector_mean_std(stream, window_to_compare=duration('15m'),
     window_to_compare_dur = duration(window_to_compare)
     assert num_windows <= RECURSION_LIMIT, {
         'num_windows': num_windows,
-        'limit': RECURSION_LIMIT,
         'sfui_errorKeys': ['num_windows'],
         'sfui_errorTemplate': "{{{num_windows}}} must be less than or equal to 10."}
     assert fire_num_stddev >= clear_num_stddev, {'fire_num_stddev': fire_num_stddev,
