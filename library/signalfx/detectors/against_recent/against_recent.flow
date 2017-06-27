@@ -36,7 +36,7 @@ def detector_helper(recent_min, recent_max, f_bot, c_bot, c_top, f_top, orientat
 def detector_mean_std(stream, current_window=duration('5m'),
                       historical_window=duration('1h'),
                       fire_num_stddev=3, clear_num_stddev=2.5,
-                      orientation='above', ignore_extremes=False):
+                      orientation='above', ignore_extremes=True):
     current_window_ = duration(current_window)
     historical_window_ = duration(historical_window)
     # Args:
