@@ -201,7 +201,10 @@ def triple_ewma(stream, num_cycles=4, cycle_length=duration('1w'), alpha=0.1, be
     cyc_len = duration(cycle_length)
     forecast_ = duration(forecast)
     assert forecast_ < cyc_len
-    assert num_cycles <= RECURSION_LIMIT
+    assert num_cycles <= RECURSION_LIMIT, {
+        'num_cycles': num_cycles,
+        'sfui_errorKeys': ['num_cycles'],
+        'sfui_errorTemplate': "{{{num_cycles}}} must be less than or equal to 10.""}
     assert gamma >= 0 and gamma <= 1, {
         'gamma': gamma,
         'sfui_errorKeys': ['gamma'],
@@ -278,7 +281,7 @@ def detector_growth_rate(stream, window_to_compare=duration('15m'),
 def detector_mean_std(stream, window_to_compare=duration('15m'),
                       space_between_windows=duration('1w'),
                       num_windows=4, fire_num_stddev=3, clear_num_stddev=2.5,
-                      discard_historical_outliers=True, orientation='above', calculation_mode='within'):
+                      discard_historical_outliers=True, orientation='above', calculation_mode='across'):
     space_between_windows_dur = duration(space_between_windows)
     window_to_compare_dur = duration(window_to_compare)
     assert num_windows <= RECURSION_LIMIT, {
