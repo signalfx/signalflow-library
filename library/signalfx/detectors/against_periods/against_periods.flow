@@ -18,7 +18,7 @@
 #
 # @author joe
 
-RECURSION_LIMIT = 10
+RECURSION_LIMIT = 8
 
 def detector_helper(summary, fire_bot, clear_bot, clear_top, fire_top, orientation, annotations,
                     event_annotations=None):
@@ -204,7 +204,7 @@ def triple_ewma(stream, num_cycles=4, cycle_length=duration('1w'), alpha=0.1, be
     assert num_cycles <= RECURSION_LIMIT, {
         'num_cycles': num_cycles,
         'sfui_errorKeys': ['num_cycles'],
-        'sfui_errorTemplate': "{{{num_cycles}}} must be less than or equal to 10."}
+        'sfui_errorTemplate': "{{{num_cycles}}} must be less than or equal to 8."}
     assert gamma >= 0 and gamma <= 1, {
         'gamma': gamma,
         'sfui_errorKeys': ['gamma'],
@@ -242,6 +242,10 @@ def detector_growth_rate(stream, window_to_compare=duration('15m'),
         'window_to_compare': window_to_compare_dur,
         'sfui_errorKeys': ['space_between_windows', 'window_to_compare'],
         'sfui_errorTemplate': "{{{space_between_windows}}} must be greater than or equal to {{{window_to_compare}}}."}
+    assert num_windows <= 8, {
+        'num_windows': num_windows,
+        'sfui_errorKeys': ['num_windows'],
+        'sfui_errorTemplate': "{{{num_windows}}} must be less than or equal to 8."}
     previous = period_summaries(stream, window_to_compare=window_to_compare_dur,
                                 space_between_windows=space_between_windows_dur,
                                 num_windows=num_windows, num_stddev=0,
@@ -287,7 +291,7 @@ def detector_mean_std(stream, window_to_compare=duration('15m'),
     assert num_windows <= RECURSION_LIMIT, {
         'num_windows': num_windows,
         'sfui_errorKeys': ['num_windows'],
-        'sfui_errorTemplate': "{{{num_windows}}} must be less than or equal to 10."}
+        'sfui_errorTemplate': "{{{num_windows}}} must be less than or equal to 8."}
     assert fire_num_stddev >= clear_num_stddev, {'fire_num_stddev': fire_num_stddev,
                                                  'clear_num_stddev': clear_num_stddev,
                                                  'sfui_errorKeys': ['fire_num_stddev',
