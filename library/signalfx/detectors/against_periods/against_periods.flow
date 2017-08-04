@@ -49,13 +49,16 @@ def h(s, w, sp, n):
     elif n == 2:
         return 0, 0, 0, 0, mean(g(1), g(2))
     elif n == 3:
-        c_1 = g(2) if f(2) <= min(f(1), f(2), f(3)) else g(3)
-        c_2 = g(1) if f(1) <= min(f(1), f(2), f(3)) else c_1
-        c_3 = g(2) if f(2) >= max(f(1), f(2), f(3)) else g(3)
-        c_4 = g(1) if f(1) >= max(f(1), f(2), f(3)) else c_3
-        c_5 = g(2) if f(2) == median(f(1), f(2), f(3)) else g(3)
-        c_6 = g(1) if f(1) == median(f(1), f(2), f(3)) else c_5
-        return c_2, min(f(1), f(2), f(3)), c_4, max(f(1), f(2), f(3)), c_6
+        min_ = min(f(1), f(2), f(3))
+        max_ = max(f(1), f(2), f(3))
+        median_ = median(f(1), f(2), f(3))
+        c_1 = g(2) if f(2) <= min_ else g(3)
+        c_2 = g(1) if f(1) <= min_ else c_1
+        c_3 = g(2) if f(2) >= max_ else g(3)
+        c_4 = g(1) if f(1) >= max_ else c_3
+        c_5 = g(2) if f(2) == median_ else g(3)
+        c_6 = g(1) if f(1) == median_ else c_5
+        return c_2, min_, c_4, max_, c_6
     else:
         old_min, old_min_mean, old_max, old_max_mean, old_trimmed = h(s, w, sp, n - 1)
         new_min_mean = min(f(n), old_min_mean)

@@ -33,10 +33,14 @@ def detector_helper(recent_min, recent_max, f_bot, c_bot, c_top, f_top, orientat
                       annotations=annotations, event_annotations=event_annotations)
 
 
+def ewma_plus_stddev(stream, duration_, num_stddev):
+    return stream.ewma(over=duration(duration_)) + num_stddev * stream.stddev(over=duration(duration_))
+
+
 def detector_mean_std(stream, current_window=duration('5m'),
                       historical_window=duration('1h'),
                       fire_num_stddev=3, clear_num_stddev=2.5,
-                      orientation='above', ignore_extremes=True):
+                      orientation='above', ignore_extremes=True, calculation_mode='vanilla'):
     current_window_ = duration(current_window)
     historical_window_ = duration(historical_window)
     # Args:
@@ -54,6 +58,7 @@ def detector_mean_std(stream, current_window=duration('5m'),
     #       ignore_extremes (boolean): specifies whether to filter the historical_window by
     #           excluding points more than fire_num_stddev/clear_num_stddev away from the mean
     #           before calculating the band
+    #       calculation_mode (string): 'vanilla' or 'ewma'
     #
     # Returns:
     #       detect block that fires when the last (current_window) of stream is at least
@@ -68,12 +73,21 @@ def detector_mean_std(stream, current_window=duration('5m'),
     def h(x):
         if ignore_extremes:
             abs_x = abs(x)
-            top = stream.mean_plus_stddev(stddevs=abs_x, over=historical_window_)
-            bot = stream.mean_plus_stddev(stddevs=-1 * abs_x, over=historical_window_)
-            damped = max(bot, min(stream, top))
-            return damped.timeshift(current_window_).mean_plus_stddev(stddevs=x, over=historical_window_)
+            if calculation_mode == 'vanilla':
+                top = stream.mean_plus_stddev(stddevs=abs_x, over=historical_window_)
+                bot = stream.mean_plus_stddev(stddevs=-1 * abs_x, over=historical_window_)
+                damped = max(bot, min(stream, top))
+                return damped.timeshift(current_window_).mean_plus_stddev(stddevs=x, over=historical_window_)
+            elif calculation_mode == 'ewma':
+                top = ewma_plus_stddev(stream, historical_window_, abs_x)
+                bot =  ewma_plus_stddev(stream, historical_window_, -1 * abs_x)
+                damped = max(bot, min(stream, top))
+                return ewma_plus_stddev(damped.timeshift(current_window_), historical_window_, x)
         else:
-            return stream.timeshift(current_window_).mean_plus_stddev(stddevs=x, over=historical_window_)
+            if calculation_mode == 'vanilla':
+                return stream.timeshift(current_window_).mean_plus_stddev(stddevs=x, over=historical_window_)
+            elif calculation_mode == 'ewma':
+                return ewma_plus_stddev(stream.timeshift(current_window_), historical_window_, x)
     recent_min = stream.min(over=current_window_)
     recent_max = stream.max(over=current_window_)
     fb = h(-1 * fire_num_stddev)
@@ -183,7 +197,7 @@ def detector_percentile(stream, current_window=duration('5m'),
 
 
 def generic_detector_growth_rate(stream, current_window=duration('5m'),
-                      historical_window=duration('1h'), alpha=0.5,
+                      historical_window=duration('1h'),
                       fire_growth_rate_threshold=0.2, clear_growth_rate_threshold=0.1,
                       orientation='above', calculation_mode='vanilla'):
     # Args:
@@ -215,7 +229,7 @@ def generic_detector_growth_rate(stream, current_window=duration('5m'),
     if calculation_mode == 'vanilla':
         previous = stream.timeshift(duration(current_window)).mean(over=duration(historical_window))
     elif calculation_mode == 'ewma':
-        previous = stream.timeshift(duration(current_window)).ewma(alpha)
+        previous = stream.timeshift(duration(current_window)).ewma(over=duration(historical_window))
     current_window_duration = duration(current_window)
     recent_min = stream.min(over=current_window_duration)
     recent_max = stream.max(over=current_window_duration)
@@ -254,14 +268,15 @@ def generic_detector_growth_rate(stream, current_window=duration('5m'),
 def detector_growth_rate_vanilla(stream, current_window=duration('5m'),
                                  historical_window=duration('1h'),
                                  fire_growth_rate_threshold=0.2, clear_growth_rate_threshold=0.1,
-                                 orientation='above'):
+                                 orientation='above', calculation_mode='vanilla'):
     return generic_detector_growth_rate(stream, current_window=current_window,
-                                        historical_window=historical_window, alpha=None,
+                                        historical_window=historical_window,
                                         fire_growth_rate_threshold=fire_growth_rate_threshold,
                                         clear_growth_rate_threshold=clear_growth_rate_threshold,
-                                        orientation=orientation, calculation_mode='vanilla')
+                                        orientation=orientation, calculation_mode=calculation_mode)
 
 
+# deprecated
 def detector_growth_rate_ewma(stream, current_window=duration('5m'),
                               alpha=0.05,
                               fire_growth_rate_threshold=0.2, clear_growth_rate_threshold=0.1,

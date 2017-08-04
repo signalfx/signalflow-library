@@ -13,8 +13,9 @@ The `detector_mean_std` function has the following parameters. Parameters with n
 |fire_num_stddev|number|number of standard deviations different from historical mean required to trigger, should be >= 0 |3|
 |clear_num_stddev|number|number of standard deviations different from historical mean required to clear, should be >= 0|2.5|
 |orientation|string|specifies whether detect fires when signal is above, below, or out-of-band (options  'above', 'below', 'out_of_band')|'above'|
+|calculation_mode|string|specifies whether to use exponentially weighted or usual moving average (options 'vanilla', 'ewma')|'vanilla'|
     
-It returns a detect block that triggers when all the values of the last `current_window` of `stream` are at least `fire_num_stddev` standard deviations away from the mean of the preceding `historical_window`, and clears when all the values of the last `current_window` of `stream` remain within `clear_num_stddev` standard deviations of the mean of the preceding `historical_window`. The value of `orientation` determines whether the `current_window` is required to be above or below (or either) the norm established by the `historical_window`.
+It returns a detect block that triggers when all the values of the last `current_window` of `stream` are at least `fire_num_stddev` standard deviations away from the mean of the preceding `historical_window`, and clears when all the values of the last `current_window` of `stream` remain within `clear_num_stddev` standard deviations of the mean of the preceding `historical_window`. The value of `orientation` determines whether the `current_window` is required to be above or below (or either) the norm established by the `historical_window`. Also, the value of `calculation_mode` determines whether the mean or an exponentially weighted moving average is used. 
     
 
 #### Example usage
@@ -75,8 +76,10 @@ The `detector_growth_rate_vanilla` function has the following parameters. Parame
 |fire_growth_rate_threshold|number|percentage different from historical mean required to trigger, should be >= 0 |0.2|
 |clear_growth_rate_threshold|number|percentage different from historical mean required to clear, should be >= 0|0.1|
 |orientation|string|specifies whether detect fires when signal is above, below, or out-of-band (options  'above', 'below', 'out_of_band')|'above'|
+|calculation_mode|string|specifies whether to use exponentially weighted or usual moving average (options 'vanilla', 'ewma')|'vanilla'|
     
-It returns a detect block that triggers when all the values of the last `current_window` of `stream` are at least `100 * fire_growth_rate_threshold` % away from the mean of the preceding `historical_window`, and clears when all the values of the last `current_window` of `stream` remain within `100 * clear_growth_rate_threshold` % of the mean of the preceding `historical_window`. The value of `orientation` determines whether the `current_window` is required to be above or below (or either) the norm established by the `historical_window`.
+It returns a detect block that triggers when all the values of the last `current_window` of `stream` are at least `100 * fire_growth_rate_threshold` % away from the mean of the preceding `historical_window`, and clears when all the values of the last `current_window` of `stream` remain within `100 * clear_growth_rate_threshold` % of the mean of the preceding `historical_window`. The value of `orientation` determines whether the `current_window` is required to be above or below (or either) the norm established by the `historical_window`. Also, the value of `calculation_mode` determines whether the mean or an exponentially weighted moving average is used. 
+    
     
 
 #### Example usage
@@ -89,33 +92,6 @@ against_recent.detector_growth_rate_vanilla(service_cpu).publish('cpu_detector')
 
 ~~~~~~~~~~~~~~~~~~~~
 
-
-
-## Exponentially weighted mean plus percentage changee
-
-The `detector_growth_rate_ewma` function has the following parameters. Parameters with no default value are required.
-
-|Parameter name|Type|Description|Default value|
-|:---|:---|:---|:---|
-|stream|stream|data being monitored|*None*|
-|current_window|duration|window being tested for anomalous values|duration('5m')|
-|alpha|number|smoothing parameter for exponentially weighted moving average, must be between 0 and 1|0.05|
-|fire_growth_rate_threshold|number|percentage different from historical mean required to trigger, should be >= 0 |0.2|
-|clear_growth_rate_threshold|number|percentage different from historical mean required to clear, should be >= 0|0.1|
-|orientation|string|specifies whether detect fires when signal is above, below, or out-of-band (options  'above', 'below', 'out_of_band')|'above'|
-    
-It returns a detect block that triggers when all the values of the last `current_window` of `stream` are at least `100 * fire_growth_rate_threshold` % away from the exponentially weighted moving average (with smoothing parameter `alpha`) of the preceding window, and clears when all the values of the last `current_window` of `stream` remain within `100 * clear_growth_rate_threshold` % of the exponentially weighted moving average (with smoothing parameter `alpha`) of the preceding window. The value of `orientation` determines whether the `current_window` is required to be above or below (or either) the norm established by the window preceding it.
-    
-
-#### Example usage
-~~~~~~~~~~~~~~~~~~~~
-from signalfx.detectors.against_recent import against_recent
-
-service_cpu = data('cpu.utilization').mean(by=['aws_tag_service'])
-
-against_recent.detector_growth_rate_ewma(service_cpu, alpha=0.2).publish('cpu_detector')
-
-~~~~~~~~~~~~~~~~~~~~
 
 
 
