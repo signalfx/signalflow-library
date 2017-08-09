@@ -79,10 +79,10 @@ def detector_mean_std(stream, current_window=duration('5m'),
                 damped = max(bot, min(stream, top))
                 return damped.timeshift(current_window_).mean_plus_stddev(stddevs=x, over=historical_window_)
             elif calculation_mode == 'ewma':
-                top = ewma_plus_stddev(stream, historical_window_, abs_x)
-                bot =  ewma_plus_stddev(stream, historical_window_, -1 * abs_x)
-                damped = max(bot, min(stream, top))
-                return ewma_plus_stddev(damped.timeshift(current_window_), historical_window_, x)
+                top = ewma_plus_stddev(stream.timeshift(current_window_), historical_window_, abs_x)
+                bot =  ewma_plus_stddev(stream.timeshift(current_window_), historical_window_, -1 * abs_x)
+                damped = max(bot, min(stream.timeshift(current_window_), top))
+                return ewma_plus_stddev(damped, historical_window_, x)
         else:
             if calculation_mode == 'vanilla':
                 return stream.timeshift(current_window_).mean_plus_stddev(stddevs=x, over=historical_window_)
