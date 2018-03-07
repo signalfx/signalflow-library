@@ -1,5 +1,5 @@
-from signalflow.detectors.against_recent import streams
-from signalflow.detectors.against_recent import utils
+from signalfx.detectors.against_recent import streams
+from signalfx.detectors.against_recent import utils
 
 def mean_std(stream, current_window=duration('5m'),
                         historical_window=duration('1h'),

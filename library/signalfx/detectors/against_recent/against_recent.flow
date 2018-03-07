@@ -20,9 +20,8 @@
 #
 # @author joe
 
-from signalflow.detectors.against_recent import streams
-from signalflow.detectors.against_recent import utils
-
+from signalfx.detectors.against_recent import streams
+from signalfx.detectors.against_recent import utils
 
 def detector_helper(recent_min, recent_max, f_bot, c_bot, c_top, f_top, orientation, annotations, event_annotations=None):
     if orientation == 'above':
