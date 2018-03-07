@@ -20,6 +20,9 @@
 #
 # @author joe
 
+from signalflow.detectors.against_recent import streams
+from signalflow.detectors.against_recent import utils
+
 
 def detector_helper(recent_min, recent_max, f_bot, c_bot, c_top, f_top, orientation, annotations, event_annotations=None):
     if orientation == 'above':
@@ -29,7 +32,7 @@ def detector_helper(recent_min, recent_max, f_bot, c_bot, c_top, f_top, orientat
     elif orientation == 'out_of_band':
         return detect(when(recent_min > f_top or recent_max < f_bot),
                       when(recent_max < c_top and recent_min > c_bot),
-                      mode='split',
+                      mode='split',wq
                       annotations=annotations, event_annotations=event_annotations)
 
 
@@ -70,30 +73,12 @@ def detector_mean_std(stream, current_window=duration('5m'),
     assert fire_num_stddev >= clear_num_stddev, {'fire_num_stddev' : fire_num_stddev, 'clear_num_stddev' : clear_num_stddev,
        'sfui_errorKeys' : ['fire_num_stddev', 'clear_num_stddev'],
        'sfui_errorTemplate': "{{{fire_num_stddev}}} must be greater than or equal to {{{clear_num_stddev}}}."}
-    def h(x):
-        if ignore_extremes:
-            abs_x = abs(x)
-            if calculation_mode == 'vanilla':
-                top = stream.mean_plus_stddev(stddevs=abs_x, over=historical_window_)
-                bot = stream.mean_plus_stddev(stddevs=-1 * abs_x, over=historical_window_)
-                damped = max(bot, min(stream, top)) if stream is not None else None
-                return damped.timeshift(current_window_).mean_plus_stddev(stddevs=x, over=historical_window_)
-            elif calculation_mode == 'ewma':
-                top = ewma_plus_stddev(stream.timeshift(current_window_), historical_window_, abs_x)
-                bot =  ewma_plus_stddev(stream.timeshift(current_window_), historical_window_, -1 * abs_x)
-                damped = max(bot, min(stream.timeshift(current_window_), top)) if stream.timeshift(current_window_) is not None else None
-                return ewma_plus_stddev(damped, historical_window_, x)
-        else:
-            if calculation_mode == 'vanilla':
-                return stream.timeshift(current_window_).mean_plus_stddev(stddevs=x, over=historical_window_)
-            elif calculation_mode == 'ewma':
-                return ewma_plus_stddev(stream.timeshift(current_window_), historical_window_, x)
-    recent_min = stream.min(over=current_window_)
-    recent_max = stream.max(over=current_window_)
-    fb = h(-1 * fire_num_stddev)
-    cb = h(-1 * clear_num_stddev)
-    ct = h(clear_num_stddev)
-    ft = h(fire_num_stddev)
+    recent_min, recent_max, fb, cb, ct, ft = streams.mean_std(stream, current_window=current_window,
+                                                              historical_window=historical_window,
+                                                              fire_num_stddev=fire_num_stddev,
+                                                              clear_num_stddev=clear_num_stddev,
+                                                              ignore_extremes=ignore_extremes,
+                                                              calculation_mode=calculation_mode)
     annotations = [annotate(recent_min, 'rolling minimum', {'sfui_streamType': 'signal'}),
                    annotate(recent_max, 'rolling maximum', {'sfui_streamType': 'signal'}),
                    annotate(fb, 'lower fire threshold', {'sfui_streamType': 'threshold',
@@ -119,7 +104,10 @@ def detector_mean_std(stream, current_window=duration('5m'),
                              'sfui_trigger':'outside',
                              'influencedBy': 'clear_num_stddev'})]
     event_annotations = {'current_window': str(current_window_)}
-    return detector_helper(recent_min, recent_max, fb, cb, ct, ft, orientation, annotations, event_annotations)
+    fire_condition, clear_condition = utils.conditions_helper(orientation, recent_min, recent_max,
+                                                              fb, cb, ct, ft)
+    return utils.detector_from_conditions(fire_condition, clear_condition, orientation,
+                                          annotations, event_annotations=event_annotations)
 
 
 def detector_percentile(stream, current_window=duration('5m'),

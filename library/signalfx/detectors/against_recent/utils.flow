@@ -1,0 +1,17 @@
+def conditions_helper(orientation, recent_min, recent_max, f_bot, c_bot, c_top, f_top):
+    if orientation == 'above':
+        return when(recent_min > f_top), when(recent_max < c_top)
+    elif orientation == 'below':
+        return when(recent_max < f_bot), when(recent_min > c_bot)
+    elif orientation == 'out_of_band':
+        return when(recent_min > f_top or recent_max < f_bot), when(recent_max < c_top and recent_min > c_bot)
+
+
+def detector_from_conditions(fire_condition, clear_condition, orientation,
+                             annotations, event_annotations=None):
+    if orientation == 'above' or orientation == 'below':
+        return detect(fire_condition, clear_condition, annotations=annotations,
+                      event_annotations=event_annotations)
+    elif orientation == 'out_of_band':
+        return detect(fire_condition, clear_condition, mode='split', annotations=annotations,
+                      event_annotations=event_annotations)
