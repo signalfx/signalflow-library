@@ -32,7 +32,7 @@ def detector_helper(recent_min, recent_max, f_bot, c_bot, c_top, f_top, orientat
     elif orientation == 'out_of_band':
         return detect(when(recent_min > f_top or recent_max < f_bot),
                       when(recent_max < c_top and recent_min > c_bot),
-                      mode='split',wq
+                      mode='split',
                       annotations=annotations, event_annotations=event_annotations)
 
 
