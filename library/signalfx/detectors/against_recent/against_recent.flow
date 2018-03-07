@@ -103,10 +103,11 @@ def detector_mean_std(stream, current_window=duration('5m'),
                              'sfui_trigger':'outside',
                              'influencedBy': 'clear_num_stddev'})]
     event_annotations = {'current_window': str(current_window_)}
-    fire_condition, clear_condition = utils.conditions_helper(orientation, recent_min, recent_max,
-                                                              fb, cb, ct, ft)
-    return utils.detector_from_conditions(fire_condition, clear_condition, orientation,
-                                          annotations, event_annotations=event_annotations)
+    return utils.detector_from_conditions(utils.conditions_helper(orientation, recent_min, recent_max,
+                                                                fb, cb, ct, ft)[0],
+                                          utils.conditions_helper(orientation, recent_min, recent_max,
+                                                                    fb, cb, ct, ft)[1],
+                                          orientation, annotations, event_annotations=event_annotations)
 
 
 def detector_percentile(stream, current_window=duration('5m'),
