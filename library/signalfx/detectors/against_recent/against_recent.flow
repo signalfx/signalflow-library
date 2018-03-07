@@ -106,7 +106,7 @@ def detector_mean_std(stream, current_window=duration('5m'),
                              'sfui_trigger':'outside',
                              'influencedBy': 'clear_num_stddev'})]
     event_annotations = {'current_window': str(current_window_)}
-    return detector_helper(recent_min, recent_max, fb, cb, ct, ft, annotations,
+    return detector_helper(recent_min, recent_max, fb, cb, ct, ft, orientation, annotations,
                            event_annotations=event_annotations)
 
 
