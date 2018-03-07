@@ -23,11 +23,14 @@
 from signalfx.detectors.against_recent import streams
 from signalfx.detectors.against_recent import utils
 
-def detector_helper(recent_min, recent_max, f_bot, c_bot, c_top, f_top, orientation, annotations, event_annotations=None):
+def detector_helper(recent_min, recent_max, f_bot, c_bot, c_top, f_top, orientation, annotations,
+                    event_annotations=None):
     if orientation == 'above':
-        return detect(when(recent_min > f_top), when(recent_max < c_top), annotations=annotations, event_annotations=event_annotations)
+        return detect(when(recent_min > f_top), when(recent_max < c_top), annotations=annotations,
+                      event_annotations=event_annotations)
     elif orientation == 'below':
-        return detect(when(recent_max < f_bot), when(recent_min > c_bot), annotations=annotations, event_annotations=event_annotations)
+        return detect(when(recent_max < f_bot), when(recent_min > c_bot), annotations=annotations,
+                      event_annotations=event_annotations)
     elif orientation == 'out_of_band':
         return detect(when(recent_min > f_top or recent_max < f_bot),
                       when(recent_max < c_top and recent_min > c_bot),
@@ -103,10 +106,8 @@ def detector_mean_std(stream, current_window=duration('5m'),
                              'sfui_trigger':'outside',
                              'influencedBy': 'clear_num_stddev'})]
     event_annotations = {'current_window': str(current_window_)}
-    fire_condition, clear_condition = utils.conditions_helper(orientation, recent_min, recent_max,
-                                                              fb, cb, ct, ft)
-    return utils.detector_from_conditions(fire_condition, clear_condition, orientation,
-                                          annotations, event_annotations=event_annotations)
+    return detector_helper(recent_min, recent_max, fb, cb, ct, ft, annotations,
+                           event_annotations=event_annotations)
 
 
 def detector_percentile(stream, current_window=duration('5m'),
