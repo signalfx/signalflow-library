@@ -75,12 +75,13 @@ def detector_mean_std(stream, current_window=duration('5m'),
     assert fire_num_stddev >= clear_num_stddev, {'fire_num_stddev' : fire_num_stddev, 'clear_num_stddev' : clear_num_stddev,
        'sfui_errorKeys' : ['fire_num_stddev', 'clear_num_stddev'],
        'sfui_errorTemplate': "{{{fire_num_stddev}}} must be greater than or equal to {{{clear_num_stddev}}}."}
-    recent_min, recent_max, fb, cb, ct, ft = streams.mean_std(stream, current_window=current_window,
-                                                              historical_window=historical_window,
-                                                              fire_num_stddev=fire_num_stddev,
-                                                              clear_num_stddev=clear_num_stddev,
-                                                              ignore_extremes=ignore_extremes,
-                                                              calculation_mode=calculation_mode)
+    recent_min, recent_max = streams.recent_extrema(stream, current_window=current_window_)
+    fb, cb, ct, ft = streams.mean_std(stream, current_window=current_window_,
+                                      historical_window=historical_window_,
+                                      fire_num_stddev=fire_num_stddev,
+                                      clear_num_stddev=clear_num_stddev,
+                                      ignore_extremes=ignore_extremes,
+                                      calculation_mode=calculation_mode)
     annotations = [annotate(recent_min, 'rolling minimum', {'sfui_streamType': 'signal'}),
                    annotate(recent_max, 'rolling maximum', {'sfui_streamType': 'signal'}),
                    annotate(fb, 'lower fire threshold', {'sfui_streamType': 'threshold',
@@ -140,22 +141,11 @@ def detector_percentile(stream, current_window=duration('5m'),
     assert fire_derived >= clear_derived, {'fire_percentile_threshold' : fire_derived, 'clear_percentile_threshold' : clear_derived,
        'sfui_errorKeys' : ['fire_percentile_threshold', 'clear_percentile_threshold'],
        'sfui_errorTemplate': "{{{fire_percentile_threshold}}} must be further from 50 than {{{clear_percentile_threshold}}}."}
-    def j(x):
-        return stream.timeshift(current_window_).percentile(x, over=historical_window_)
-    recent_min = stream.min(over=current_window_)
-    recent_max = stream.max(over=current_window_)
-    if fire_percentile_threshold > 50:
-        fb = j(100 - fire_percentile_threshold)
-        ft = j(fire_percentile_threshold)
-    else:
-        fb = j(fire_percentile_threshold)
-        ft = j(100 - fire_percentile_threshold)
-    if clear_percentile_threshold > 50:
-        cb = j(100 - clear_percentile_threshold)
-        ct = j(clear_percentile_threshold)
-    else:
-        cb = j(clear_percentile_threshold)
-        ct = j(100 - clear_percentile_threshold)
+    recent_min, recent_max = streams.recent_extrema(stream, current_window=current_window_)
+    fb, cb, ct, ft = streams.percentile(stream, current_window=current_window_,
+                                        historical_window=historical_window_,
+                                        fire_percentile_threshold=fire_percentile_threshold,
+                                        clear_percentile_threshold=clear_percentile_threshold)
     annotations = [annotate(recent_min, 'rolling minimum', {'sfui_streamType': 'signal'}),
                    annotate(recent_max, 'rolling maximum', {'sfui_streamType': 'signal'}),
                    annotate(fb, 'lower fire threshold', {'sfui_streamType': 'threshold',
@@ -181,7 +171,8 @@ def detector_percentile(stream, current_window=duration('5m'),
                              'sfui_trigger':'outside' ,
                              'influencedBy': 'clear_percentile_threshold'})]
     event_annotations = {'current_window': str(current_window_)}
-    return detector_helper(recent_min, recent_max, fb, cb, ct, ft, orientation, annotations, event_annotations)
+    return detector_helper(recent_min, recent_max, fb, cb, ct, ft, orientation, annotations,
+                           event_annotations=event_annotations)
 
 
 def generic_detector_growth_rate(stream, current_window=duration('5m'),
@@ -209,22 +200,19 @@ def generic_detector_growth_rate(stream, current_window=duration('5m'),
     #           and clears when the last (current_window) of stream exhibits percentage change of no more than
     #           clear_growth_rate_threshold compared to the mean of the
     #           preceding historical_window
+    current_window_ = duration(current_window)
+    historical_window_ = duration(historical_window)
     assert fire_growth_rate_threshold >= clear_growth_rate_threshold, {
         'fire_growth_rate_threshold': fire_growth_rate_threshold,
         'clear_growth_rate_threshold': clear_growth_rate_threshold,
         'sfui_errorKeys': ['fire_growth_rate_threshold', 'clear_growth_rate_threshold'],
         'sfui_errorTemplate': "{{{fire_growth_rate_threshold}}} must be greater than or equal to {{{clear_growth_rate_threshold}}}."}
-    if calculation_mode == 'vanilla':
-        previous = stream.timeshift(duration(current_window)).mean(over=duration(historical_window))
-    elif calculation_mode == 'ewma':
-        previous = stream.timeshift(duration(current_window)).ewma(over=duration(historical_window))
-    current_window_duration = duration(current_window)
-    recent_min = stream.min(over=current_window_duration)
-    recent_max = stream.max(over=current_window_duration)
-    fb = (1 - fire_growth_rate_threshold) * previous
-    cb = (1 - clear_growth_rate_threshold) * previous
-    ct = (1 + clear_growth_rate_threshold) * previous
-    ft = (1 + fire_growth_rate_threshold) * previous
+    recent_min, recent_max = streams.recent_extrema(stream, current_window=current_window_)
+    fb, cb, ct, ft = streams.growth_rate(stream, current_window=current_window_,
+                                         historical_window=historical_window_,
+                                         fire_growth_rate_threshold=fire_growth_rate_threshold,
+                                         clear_growth_rate_threshold=clear_growth_rate_threshold,
+                                         calculation_mode=calculation_mode)
     annotations = [annotate(recent_min, 'rolling minimum', {'sfui_streamType': 'signal'}),
                    annotate(recent_max, 'rolling maximum', {'sfui_streamType': 'signal'}),
                    annotate(fb, 'lower fire threshold', {'sfui_streamType': 'threshold',
@@ -249,8 +237,9 @@ def generic_detector_growth_rate(stream, current_window=duration('5m'),
                              'sfui_orientation':'above',
                              'sfui_trigger':'outside' ,
                              'influencedBy': 'clear_growth_rate_threshold'})]
-    event_annotations = {'current_window': str(current_window_duration)}
-    return detector_helper(recent_min, recent_max, fb, cb, ct, ft, orientation, annotations, event_annotations)
+    event_annotations = {'current_window': str(current_window_)}
+    return detector_helper(recent_min, recent_max, fb, cb, ct, ft, orientation, annotations,
+                           event_annotations=event_annotations)
 
 
 def detector_growth_rate_vanilla(stream, current_window=duration('5m'),
@@ -274,17 +263,3 @@ def detector_growth_rate_ewma(stream, current_window=duration('5m'),
                                         fire_growth_rate_threshold=fire_growth_rate_threshold,
                                         clear_growth_rate_threshold=clear_growth_rate_threshold,
                                         orientation=orientation, calculation_mode='ewma')
-
-
-# examples
-# detector_mean_std(data('jvm.cpu.load').percentile(70), fire_num_stddev=2,
-#                         clear_num_stddev=1).publish('abover')
-
-#detector_percentile(data('jvm.cpu.load'), current_window=duration('10m'),
-#                                historical_window=duration('10m'), fire_percentile_threshold=90,
-#                                clear_percentile_threshold=75, orientation='out_of_band').publish('pctile')
-
-
-# detector_percentile(data('jvm.cpu.load'), current_window=duration('10m'),
-#                                historical_window=duration('10m'), fire_percentile_threshold=77,
-#                                clear_percentile_threshold=75, orientation='out_of_band').publish('pctile')

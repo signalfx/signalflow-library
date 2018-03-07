@@ -1,20 +1,39 @@
 from signalfx.detectors.against_recent import streams
 from signalfx.detectors.against_recent import utils
 
-def mean_std(stream, current_window=duration('5m'),
-                        historical_window=duration('1h'),
-                        fire_num_stddev=3, clear_num_stddev=2.5,
-                        orientation='above', ignore_extremes=True, calculation_mode='vanilla'):
-    # recent_min, recent_max, f_bot, c_bot, c_top, f_top = streams_mean_std(stream,
-    #                                                           current_window=current_window,
-    #                                                           historical_window=historical_window,
-    #                                                           fire_num_stddev=fire_num_stddev,
-    #                                                           clear_num_stddev=clear_num_stddev,
-    #                                                           ignore_extremes=ignore_extremes,
-    #                                                           calculation_mode=calculation_mode)
-    return utils.conditions_helper(orientation, *streams.mean_std(stream, current_window=current_window,
-                                                       historical_window=historical_window,
-                                                       fire_num_stddev=fire_num_stddev,
-                                                       clear_num_stddev=clear_num_stddev,
-                                                       ignore_extremes=ignore_extremes,
-                                                       calculation_mode=calculation_mode))
+
+def mean_std(stream, current_window=duration('5m'), historical_window=duration('1h'),
+             fire_num_stddev=3, clear_num_stddev=2.5, orientation='above', ignore_extremes=True,
+             calculation_mode='vanilla'):
+    r_min, r_max = streams.recent_extrema(stream, current_window=current_window)
+    return utils.conditions_helper(orientation, r_min, r_max,
+                                   *streams.mean_std_thresholds(stream,
+                                                                current_window=current_window,
+                                                                historical_window=historical_window,
+                                                                fire_num_stddev=fire_num_stddev,
+                                                                clear_num_stddev=clear_num_stddev,
+                                                                ignore_extremes=ignore_extremes,
+                                                                calculation_mode=calculation_mode))
+
+
+def percentile(stream, current_window=duration('5m'), historical_window=duration('1h'),
+               fire_percentile_threshold=99, clear_percentile_threshold=95, orientation='above'):
+    r_min, r_max = streams.recent_extrema(stream, current_window=current_window)
+    return utils.conditions_helper(orientation, r_min, r_max,
+                                   *streams.percentile_thresholds(stream,
+                                                                  current_window=current_window,
+                                                                  historical_window=historical_window,
+                                                                  fire_percentile_threshold=fire_percentile_threshold,
+                                                                  clear_percentile_threshold=clear_percentile_threshold))
+
+
+def growth_rate(stream, current_window=duration('5m'), historical_window=duration('1h'),
+                fire_growth_rate_threshold=0.2, clear_growth_rate_threshold=0.1,
+                orientation='above', calculation_mode='vanilla'):
+    r_min, r_max = streams.recent_extrema(stream, current_window=current_window)
+    return utils.conditions_helper(orientation, r_min, r_max,
+                                   *streams.growth_rate_thresholds(stream, current_window=current_window,
+                                                                   historical_window=historical_window,
+                                                                   fire_growth_rate_threshold=fire_growth_rate_threshold,
+                                                                   clear_growth_rate_threshold=clear_growth_rate_threshold,
+                                                                   calculation_mode=calculation_mode))

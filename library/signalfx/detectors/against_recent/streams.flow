@@ -1,3 +1,10 @@
+def recent_extrema(stream, current_window=duration('5m')):
+    current_window_ = duration(current_window)
+    recent_min = stream.min(over=current_window_)
+    recent_max = stream.max(over=current_window_)
+    return recent_min, recent_max
+
+
 def ewma_plus_stddev(stream, duration_, num_stddev):
     return stream.ewma(over=duration(duration_)) + num_stddev * stream.stddev(over=duration(duration_))
 
@@ -16,10 +23,9 @@ def clamper(stream, current_window_, historical_window_, num_stddev, calculation
         return ewma_plus_stddev(clamped, historical_window_, num_stddev)
 
 
-def mean_std(stream, current_window=duration('5m'),
-                     historical_window=duration('1h'),
-                     fire_num_stddev=3, clear_num_stddev=2.5,
-                     ignore_extremes=True, calculation_mode='vanilla'):
+def mean_std_thresholds(stream, current_window=duration('5m'), historical_window=duration('1h'),
+                        fire_num_stddev=3, clear_num_stddev=2.5, ignore_extremes=True,
+                        calculation_mode='vanilla'):
     current_window_ = duration(current_window)
     historical_window_ = duration(historical_window)
     def h(x):
@@ -30,10 +36,45 @@ def mean_std(stream, current_window=duration('5m'),
                 return stream.timeshift(current_window_).mean_plus_stddev(stddevs=x, over=historical_window_)
             elif calculation_mode == 'ewma':
                 return ewma_plus_stddev(stream.timeshift(current_window_), historical_window_, x)
-    recent_min = stream.min(over=current_window_)
-    recent_max = stream.max(over=current_window_)
     f_bot = h(-1 * fire_num_stddev)
     c_bot = h(-1 * clear_num_stddev)
     c_top = h(clear_num_stddev)
     f_top = h(fire_num_stddev)
-    return recent_min, recent_max, f_bot, c_bot, c_top, f_top
+    return f_bot, c_bot, c_top, f_top
+
+
+def percentile_thresholds(stream, current_window=duration('5m'), historical_window=duration('1h'),
+                          fire_percentile_threshold=99, clear_percentile_threshold=95):
+    current_window_ = duration(current_window)
+    historical_window_ = duration(historical_window)
+    def j(x):
+        return stream.timeshift(current_window_).percentile(x, over=historical_window_)
+    if fire_percentile_threshold > 50:
+        f_bot = j(100 - fire_percentile_threshold)
+        f_top = j(fire_percentile_threshold)
+    else:
+        f_bot = j(fire_percentile_threshold)
+        f_top = j(100 - fire_percentile_threshold)
+    if clear_percentile_threshold > 50:
+        c_bot = j(100 - clear_percentile_threshold)
+        c_top = j(clear_percentile_threshold)
+    else:
+        c_bot = j(clear_percentile_threshold)
+        c_top = j(100 - clear_percentile_threshold)
+    return f_bot, c_bot, c_top, f_top
+
+
+def growth_rate_thresholds(stream, current_window=duration('5m'), historical_window=duration('1h'),
+                           fire_growth_rate_threshold=0.2, clear_growth_rate_threshold=0.1,
+                           calculation_mode='vanilla'):
+    current_window_ = duration(current_window)
+    historical_window_ = duration(historical_window)
+    if calculation_mode == 'vanilla':
+        previous = stream.timeshift(current_window_).mean(over=historical_window_)
+    elif calculation_mode == 'ewma':
+        previous = stream.timeshift(current_window_).ewma(over=historical_window_)
+    f_bot = (1 - fire_growth_rate_threshold) * previous
+    c_bot = (1 - clear_growth_rate_threshold) * previous
+    c_top = (1 + clear_growth_rate_threshold) * previous
+    f_top = (1 + fire_growth_rate_threshold) * previous
+    return f_bot, c_bot, c_top, f_top
