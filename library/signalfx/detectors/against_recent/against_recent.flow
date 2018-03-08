@@ -76,12 +76,12 @@ def detector_mean_std(stream, current_window=duration('5m'),
        'sfui_errorKeys' : ['fire_num_stddev', 'clear_num_stddev'],
        'sfui_errorTemplate': "{{{fire_num_stddev}}} must be greater than or equal to {{{clear_num_stddev}}}."}
     recent_min, recent_max = streams.recent_extrema(stream, current_window=current_window_)
-    fb, cb, ct, ft = streams.mean_std(stream, current_window=current_window_,
-                                      historical_window=historical_window_,
-                                      fire_num_stddev=fire_num_stddev,
-                                      clear_num_stddev=clear_num_stddev,
-                                      ignore_extremes=ignore_extremes,
-                                      calculation_mode=calculation_mode)
+    fb, cb, ct, ft = streams.mean_std_thresholds(stream, current_window=current_window_,
+                                                 historical_window=historical_window_,
+                                                 fire_num_stddev=fire_num_stddev,
+                                                 clear_num_stddev=clear_num_stddev,
+                                                 ignore_extremes=ignore_extremes,
+                                                 calculation_mode=calculation_mode)
     annotations = [annotate(recent_min, 'rolling minimum', {'sfui_streamType': 'signal'}),
                    annotate(recent_max, 'rolling maximum', {'sfui_streamType': 'signal'}),
                    annotate(fb, 'lower fire threshold', {'sfui_streamType': 'threshold',
@@ -142,10 +142,10 @@ def detector_percentile(stream, current_window=duration('5m'),
        'sfui_errorKeys' : ['fire_percentile_threshold', 'clear_percentile_threshold'],
        'sfui_errorTemplate': "{{{fire_percentile_threshold}}} must be further from 50 than {{{clear_percentile_threshold}}}."}
     recent_min, recent_max = streams.recent_extrema(stream, current_window=current_window_)
-    fb, cb, ct, ft = streams.percentile(stream, current_window=current_window_,
-                                        historical_window=historical_window_,
-                                        fire_percentile_threshold=fire_percentile_threshold,
-                                        clear_percentile_threshold=clear_percentile_threshold)
+    fb, cb, ct, ft = streams.percentile_thresholds(stream, current_window=current_window_,
+                                                   historical_window=historical_window_,
+                                                   fire_percentile_threshold=fire_percentile_threshold,
+                                                   clear_percentile_threshold=clear_percentile_threshold)
     annotations = [annotate(recent_min, 'rolling minimum', {'sfui_streamType': 'signal'}),
                    annotate(recent_max, 'rolling maximum', {'sfui_streamType': 'signal'}),
                    annotate(fb, 'lower fire threshold', {'sfui_streamType': 'threshold',
@@ -208,11 +208,11 @@ def generic_detector_growth_rate(stream, current_window=duration('5m'),
         'sfui_errorKeys': ['fire_growth_rate_threshold', 'clear_growth_rate_threshold'],
         'sfui_errorTemplate': "{{{fire_growth_rate_threshold}}} must be greater than or equal to {{{clear_growth_rate_threshold}}}."}
     recent_min, recent_max = streams.recent_extrema(stream, current_window=current_window_)
-    fb, cb, ct, ft = streams.growth_rate(stream, current_window=current_window_,
-                                         historical_window=historical_window_,
-                                         fire_growth_rate_threshold=fire_growth_rate_threshold,
-                                         clear_growth_rate_threshold=clear_growth_rate_threshold,
-                                         calculation_mode=calculation_mode)
+    fb, cb, ct, ft = streams.growth_rate_thresholds(stream, current_window=current_window_,
+                                                    historical_window=historical_window_,
+                                                    fire_growth_rate_threshold=fire_growth_rate_threshold,
+                                                    clear_growth_rate_threshold=clear_growth_rate_threshold,
+                                                    calculation_mode=calculation_mode)
     annotations = [annotate(recent_min, 'rolling minimum', {'sfui_streamType': 'signal'}),
                    annotate(recent_max, 'rolling maximum', {'sfui_streamType': 'signal'}),
                    annotate(fb, 'lower fire threshold', {'sfui_streamType': 'threshold',
