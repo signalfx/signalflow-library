@@ -9,18 +9,16 @@ def ewma_plus_stddev(stream, duration_, num_stddev):
     return stream.ewma(over=duration(duration_)) + num_stddev * stream.stddev(over=duration(duration_))
 
 
-def clamper(stream, current_window_, historical_window_, num_stddev, calculation_mode):
+def clamper(stream, historical_window_, num_stddev, calculation_mode):
     abs_num_stddev = abs(num_stddev)
     if calculation_mode == 'vanilla':
         top = stream.mean_plus_stddev(stddevs=abs_num_stddev, over=historical_window_)
         bot = stream.mean_plus_stddev(stddevs=-1 * abs_num_stddev, over=historical_window_)
-        clamped = max(bot, min(stream, top)) if stream is not None else None
-        return clamped.timeshift(current_window_).mean_plus_stddev(stddevs=num_stddev, over=historical_window_)
+        return max(bot, min(stream, top)) if stream is not None else None
     elif calculation_mode == 'ewma':
-        top = ewma_plus_stddev(stream.timeshift(current_window_), historical_window_, abs_num_stddev)
-        bot =  ewma_plus_stddev(stream.timeshift(current_window_), historical_window_, -1 * abs_num_stddev)
-        clamped = max(bot, min(stream.timeshift(current_window_), top)) if stream.timeshift(current_window_) is not None else None
-        return ewma_plus_stddev(clamped, historical_window_, num_stddev)
+        top = ewma_plus_stddev(stream, historical_window_, abs_num_stddev)
+        bot = ewma_plus_stddev(stream, historical_window_, -1 * abs_num_stddev)
+        return max(bot, min(stream, top)) if stream is not None else None
 
 
 def mean_std_thresholds(stream, current_window=duration('5m'), historical_window=duration('1h'),
@@ -30,12 +28,13 @@ def mean_std_thresholds(stream, current_window=duration('5m'), historical_window
     historical_window_ = duration(historical_window)
     def h(x):
         if ignore_extremes:
-            return clamper(stream, current_window_, historical_window_, x, calculation_mode)
+            new_s = clamper(stream, historical_window_, x, calculation_mode)
         else:
-            if calculation_mode == 'vanilla':
-                return stream.timeshift(current_window_).mean_plus_stddev(stddevs=x, over=historical_window_)
-            elif calculation_mode == 'ewma':
-                return ewma_plus_stddev(stream.timeshift(current_window_), historical_window_, x)
+            new_s = stream
+        if calculation_mode == 'vanilla':
+            return new_s.timeshift(current_window_).mean_plus_stddev(stddevs=x, over=historical_window_)
+        elif calculation_mode == 'ewma':
+            return ewma_plus_stddev(new_s.timeshift(current_window_), historical_window_, x)
     f_bot = h(-1 * fire_num_stddev)
     c_bot = h(-1 * clear_num_stddev)
     c_top = h(clear_num_stddev)
