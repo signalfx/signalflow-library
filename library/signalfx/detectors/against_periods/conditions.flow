@@ -1,0 +1,34 @@
+from signalfx.detectors.against_periods import streams
+from signalfx.detectors.against_periods import utils
+
+
+def mean_std(stream, window_to_compare=duration('15m'),
+             space_between_windows=duration('1w'),
+             num_windows=4, fire_num_stddev=3, clear_num_stddev=2.5,
+             discard_historical_outliers=True, orientation='above', calculation_mode='across'):
+    summary = stream.mean(over=window_to_compare)
+    return utils.conditions_helper(orientation, summary,
+                                   *streams.mean_std_thresholds(stream,
+                                                                window_to_compare=window_to_compare,
+                                                                space_between_windows=space_between_windows,
+                                                                num_windows=num_windows,
+                                                                fire_num_stddev=fire_num_stddev,
+                                                                clear_num_stddev=clear_num_stddev,
+                                                                discard_historical_outliers=discard_historical_outliers,
+                                                                calculation_mode=calculation_mode))
+
+
+def growth_rate(stream, window_to_compare=duration('15m'),
+                space_between_windows=duration('1w'),
+                num_windows=4, fire_growth_rate_threshold=0.2,
+                clear_growth_rate_threshold=0.1,
+                discard_historical_outliers=True, orientation='above'):
+    summary = stream.mean(over=window_to_compare)
+    return utils.conditions_helper(orientation, summary,
+                                   *streams.growth_rate_thresholds(stream,
+                                                                   window_to_compare=window_to_compare,
+                                                                   space_between_windows=space_between_windows,
+                                                                   num_windows=num_windows,
+                                                                   fire_growth_rate_threshold=fire_growth_rate_threshold,
+                                                                   clear_growth_rate_threshold=clear_growth_rate_threshold,
+                                                                   discard_historical_outliers=discard_historical_outliers))

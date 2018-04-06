@@ -1,0 +1,228 @@
+RECURSION_LIMIT = 8
+
+
+def h(s, w, sp, n):
+    # computes variance + mean^2 excluding the smallest and largest windows
+    # s = stream, w = window_to_compare, sp = space_between_windows, n = num_periods
+    assert n <= RECURSION_LIMIT
+
+    def f(x):  # mean of shifted window
+        return s.timeshift(x * duration(sp)).mean(over=duration(w))
+
+    def g(x):  # mean^2 + variance of shifted window
+        mn = s.timeshift(x * duration(sp)).mean(over=duration(w))
+        var = s.timeshift(x * duration(sp)).variance(over=duration(w))
+        return var + mn * mn
+
+    if n == 1:
+        return 0, 0, 0, 0, g(1)
+    elif n == 2:
+        return 0, 0, 0, 0, mean(g(1), g(2))
+    elif n == 3:
+        min_ = min(f(1), f(2), f(3))
+        max_ = max(f(1), f(2), f(3))
+        median_ = median(f(1), f(2), f(3))
+        c_1 = g(2) if f(2) <= min_ else g(3)
+        c_2 = g(1) if f(1) <= min_ else c_1
+        c_3 = g(2) if f(2) >= max_ else g(3)
+        c_4 = g(1) if f(1) >= max_ else c_3
+        c_5 = g(2) if f(2) == median_ else g(3)
+        c_6 = g(1) if f(1) == median_ else c_5
+        return c_2, min_, c_4, max_, c_6
+    else:
+        old_min, old_min_mean, old_max, old_max_mean, old_trimmed = h(s, w, sp, n - 1)
+        new_min_mean = min(f(n), old_min_mean)
+        new_max_mean = max(f(n), old_max_mean)
+        associated_min = g(n) if f(n) <= new_min_mean else old_min
+        associated_max = g(n) if f(n) >= new_max_mean else old_max
+        tt = old_max if f(n) > old_max_mean else g(n)
+        ss = old_min if old_min_mean > f(n) else tt
+        new_trimmed = ((n - 3) * old_trimmed + ss) / (n - 2)
+        return associated_min, new_min_mean, associated_max, new_max_mean, new_trimmed
+
+
+def n_period_trimmed_mean(s, w, sp, n):
+    # s = stream, w = window_to_compare, sp = space_between_windows, n = num_periods
+    assert n <= RECURSION_LIMIT
+
+    def f(x):  # mean of shifted window
+        return s.timeshift(x * duration(sp)).mean(over=duration(w))
+
+    if n == 1:
+        return 0, 0, f(1)
+    elif n == 2:
+        return 0, 0, mean(f(1), f(2))
+    elif n == 3:
+        return min(f(1), f(2), f(3)), max(f(1), f(2), f(3)), median(f(1), f(2), f(3))
+    else:
+        old_min, old_max, old_trimmed = n_period_trimmed_mean(s, w, sp, n - 1)
+        new_min = min(f(n), old_min)
+        new_max = max(f(n), old_max)
+        tt = old_max if f(n) > old_max else f(n)
+        ss = old_min if old_min > f(n) else tt
+        new_trimmed = ((n - 3) * old_trimmed + ss) / (n - 2)
+        return new_min, new_max, new_trimmed
+
+
+def n_period_trimmed_threshold(stream, window, space, num_periods, num_stddev):
+    assert num_periods <= RECURSION_LIMIT
+    # assume all windows have the same number of points, even though some may have nulls
+    trimmed = n_period_trimmed_mean(stream, window, space, num_periods)[2]
+    var = h(stream, window, space, num_periods)[4] - trimmed * trimmed
+    std = var.sqrt()
+    return trimmed + num_stddev * std
+
+
+def n_period_mean_and_var_plus_msq(s, w, sp, n):
+    # s = stream, w = window_to_compare, sp = space_between_windows, n = num_periods
+    assert n <= RECURSION_LIMIT
+
+    def f(x):  # mean of shifted window
+        return s.timeshift(x * duration(sp)).mean(over=duration(w))
+
+    def g(x):  # mean^2 + var of shifted window
+        mn = s.timeshift(x * duration(sp)).mean(over=duration(w))
+        var = s.timeshift(x * duration(sp)).variance(over=duration(w))
+        return var + mn * mn
+
+    if n == 1:
+        return f(1), g(1)
+    elif n >= 2:
+        old_m, old_v_msq = n_period_mean_and_var_plus_msq(s, w, sp, n - 1)
+        return ((n - 1) * old_m + f(n)) / n, ((n - 1) * old_v_msq + g(n)) / n
+
+
+def n_period_untrimmed_threshold(stream, window, space, num_periods, num_stddev):
+    assert num_periods <= RECURSION_LIMIT
+    # assume all windows have the same number of points, even though some may have nulls
+    mn, var_plus_mn_sq = n_period_mean_and_var_plus_msq(stream, window, space, num_periods)
+    var = var_plus_mn_sq - mn * mn
+    std = var.sqrt()
+    return mn + num_stddev * std
+
+
+def across_period_summaries(stream, window_to_compare=duration('15m'),
+                            space_between_windows=duration('1w'),
+                            num_windows=4, num_stddev=0, discard_historical_outliers=True):
+    assert num_windows <= RECURSION_LIMIT
+    space_between_windows_dur = duration(space_between_windows)
+    window_to_compare_dur = duration(window_to_compare)
+    if discard_historical_outliers:
+        return n_period_trimmed_threshold(stream, window_to_compare_dur, space_between_windows_dur,
+                                          num_windows, num_stddev)
+    else:
+        return n_period_untrimmed_threshold(stream, window_to_compare_dur,
+                                            space_between_windows_dur, num_windows, num_stddev)
+
+
+def n_period_summary(stream, window_to_compare, space_between_windows, num_stddev,
+                     num_periods, discard_historical_outliers=True):
+    def f(x):
+        return stream.timeshift(x * duration(space_between_windows)).mean_plus_stddev(
+            stddevs=num_stddev,
+            over=duration(window_to_compare))
+
+    _num_pds = min(num_periods, 8)
+    _pds = [f(i) for i in range(1, _num_pds + 1)]
+    if discard_historical_outliers:
+        return median(*_pds)
+    else:
+        return mean(*_pds)
+
+
+def period_summaries(stream, window_to_compare=duration('15m'),
+                     space_between_windows=duration('1w'),
+                     num_windows=4, num_stddev=0, discard_historical_outliers=True):
+    space_between_windows_dur = duration(space_between_windows)
+    window_to_compare_dur = duration(window_to_compare)
+    if num_windows == 1:
+        return stream.timeshift(space_between_windows_dur).mean_plus_stddev(stddevs=num_stddev,
+                                                                            over=window_to_compare_dur)
+    elif num_windows == 2:
+        return mean(stream.timeshift(space_between_windows_dur).mean_plus_stddev(stddevs=num_stddev,
+                                                                                 over=window_to_compare_dur),
+                    stream.timeshift(2 * space_between_windows_dur).mean_plus_stddev(
+                        stddevs=num_stddev,
+                        over=window_to_compare_dur))
+    elif num_windows >= 3:
+        return n_period_summary(stream, window_to_compare_dur, space_between_windows_dur,
+                                num_stddev,
+                                num_windows,
+                                discard_historical_outliers=discard_historical_outliers)
+
+
+def triple_ewma(stream, num_cycles=4, cycle_length=duration('1w'), alpha=0.1, beta=0.1, gamma=0.4,
+                damping=0.8, forecast=duration(0)):
+    cyc_len = duration(cycle_length)
+    forecast_ = duration(forecast)
+    assert forecast_ < cyc_len
+    assert num_cycles <= RECURSION_LIMIT, {
+        'num_cycles': num_cycles,
+        'sfui_errorKeys': ['num_cycles'],
+        'sfui_errorTemplate': "{{{num_cycles}}} must be less than or equal to 8."}
+    assert gamma >= 0 and gamma <= 1, {
+        'gamma': gamma,
+        'sfui_errorKeys': ['gamma'],
+        'sfui_errorTemplate': "{{{gamma}}} must be between 0 and 1."}
+
+    def f(n, shift_amount):
+        if n == 0:
+            c_ = stream.timeshift(num_cycles * cyc_len - shift_amount) / stream.timeshift(
+                num_cycles * cyc_len - shift_amount).mean(over=cyc_len)
+            c = (c_ + c_.timeshift(cyc_len) + c_.timeshift(2 * cyc_len)) / 3
+            return c
+        else:
+            old_c = f(n - 1, shift_amount)
+            location = (num_cycles - n) * cyc_len - shift_amount
+            s = (stream.timeshift(location) / old_c).double_ewma(alpha, beta, damping=damping)
+            c = gamma * (stream.timeshift(location) / s) + (1 - gamma) * old_c
+            return c
+
+    return (stream / (f(num_cycles - 1, duration(0)))).double_ewma(alpha, beta, forecast=forecast_,
+                                                                   damping=damping) * (
+           f(num_cycles - 1, forecast_))
+
+
+def growth_rate_thresholds(stream, window_to_compare=duration('15m'),
+                           space_between_windows=duration('1w'),
+                           num_windows=4, fire_growth_rate_threshold=0.2,
+                           clear_growth_rate_threshold=0.1,
+                           discard_historical_outliers=True):
+    space_between_windows_dur = duration(space_between_windows)
+    window_to_compare_dur = duration(window_to_compare)
+    previous = period_summaries(stream, window_to_compare=window_to_compare_dur,
+                                space_between_windows=space_between_windows_dur,
+                                num_windows=num_windows, num_stddev=0,
+                                discard_historical_outliers=discard_historical_outliers)
+    fb = (1 - fire_growth_rate_threshold) * previous
+    cb = (1 - clear_growth_rate_threshold) * previous
+    ct = (1 + clear_growth_rate_threshold) * previous
+    ft = (1 + fire_growth_rate_threshold) * previous
+    return fb, cb, ct, ft
+
+
+def mean_std_thresholds(stream, window_to_compare=duration('15m'),
+                        space_between_windows=duration('1w'),
+                        num_windows=4, fire_num_stddev=3, clear_num_stddev=2.5,
+                        discard_historical_outliers=True, calculation_mode='across'):
+    space_between_windows_dur = duration(space_between_windows)
+    window_to_compare_dur = duration(window_to_compare)
+
+    def g(x):
+        if calculation_mode == 'within':
+            return period_summaries(stream, window_to_compare=window_to_compare_dur,
+                                    space_between_windows=space_between_windows_dur,
+                                    num_windows=num_windows,
+                                    num_stddev=x,
+                                    discard_historical_outliers=discard_historical_outliers)
+        elif calculation_mode == 'across':
+            return across_period_summaries(stream, window_to_compare=window_to_compare_dur,
+                                           space_between_windows=space_between_windows_dur,
+                                           num_windows=num_windows, num_stddev=x,
+                                           discard_historical_outliers=discard_historical_outliers)
+
+    fb = g(-1 * fire_num_stddev)
+    cb = g(-1 * clear_num_stddev)
+    ct = g(clear_num_stddev)
+    ft = g(fire_num_stddev)
+    return fb, cb, ct, ft

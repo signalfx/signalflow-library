@@ -1,0 +1,17 @@
+def conditions_helper(orientation, summary, f_bot, c_bot, c_top, f_top):
+    if orientation == 'above':
+        return when(summary > f_top), when(summary < c_top)
+    elif orientation == 'below':
+        return when(summary < f_bot), when(summary > c_bot)
+    elif orientation == 'out_of_band':
+        return when(summary > f_top or summary < f_bot), when(summary < c_top and summary > c_bot)
+
+
+def detector_from_conditions(fire_condition, clear_condition, orientation,
+                             annotations, event_annotations=None):
+    if orientation == 'above' or orientation == 'below':
+        return detect(fire_condition, clear_condition, annotations=annotations,
+                      event_annotations=event_annotations)
+    elif orientation == 'out_of_band':
+        return detect(fire_condition, clear_condition, mode='split', annotations=annotations,
+                      event_annotations=event_annotations)
