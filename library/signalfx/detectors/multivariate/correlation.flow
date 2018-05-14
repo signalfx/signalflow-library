@@ -1,5 +1,6 @@
 def correlation_coefficient(stream1, stream2, duration):
     # calculates the correlation coefficient of stream1 and stream2 during duration
-    covariance = (stream1 * stream2).mean(over=duration) - (
-    stream1.mean(over=duration) * stream2.mean(over=duration))
-    return covariance / (stream1.stddev(over=duration) * stream2.stddev(over=duration))
+    s_1 = stream1 if stream1 is not None and stream2 is not None else None
+    s_2 = stream2 if stream1 is not None and stream2 is not None else None
+    covariance = (s_1 * s_2).mean(over=duration) - (s_1.mean(over=duration) * s_2.mean(over=duration))
+    return covariance / (s_1.stddev(over=duration) * s_2.stddev(over=duration))
