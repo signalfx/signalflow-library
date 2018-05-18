@@ -1,0 +1,21 @@
+def opposite_orientation(orientation):
+    if orientation == 'above':
+        return 'below'
+    elif orientation == 'below':
+        return 'above'
+    elif orientation == 'within_range':
+        return 'out_of_band'
+    elif orientation == 'out_of_band':
+        return 'within_range'
+
+
+def indicator(s, t):
+    # equals 1 when s > t, -1 when s < t, null when s = t
+    return (s - t) / (s - t).abs()
+
+
+# utility for visualization of lasting conditions
+def percentage_above_threshold(stream, threshold, duration):
+    good_count = stream.above(threshold).count(over=duration)
+    total_count = stream.count(over=duration)
+    return good_count / total_count

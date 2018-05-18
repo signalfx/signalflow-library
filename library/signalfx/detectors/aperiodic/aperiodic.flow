@@ -3,72 +3,11 @@
 # "A > 7 for 80% of 10 minutes" is equivalent to
 # "the 10-minute 20th percentile of A is greater than 7."
 #
-# Additionally count transform and percentage above threshold functions are provided.
-#
 # @author joe
 
-
-def opposite_orientation(orientation):
-    if orientation == 'above':
-        return 'below'
-    elif orientation == 'below':
-        return 'above'
-    elif orientation == 'within_range':
-        return 'out_of_band'
-    elif orientation == 'out_of_band':
-        return 'within_range'
-
-
-def numerator_stream(stream, threshold_1, threshold_2, orientation):
-    # Args:
-    #       stream (stream): data stream
-    #       threshold_1 (number or data stream): lower threshold (i.e. condition is stream < threshold_1)
-    #       threshold_2 (number or data stream): upper threshold (i.e. condition is stream > threshold_2)
-    #       orientation (string): one of 'above', 'below', 'within_range', 'out_of_band'
-    if orientation == 'above':
-        return (1 if stream > threshold_2 else None)
-    elif orientation == 'below':
-        return (1 if stream < threshold_1 else None)
-    elif orientation == 'within_range':
-        return (1 if stream > threshold_1 and stream < threshold_2 else None)
-    elif orientation == 'out_of_band':
-        return (1 if stream < threshold_1 or stream > threshold_2 else None)
-
-
-def denominator_stream(stream, threshold_1, threshold_2, orientation):
-    # Args:
-    #       stream (stream): data stream
-    #       threshold_1 (number or data stream): lower threshold (i.e. condition is stream < threshold_1)
-    #       threshold_2 (number or data stream): upper threshold (i.e. condition is stream > threshold_2)
-    #       orientation (string): one of 'above', 'below', 'within_range', 'out_of_band'
-    if orientation == 'above':
-        return (1 if stream is not None and threshold_2 is not None else None)
-    elif orientation == 'below':
-        return (1 if stream is not None and threshold_1 is not None else None)
-    elif orientation == 'within_range':
-        return (1 if stream is not None and threshold_1 is not None and threshold_2 is not None else None)
-    elif orientation == 'out_of_band':
-        either_threshold = (1 if threshold_1 is not None or threshold_2 is not None else None)
-        return (1 if stream is not None and either_threshold is not None else None)
-
-
-def generic_condition(stream, threshold_1, threshold_2, orientation, lasting, denominator_mode):
-    # Args:
-    #       stream (stream): data stream
-    #       threshold_1 (number or data stream):
-    #       threshold_2 (number or data stream):
-    #       orientation (string): one of 'above', 'below', 'within_range', 'out_of_band'
-    #       lasting (lasting):
-    #       denominator_mode (string): one of 'observed', 'expected'
-    true_count = numerator_stream(stream, threshold_1, threshold_2, orientation).count(over=lasting.duration)
-    denominator = denominator_stream(stream, threshold_1, threshold_2, orientation)
-    if denominator_mode == 'observed':
-        total_count = denominator.count(over=lasting.duration)
-    elif denominator_mode == 'expected':
-        total_count = denominator.size(over=lasting.duration)
-    true_proportion = true_count / total_count
-    return when(true_proportion >= lasting.at_least)
-
+from signalfx.detectors.aperiodic import utils
+from signalfx.detectors.aperiodic import streams
+from signalfx.detectors.aperiodic import conditions
 
 def generic_detector(stream, threshold_1, threshold_2, orientation, observed_lasting,
                             expected_lasting=None, annotations=None, event_annotations=None):
@@ -84,12 +23,12 @@ def generic_detector(stream, threshold_1, threshold_2, orientation, observed_las
     # Returns:
     #       detect block
     if expected_lasting is None:
-        return detect(generic_condition(stream, threshold_1, threshold_2, orientation, observed_lasting,
+        return detect(conditions.generic_condition(stream, threshold_1, threshold_2, orientation, observed_lasting,
                                         denominator_mode='observed'), annotations=annotations,
                                         event_annotations=event_annotations)
     else:
-        return detect(generic_condition(stream, threshold_1, threshold_2, orientation, observed_lasting,
-                                        denominator_mode='observed') and generic_condition(stream, threshold_1, threshold_2,
+        return detect(conditions.generic_condition(stream, threshold_1, threshold_2, orientation, observed_lasting,
+                                        denominator_mode='observed') and conditions.generic_condition(stream, threshold_1, threshold_2,
                                                                                orientation, expected_lasting,
                                                                                denominator_mode='expected'),
                       annotations=annotations, event_annotations=event_annotations)
@@ -157,18 +96,18 @@ def generic_detector_with_clear(stream, fire_threshold_1, fire_threshold_2, fire
     # Returns:
     #       detect block
     if fire_expected_lasting is None:
-        fire_condition = generic_condition(stream, fire_threshold_1, fire_threshold_2, fire_orientation,
+        fire_condition = conditions.generic_condition(stream, fire_threshold_1, fire_threshold_2, fire_orientation,
                                            fire_observed_lasting, denominator_mode='observed')
     else:
-        fire_condition = generic_condition(stream, fire_threshold_1, fire_threshold_2, fire_orientation,
-                                           fire_observed_lasting, denominator_mode='observed') and generic_condition(stream, fire_threshold_1, fire_threshold_2, fire_orientation,
+        fire_condition = conditions.generic_condition(stream, fire_threshold_1, fire_threshold_2, fire_orientation,
+                                           fire_observed_lasting, denominator_mode='observed') and conditions.generic_condition(stream, fire_threshold_1, fire_threshold_2, fire_orientation,
                                            fire_expected_lasting, denominator_mode='expected')
     if clear_expected_lasting is None:
-        clear_condition = generic_condition(stream, clear_threshold_1, clear_threshold_2, clear_orientation,
+        clear_condition = conditions.generic_condition(stream, clear_threshold_1, clear_threshold_2, clear_orientation,
                                            clear_observed_lasting, denominator_mode='observed')
     else:
-        clear_condition = generic_condition(stream, clear_threshold_1, clear_threshold_2, clear_orientation,
-                                           clear_observed_lasting, denominator_mode='observed') and generic_condition(stream, clear_threshold_1, clear_threshold_2, clear_orientation,
+        clear_condition = conditions.generic_condition(stream, clear_threshold_1, clear_threshold_2, clear_orientation,
+                                           clear_observed_lasting, denominator_mode='observed') and conditions.generic_condition(stream, clear_threshold_1, clear_threshold_2, clear_orientation,
                                            clear_expected_lasting, denominator_mode='expected')
     return detect(fire_condition, off=clear_condition, mode=mode, annotations=annotations, event_annotations=event_annotations)
 
@@ -192,7 +131,7 @@ def above_or_below_detector_with_clear(stream, fire_threshold, fire_observed_las
     # Returns:
     #       detect block
     return generic_detector_with_clear(stream, fire_threshold, fire_threshold, orientation, fire_observed_lasting,
-                                        clear_threshold, clear_threshold, opposite_orientation(orientation),
+                                        clear_threshold, clear_threshold, utils.opposite_orientation(orientation),
                                         clear_observed_lasting, fire_expected_lasting=fire_expected_lasting,
                                         clear_expected_lasting=clear_expected_lasting, mode=mode,
                                         annotations=annotations, event_annotations=event_annotations)
@@ -220,24 +159,16 @@ def range_detector_with_clear(stream, fire_lower_threshold, fire_upper_threshold
     #       detect block
     return generic_detector_with_clear(stream, fire_lower_threshold, fire_upper_threshold, orientation,
                                        fire_observed_lasting, clear_lower_threshold, clear_upper_threshold,
-                                       opposite_orientation(orientation), clear_observed_lasting,
+                                       utils.opposite_orientation(orientation), clear_observed_lasting,
                                        fire_expected_lasting=fire_expected_lasting,
                                        clear_expected_lasting=clear_expected_lasting,
                                        mode=mode, annotations=annotations, event_annotations=event_annotations)
 
 
-def compare_streams_ignoring_nulls(stream1, stream2, lasting):
-    # returns a stream for which a positive value corresponds to the condition
-    #    "stream1 > stream2 for lasting",
-    #    ignoring missing values
-    # works around the problem of detectors not firing due to one missed point;
-    #    leads to better detectors for aperiodic data
-    return (stream1 - stream2).percentile(100 * (1.0 - lasting.at_least), over=lasting.duration)
-
 
 def one_sided_detector(stream1, stream2, lasting):
     # detects when "stream1 > stream2 for lasting", ignoring missing values
-    return detect(when(compare_streams_ignoring_nulls(stream1, stream2, lasting) > 0))
+    return detect(when(streams.compare_streams_ignoring_nulls(stream1, stream2, lasting) > 0))
 
 
 def generic_one_sided_detector_with_clear(fire_stream1, fire_stream2, fire_lasting, clear_stream1,
@@ -246,8 +177,8 @@ def generic_one_sided_detector_with_clear(fire_stream1, fire_stream2, fire_lasti
     # clears when "clear_stream1 > clear_stream2 for clear_lasting",
     # both ignoring missing values
     return detect(
-        when(compare_streams_ignoring_nulls(fire_stream1, fire_stream2, fire_lasting) > 0),
-        when(compare_streams_ignoring_nulls(clear_stream1, clear_stream2, clear_lasting) > 0))
+        when(streams.compare_streams_ignoring_nulls(fire_stream1, fire_stream2, fire_lasting) > 0),
+        when(streams.compare_streams_ignoring_nulls(clear_stream1, clear_stream2, clear_lasting) > 0))
 
 
 def one_sided_detector_with_clear(stream, fire_threshold, fire_lasting, clear_threshold,
@@ -259,16 +190,11 @@ def one_sided_detector_with_clear(stream, fire_threshold, fire_lasting, clear_th
                                                  clear_threshold, stream, clear_lasting)
 
 
-def indicator(s, t):
-    # equals 1 when s > t, -1 when s < t, null when s = t
-    return (s - t) / (s - t).abs()
-
-
 def two_sided_detector(stream, upper_stream, lower_stream, lasting):
     # detects when "stream > upper_stream OR stream < lower_stream for lasting",
     # ignoring missing values
-    upper_indicator = indicator(stream, upper_stream)
-    lower_indicator = indicator(lower_stream, stream)
+    upper_indicator = utils.indicator(stream, upper_stream)
+    lower_indicator = utils.indicator(lower_stream, stream)
     either_indicator = upper_indicator + lower_indicator  # 2 if both conditions, 0 if one, -2 if neither
     return one_sided_detector(either_indicator, -1, lasting)
 
@@ -278,16 +204,19 @@ def two_sided_detector_with_clear(stream, fire_upper_stream, fire_lower_stream, 
     # detects when "stream > fire_upper_stream OR stream < fire_lower_stream for fire_lasting",
     # clears when "stream < clear_upper_stream AND stream > clear_lower_stream for clear_lasting",
     # ignoring missing values
-    fire_indicator = indicator(stream, fire_upper_stream) + indicator(fire_lower_stream,
+    fire_indicator = utils.indicator(stream, fire_upper_stream) + utils.indicator(fire_lower_stream,
                                                                       stream)  # 2 if both conditions, 0 if one, -2 if neither
-    clear_indicator = indicator(clear_upper_stream, stream) + indicator(stream,
+    clear_indicator = utils.indicator(clear_upper_stream, stream) + utils.indicator(stream,
                                                                         clear_lower_stream)  # 2 if both conditions, 0 if one, -2 if neither
     return generic_one_sided_detector_with_clear(fire_indicator, -1, fire_lasting, clear_indicator,
                                                  1, clear_lasting)
 
 
-# utility for visualization of lasting conditions
-def percentage_above_threshold(stream, threshold, duration):
-    good_count = stream.above(threshold).count(over=duration)
-    total_count = stream.count(over=duration)
-    return good_count / total_count
+
+opposite_orientation = utils.opposite_orientation
+numerator_stream = streams.numerator_stream
+denominator_stream = streams.denominator_stream
+generic_condition = conditions.generic_condition
+compare_streams_ignoring_nulls = streams.compare_streams_ignoring_nulls
+indicator = utils.indicator
+percentage_above_threshold = utils.percentage_above_threshold

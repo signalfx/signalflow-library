@@ -1,0 +1,40 @@
+def numerator_stream(stream, threshold_1, threshold_2, orientation):
+    # Args:
+    #       stream (stream): data stream
+    #       threshold_1 (number or data stream): lower threshold (i.e. condition is stream < threshold_1)
+    #       threshold_2 (number or data stream): upper threshold (i.e. condition is stream > threshold_2)
+    #       orientation (string): one of 'above', 'below', 'within_range', 'out_of_band'
+    if orientation == 'above':
+        return (1 if stream > threshold_2 else None)
+    elif orientation == 'below':
+        return (1 if stream < threshold_1 else None)
+    elif orientation == 'within_range':
+        return (1 if stream > threshold_1 and stream < threshold_2 else None)
+    elif orientation == 'out_of_band':
+        return (1 if stream < threshold_1 or stream > threshold_2 else None)
+
+
+def denominator_stream(stream, threshold_1, threshold_2, orientation):
+    # Args:
+    #       stream (stream): data stream
+    #       threshold_1 (number or data stream): lower threshold (i.e. condition is stream < threshold_1)
+    #       threshold_2 (number or data stream): upper threshold (i.e. condition is stream > threshold_2)
+    #       orientation (string): one of 'above', 'below', 'within_range', 'out_of_band'
+    if orientation == 'above':
+        return (1 if stream is not None and threshold_2 is not None else None)
+    elif orientation == 'below':
+        return (1 if stream is not None and threshold_1 is not None else None)
+    elif orientation == 'within_range':
+        return (1 if stream is not None and threshold_1 is not None and threshold_2 is not None else None)
+    elif orientation == 'out_of_band':
+        either_threshold = (1 if threshold_1 is not None or threshold_2 is not None else None)
+        return (1 if stream is not None and either_threshold is not None else None)
+
+
+def compare_streams_ignoring_nulls(stream1, stream2, lasting):
+    # returns a stream for which a positive value corresponds to the condition
+    #    "stream1 > stream2 for lasting",
+    #    ignoring missing values
+    # works around the problem of detectors not firing due to one missed point;
+    #    leads to better detectors for aperiodic data
+    return (stream1 - stream2).percentile(100 * (1.0 - lasting.at_least), over=lasting.duration)
