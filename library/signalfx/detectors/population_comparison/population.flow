@@ -13,14 +13,8 @@
 #
 # @author joe
 
-from signalfx.detectors.aperiodic import aperiodic
-
-
-def median_MAD_threshold(population_stream, group_by_property=None, num_MAD=1):
-    population_median = population_stream.median(by=group_by_property)
-    population_MAD = (population_stream.promote(group_by_property) - population_median).abs().median(by=group_by_property)
-    return population_median + num_MAD * population_MAD
-
+from signalfx.detectors.population_comparison import utils
+from signalfx.detectors.population_comparison import streams
 
 def detector(population_stream,
              group_by_property=None,
@@ -53,22 +47,18 @@ def detector(population_stream,
     #      clears when that member is no more than clear_num_stddev standard/median absolute
     #         deviations above the population mean/median (for parameters specified by clear_lasting)
     assert fire_num_dev >= clear_num_dev, {'fire_num_dev' : fire_num_dev, 'clear_num_dev' : clear_num_dev,
-       'sfui_errorKeys' : ['fire_num_dev', 'clear_num_dev'],
-       'sfui_errorTemplate': "{{{fire_num_dev}}} must be greater than or equal to {{{clear_num_dev}}}."}
-    def t(x):
-        if strategy == 'mean_stddev':
-            return population_stream.mean_plus_stddev(stddevs=x, by=group_by_property)
-        elif strategy == 'median_MAD':
-            return median_MAD_threshold(population_stream,
-                                        group_by_property=group_by_property,
-                                        num_MAD=x)
-
-    fire_top = t(fire_num_dev)
-    clear_top = t(clear_num_dev)
-    clear_bot = t(-1 * clear_num_dev)
-    fire_bot = t(-1 * fire_num_dev)
+       'sfui_errorKeys': ['fire_num_dev', 'clear_num_dev'],
+                                           'sfui_errorTemplate': "{{{fire_num_dev}}} must be greater than or equal to {{{clear_num_dev}}}."}
+    fire_bot, clear_bot, clear_top, fire_top = streams.thresholds(population_stream,
+                                                                  group_by_property=group_by_property,
+                                                                  fire_num_dev=fire_num_dev,
+                                                                  fire_lasting=fire_lasting,
+                                                                  clear_num_dev=clear_num_dev,
+                                                                  clear_lasting=clear_lasting,
+                                                                  strategy=strategy)
     promoted_population_stream = population_stream.promote(group_by_property)
-    annotations = [annotate(promoted_population_stream, 'population stream', {'sfui_streamType': 'signal'}),
+    annotations = [
+        annotate(promoted_population_stream, 'population stream', {'sfui_streamType': 'signal'}),
                    annotate(fire_top, 'upper fire threshold', {'sfui_streamType': 'threshold',
                                                                'sfui_state':'fire',
                                                                'sfui_orientation':'above',
@@ -89,30 +79,12 @@ def detector(population_stream,
                             {'sfui_streamType': 'threshold',
                              'sfui_state':'clear',
                              'sfui_orientation':'above',
-                             'sfui_trigger':'outside' ,
+                             'sfui_trigger': 'outside',
                              'influencedBy': 'clear_num_dev'})]
-    if denominator_mode == 'expected':
-        if orientation == 'above':
-            return detect(when(promoted_population_stream > fire_top, fire_lasting),
-                          when(promoted_population_stream < clear_top, clear_lasting),
-                          mode='paired',
-                          annotations=annotations)
-        elif orientation == 'below':
-            return detect(when(promoted_population_stream < fire_bot, fire_lasting),
-                          when(promoted_population_stream > clear_bot, clear_lasting),
-                          mode='paired',
-                          annotations=annotations)
-        elif orientation == 'out_of_band':
-            return detect(
-                when(promoted_population_stream > fire_top or promoted_population_stream < fire_bot, fire_lasting),
-                when(promoted_population_stream < clear_top and promoted_population_stream > clear_bot, clear_lasting),
-                mode='paired',
-                annotations=annotations)
-    elif denominator_mode == 'observed':
-        return aperiodic.generic_detector_with_clear(promoted_population_stream, fire_bot, fire_top, orientation,
-                                fire_lasting, clear_bot, clear_top, aperiodic.opposite_orientation(orientation),
-                                clear_lasting, fire_expected_lasting=None, clear_expected_lasting=None,
-                                mode='split', annotations=annotations, event_annotations=None)
+    return utils.detector_from_streams(promoted_population_stream, fire_bot, clear_bot, clear_top,
+                                       fire_top,
+                                       fire_lasting, clear_lasting, orientation, denominator_mode,
+                                       annotations=annotations)
 
 
 def detector_growth_rate(population_stream,
@@ -148,18 +120,13 @@ def detector_growth_rate(population_stream,
         'clear_growth_rate_threshold': clear_growth_rate_threshold,
         'sfui_errorKeys': ['fire_growth_rate_threshold', 'clear_growth_rate_threshold'],
         'sfui_errorTemplate': "{{{fire_growth_rate_threshold}}} must be greater than or equal to {{{clear_growth_rate_threshold}}}."}
-    def t(x):
-        if strategy == 'mean':
-            return population_stream.mean_plus_stddev(stddevs=0, by=group_by_property) * (1 + x)
-        elif strategy == 'median':
-            return median_MAD_threshold(population_stream,
-                                        group_by_property=group_by_property,
-                                        num_MAD=0) * (1 + x)
-
-    fire_top = t(fire_growth_rate_threshold)
-    clear_top = t(clear_growth_rate_threshold)
-    clear_bot = t(-1 * clear_growth_rate_threshold)
-    fire_bot = t(-1 * fire_growth_rate_threshold)
+    fire_bot, clear_bot, clear_top, fire_top = streams.growth_rate_thresholds(population_stream,
+                                                                              group_by_property=group_by_property,
+                                                                              fire_growth_rate_threshold=fire_growth_rate_threshold,
+                                                                              fire_lasting=fire_lasting,
+                                                                              clear_growth_rate_threshold=clear_growth_rate_threshold,
+                                                                              clear_lasting=clear_lasting,
+                                                                              strategy=strategy)
     promoted_population_stream = population_stream.promote(group_by_property)
     annotations = [annotate(promoted_population_stream, 'population stream', {'sfui_streamType': 'signal'}),
                    annotate(fire_top, 'upper fire threshold', {'sfui_streamType': 'threshold',
@@ -182,35 +149,12 @@ def detector_growth_rate(population_stream,
                             {'sfui_streamType': 'threshold',
                              'sfui_state':'clear',
                              'sfui_orientation':'above',
-                             'sfui_trigger':'outside' ,
+                             'sfui_trigger': 'outside',
                              'influencedBy': 'clear_growth_rate_threshold'})]
-    if denominator_mode == 'expected':
-        if orientation == 'above':
-            return detect(when(promoted_population_stream > fire_top, fire_lasting),
-                          when(promoted_population_stream < clear_top, clear_lasting),
-                          mode='split',
-                          annotations=annotations)
-        elif orientation == 'below':
-            return detect(when(promoted_population_stream < fire_bot, fire_lasting),
-                          when(promoted_population_stream > clear_bot, clear_lasting),
-                          mode='split',
-                          annotations=annotations)
-        elif orientation == 'out_of_band':
-            return detect(
-                when(promoted_population_stream > fire_top or promoted_population_stream < fire_bot, fire_lasting),
-                when(promoted_population_stream < clear_top and promoted_population_stream > clear_bot, clear_lasting),
-                mode='split',
-                annotations=annotations)
-    elif denominator_mode == 'observed':
-        return aperiodic.generic_detector_with_clear(promoted_population_stream, fire_bot, fire_top, orientation,
-                                fire_lasting, clear_bot, clear_top, aperiodic.opposite_orientation(orientation),
-                                clear_lasting, fire_expected_lasting=None, clear_expected_lasting=None,
-                                mode='split', annotations=annotations, event_annotations=None)
+    return utils.detector_from_streams(promoted_population_stream, fire_bot, clear_bot, clear_top,
+                                       fire_top,
+                                       fire_lasting, clear_lasting, orientation, denominator_mode,
+                                       annotations=annotations)
 
 
-# examples
-# some_data = data('jvm.cpu.load')
-# detector(some_data, strategy='median_MAD', orientation='out_of_band').publish('MAD_OOB')
-# detector(some_data, fire_num_dev=0.5, clear_num_dev=0.2, orientation='below').publish('mstd_below')
-# detector(some_data, group_by_property=['aws_instance_type'],
-#    fire_num_dev=2, clear_num_dev=1, orientation='below').publish('mstd_below')
+median_MAD_threshold = streams.median_MAD_threshold

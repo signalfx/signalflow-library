@@ -1,0 +1,28 @@
+from signalfx.detectors.population_comparison import streams
+from signalfx.detectors.population_comparison import utils
+
+
+def statistical(population_stream, group_by_property=None, fire_num_dev=3,
+                fire_lasting=lasting('5m', 1.0), clear_num_dev=2.5,
+                clear_lasting=lasting('5m', 1.0), strategy='median_MAD', orientation='above',
+                denominator_mode='expected'):
+    fire_bot, clear_bot, clear_top, fire_top = streams.thresholds(population_stream,
+                                                                  group_by_property=group_by_property,
+                                                                  fire_num_dev=fire_num_dev,
+                                                                  clear_num_dev=clear_num_dev,
+                                                                  strategy=strategy)
+    return utils.conditions_helper(population_stream, fire_bot, clear_bot, clear_top, fire_top,
+                                   fire_lasting, clear_lasting, orientation, denominator_mode)
+
+
+def growth_rate(population_stream, group_by_property=None, fire_growth_rate_threshold=0.2,
+                fire_lasting=lasting('5m', 1.0), clear_growth_rate_threshold=0.1,
+                clear_lasting=lasting('5m', 1.0), strategy='median', orientation='above',
+                denominator_mode='expected'):
+    fire_bot, clear_bot, clear_top, fire_top = streams.growth_rate_thresholds(population_stream,
+                                                                              group_by_property=group_by_property,
+                                                                              fire_growth_rate_threshold=fire_growth_rate_threshold,
+                                                                              clear_growth_rate_threshold=clear_growth_rate_threshold,
+                                                                              strategy=strategy)
+    return utils.conditions_helper(population_stream, fire_bot, clear_bot, clear_top, fire_top,
+                                   fire_lasting, clear_lasting, orientation, denominator_mode)

@@ -1,0 +1,7 @@
+def condition(stream, resource_identifier=None, duration=duration('15m')):
+    if resource_identifier is None:
+        binary = stream.map(lambda x: 1 if x is not None else 0)
+    else:
+        binary = stream.sum(by=resource_identifier).map(lambda x: 1 if x is not None else 0)
+    lower_threshold_signal = const(1)
+    return when(binary < lower_threshold_signal, lasting(duration, 1.0))

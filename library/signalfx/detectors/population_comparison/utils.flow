@@ -1,0 +1,59 @@
+from signalfx.detectors.aperiodic import aperiodic
+from signalfx.detectors.aperiodic import utils as aperiodic_utils
+from signalfx.detectors.aperiodic import conditions as aperiodic_conditions
+
+
+def detector_from_streams(population_stream, fire_bot, clear_bot, clear_top, fire_top, fire_lasting,
+                          clear_lasting, orientation, denominator_mode, annotations=None,
+                          event_annotations=None):
+    if denominator_mode == 'expected':
+        if orientation == 'above':
+            return detect(when(population_stream > fire_top, fire_lasting),
+                          when(population_stream < clear_top, clear_lasting),
+                          mode='split',
+                          annotations=annotations)
+        elif orientation == 'below':
+            return detect(when(population_stream < fire_bot, fire_lasting),
+                          when(population_stream > clear_bot, clear_lasting),
+                          mode='split',
+                          annotations=annotations)
+        elif orientation == 'out_of_band':
+            return detect(
+                when(population_stream > fire_top or population_stream < fire_bot, fire_lasting),
+                when(population_stream < clear_top and population_stream > clear_bot,
+                     clear_lasting),
+                mode='split',
+                annotations=annotations)
+    elif denominator_mode == 'observed':
+        return aperiodic.generic_detector_with_clear(population_stream, fire_bot, fire_top,
+                                                     orientation,
+                                                     fire_lasting, clear_bot, clear_top,
+                                                     aperiodic_utils.opposite_orientation(orientation),
+                                                     clear_lasting, fire_expected_lasting=None,
+                                                     clear_expected_lasting=None,
+                                                     mode='split', annotations=annotations,
+                                                     event_annotations=event_annotations)
+
+
+def conditions_helper(population_stream, fire_bot, clear_bot, clear_top, fire_top, fire_lasting,
+                      clear_lasting, orientation, denominator_mode):
+    if denominator_mode == 'expected':
+        if orientation == 'above':
+            return when(population_stream > fire_top, fire_lasting), when(
+                population_stream < clear_top, clear_lasting)
+        elif orientation == 'below':
+            return when(population_stream < fire_bot, fire_lasting), when(
+                population_stream > clear_bot, clear_lasting)
+        elif orientation == 'out_of_band':
+            return when(population_stream > fire_top or population_stream < fire_bot,
+                        fire_lasting), when(
+                population_stream < clear_top and population_stream > clear_bot, clear_lasting)
+    elif denominator_mode == 'observed':
+        return aperiodic_conditions.generic_condition(population_stream, fire_bot, fire_top,
+                                                      orientation,
+                                                      fire_lasting,
+                                                      denominator_mode='observed'), aperiodic_conditions.generic_condition(
+            population_stream, clear_bot, clear_top,
+            aperiodic_utils.opposite_orientation(
+                orientation),
+            clear_lasting, denominator_mode='observed')

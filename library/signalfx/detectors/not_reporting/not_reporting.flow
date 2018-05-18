@@ -31,14 +31,3 @@ def detector(stream, resource_identifier=None, duration=duration('15m')):
                                                                   'sfui_orientation':'below',
                                                                   'sfui_trigger':'outside'})]
     return detect(when(binary < lower_threshold_signal, lasting(duration, 1.0)), annotations=annotations)
-
-    # example
-
-    # terminate_filter = filter("sf_tags", "sfhost_terminated")
-    # aws_terminate_filter = filter("aws_state", "{Code: 48,Name: terminated}")
-    # expect_dead = terminate_filter or aws_terminate_filter
-    # detector(data('cpu.utilization', not expect_dead),
-    #                       resource_identifier='aws_tag_Name').publish('is_down')
-
-    # detector(data('cpu.utilization', not expect_dead),
-    #                      resource_identifier=['aws_tag_Name', 'host']).publish('is_down')

@@ -1,0 +1,76 @@
+def median_MAD_threshold(population_stream, group_by_property=None, num_MAD=1):
+    population_median = population_stream.median(by=group_by_property)
+    population_MAD = (population_stream.promote(group_by_property) - population_median).abs().median(by=group_by_property)
+    return population_median + num_MAD * population_MAD
+
+
+def thresholds(population_stream, group_by_property=None, fire_num_dev=3, clear_num_dev=2.5,
+               strategy='median_MAD'):
+    # Args:
+    #     population_stream: data stream specifying a population of emitters
+    #     group_by_property (optional, default=None): attribute by which to group population members
+    #         before calculating; default behavior (None) is that all members belong to one group
+    #     fire_num_dev (number): number of standard deviations above mean required to fire
+    #           (optional, default=3)
+    #     fire_lasting (lasting): lasting object associated with fire threshold
+    #           (optional, default=lasting('5m', 1.0))
+    #     clear_num_dev (number): number of standard deviations above mean required to clear,
+    #         should have clear_num_stddev <= fire_num_stddev (optional, default=2.5)
+    #     clear_lasting (lasting): lasting object associated with clear threshold
+    #           (optional, default=lasting('5m', 1.0))
+    #     strategy (string): represents method for defining threshold (mean+stddev or median+MAD),
+    #           (optional, default='median_MAD', one of 'mean_stddev', 'median_MAD')
+    #
+    # Returns:
+    #     detect block that fires when a member of the population is at least fire_num_dev
+    #         standard/median absolute deviations above the population mean/median
+    #         (for parameters specified by fire_lasting) and
+    #      clears when that member is no more than clear_num_stddev standard/median absolute
+    #         deviations above the population mean/median (for parameters specified by clear_lasting)
+    def t(x):
+        if strategy == 'mean_stddev':
+            return population_stream.mean_plus_stddev(stddevs=x, by=group_by_property)
+        elif strategy == 'median_MAD':
+            return median_MAD_threshold(population_stream,
+                                        group_by_property=group_by_property,
+                                        num_MAD=x)
+    fire_top = t(fire_num_dev)
+    clear_top = t(clear_num_dev)
+    clear_bot = t(-1 * clear_num_dev)
+    fire_bot = t(-1 * fire_num_dev)
+    return fire_bot, clear_bot, clear_top, fire_top
+
+
+def growth_rate_thresholds(population_stream, group_by_property=None,
+                           fire_growth_rate_threshold=0.2, clear_growth_rate_threshold=0.1,
+                           strategy='median'):
+    # Args:
+    #     population_stream: data stream specifying a population of emitters
+    #     group_by_property (optional, default=None): attribute by which to group population members
+    #         before calculating; default behavior (None) is that all members belong to one group
+    #     fire_growth_rate_threshold (number):
+    #     fire_lasting (lasting): lasting object associated with fire threshold
+    #           (optional, default=lasting('5m', 1.0))
+    #     clear_growth_rate_threshold (number):
+    #     clear_lasting (lasting): lasting object associated with clear threshold
+    #           (optional, default=lasting('5m', 1.0))
+    #     strategy (string): represents method for defining baseline (mean or median),
+    #           (optional, default='median', one of 'mean', 'median')
+    #
+    # Returns:
+    #     detect block that fires when a member of the population is at least fire_growth_rate_threshold
+    #           more than the population mean/median (for parameters specified by fire_lasting) and
+    #      clears when that member is no more than clear_growth_rate_threshold
+    #            above the population mean/median (for parameters specified by clear_lasting)
+    def t(x):
+        if strategy == 'mean':
+            return population_stream.mean_plus_stddev(stddevs=0, by=group_by_property) * (1 + x)
+        elif strategy == 'median':
+            return median_MAD_threshold(population_stream,
+                                        group_by_property=group_by_property,
+                                        num_MAD=0) * (1 + x)
+    fire_top = t(fire_growth_rate_threshold)
+    clear_top = t(clear_growth_rate_threshold)
+    clear_bot = t(-1 * clear_growth_rate_threshold)
+    fire_bot = t(-1 * fire_growth_rate_threshold)
+    return fire_bot, clear_bot, clear_top, fire_top
