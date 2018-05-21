@@ -52,9 +52,7 @@ def detector(population_stream,
     fire_bot, clear_bot, clear_top, fire_top = streams.thresholds(population_stream,
                                                                   group_by_property=group_by_property,
                                                                   fire_num_dev=fire_num_dev,
-                                                                  fire_lasting=fire_lasting,
                                                                   clear_num_dev=clear_num_dev,
-                                                                  clear_lasting=clear_lasting,
                                                                   strategy=strategy)
     promoted_population_stream = population_stream.promote(group_by_property)
     annotations = [
@@ -123,9 +121,7 @@ def detector_growth_rate(population_stream,
     fire_bot, clear_bot, clear_top, fire_top = streams.growth_rate_thresholds(population_stream,
                                                                               group_by_property=group_by_property,
                                                                               fire_growth_rate_threshold=fire_growth_rate_threshold,
-                                                                              fire_lasting=fire_lasting,
                                                                               clear_growth_rate_threshold=clear_growth_rate_threshold,
-                                                                              clear_lasting=clear_lasting,
                                                                               strategy=strategy)
     promoted_population_stream = population_stream.promote(group_by_property)
     annotations = [annotate(promoted_population_stream, 'population stream', {'sfui_streamType': 'signal'}),
