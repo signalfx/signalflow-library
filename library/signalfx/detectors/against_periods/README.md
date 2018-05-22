@@ -10,8 +10,8 @@ The `detector_growth_rate` function has the following parameters. Parameters wit
 |:---|:---|:---|:---|
 |stream|stream|data being monitored|*None*|
 |window_to_compare|duration|length of current window (being tested for anomalous values), and historical windows (used to establish a baseline)|duration('15m')|
-|space_between_windows|duration|time range reflecting the cyclicity of the data stream|duration('1w')|
-|num_windows|integer|number of previous cycles used to define baseline, must be > 0|4|
+|space_between_windows|duration|time range reflecting the periodicity of the data stream|duration('1w')|
+|num_windows|integer|number of previous periods used to define baseline, must be > 0|4|
 |fire_growth_rate_threshold|number|change over historical norm required to fire, should be >= 0|0.2|
 |clear_growth_rate_threshold|number|change over historical norm required to clear, should be >= 0|0.1|
 |discard_historical_outliers|boolean|whether to take the median (True) or mean (False) of historical windows|True|
@@ -31,6 +31,23 @@ against_periods.detector_growth_rate(service_cpu, window_to_compare=duration('10
   fire_growth_rate_threshold=0.3).publish('custom_cpu_detector')
 ~~~~~~~~~~~~~~~~~~~~
 
+#### Streams and conditions
+
+The thresholds used in this detector are given by `growth_rate_thresholds` and the conditions are produced by `growth_rate`. See `streams` itself for more intermediate calculations.
+
+~~~~~~~~~~~~~~~~~~~~
+from signalfx.detectors.against_periods import streams
+from signalfx.detectors.against_periods import conditions
+
+s = data('cpu.utilization').mean()
+
+fire_bot, clear_bot, clear_top, fire_top = streams.growth_rate_thresholds(s)
+detect(s.min(over='20m') > fire_top, s.percentile(50, over='20m') < clear_top).publish()
+
+fire_cond, clear_cond = conditions.growth_rate(s)
+detect(when(s > 45, '10m') and fire_cond).publish()
+~~~~~~~~~~~~~~~~~~~~
+
                          
 ## Mean plus standard deviation
 
@@ -40,8 +57,8 @@ The `detector_mean_std` function has the following parameters. Parameters with n
 |:---|:---|:---|:---|
 |stream|stream|data being monitored|*None*|
 |window_to_compare|duration|length of current window (being tested for anomalous values), and historical windows (used to establish a baseline)|duration('15m')|
-|space_between_windows|duration|time range reflecting the cyclicity of the data stream|duration('1w')|
-|num_windows|integer|number of previous cycles used to define baseline, must be > 0|4|
+|space_between_windows|duration|time range reflecting the periodicity of the data stream|duration('1w')|
+|num_windows|integer|number of previous periods used to define baseline, must be > 0|4|
 |fire_num_stddev|number|number of standard deviations from historical mean required to trigger, should be >= 0|3|
 |clear_num_stddev|number|number of standard deviations from historical mean required to clear, should be >= 0|2.5|
 |calculation_mode|string|whether to calculate standard deviations across periods ('across') or within periods ('within')|'within'|
@@ -64,6 +81,22 @@ against_periods.detector_mean_std(service_cpu, window_to_compare=duration('10m')
   fire_num_stddev=4, discard_historical_outliers=False).publish('custom_cpu_detector')
 ~~~~~~~~~~~~~~~~~~~~
 
+#### Streams and conditions
+
+The thresholds used in this detector are given by `mean_std_thresholds` and the conditions are produced by `mean_std`. See `streams` itself for more intermediate calculations.
+
+~~~~~~~~~~~~~~~~~~~~
+from signalfx.detectors.against_periods import streams
+from signalfx.detectors.against_periods import conditions
+
+s = data('cpu.utilization').mean()
+
+fire_bot, clear_bot, clear_top, fire_top = streams.mean_std_thresholds(s)
+detect(s.min(over='20m') > fire_top, s.percentile(50, over='20m') < clear_top).publish()
+
+fire_cond, clear_cond = conditions.mean_std(s)
+detect(when(s > 45, '10m') and fire_cond).publish()
+~~~~~~~~~~~~~~~~~~~~
 
 ### Triple exponential smoothing
 
@@ -73,7 +106,7 @@ There is also a `triple_ewma` function that performs triple exponential smoothin
 |:---|:---|:---|:---|
 |stream|stream|data being monitored|*None*|
 |num_cycles|number|number of previous cycles used to define baseline, must be > 0 |4|
-|cycle_length|duration|time range reflecting the cyclicity of the data stream|duration('1w')|
+|cycle_length|duration|time range reflecting the periodicity of the data stream|duration('1w')|
 |alpha|number|smoothing parameter for the level term, must be between 0 and 1|0.1|
 |beta|number|smoothing parameter for the trend term, must be between 0 and 1|0.1|
 |gamma|number|smoothing parameter for the seasonal change term, must be between 0 and 1|0.4|
