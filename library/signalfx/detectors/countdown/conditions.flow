@@ -55,7 +55,7 @@ def hours_left_stream_conditions(stream, minimum_value=0, lower_threshold=24,
 
 
 
-def hours_left_stream_incr_detector(stream, maximum_capacity, lower_threshold=24,
+def hours_left_stream_incr_conditions(stream, maximum_capacity, lower_threshold=24,
                                     fire_lasting=lasting('10m', 1.0),
                                     clear_threshold=36, clear_lasting=lasting('10m', 1.0),
                                     use_double_ewma=False,
