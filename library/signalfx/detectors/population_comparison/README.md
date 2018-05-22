@@ -37,6 +37,24 @@ population.detector(service_cpu).publish('cpu_detector_3')
 
 ~~~~~~~~~~~~~~~~~~~~
 
+#### Streams and conditions
+
+The thresholds used in this detector are given by `thresholds` and the conditions are produced by `statistical`.
+
+~~~~~~~~~~~~~~~~~~~~
+from signalfx.detectors.population_comparison import streams
+from signalfx.detectors.population_comparison import conditions
+
+s = data('cpu.utilization')
+
+fire_bot, clear_bot, clear_top, fire_top = streams.thresholds(s)
+detect(when(s > fire_top and s > 80, lasting('5m', 0.9)).publish()
+
+fire_cond, clear_cond = conditions.statistical(s)
+detect(when(s > 85, '5m') or fire_cond, when(s < 75, '3m') and clear_cond).publish()
+~~~~~~~~~~~~~~~~~~~~
+
+
 ## Norm plus percentage change
 
 The `detector_growth_rate` function has the following parameters. Parameters with no default value are required.                      
@@ -63,3 +81,22 @@ from signalfx.detectors.population_comparison import population
 cpu = data('cpu.utilization')
 
 population.detector_growth_rate(cpu).publish('cpu_detector_4')
+~~~~~~~~~~~~~~~~~~~~
+
+
+#### Streams and conditions
+
+The thresholds used in this detector are given by `growth_rate_thresholds` and the conditions are produced by `growth_rate`.
+
+~~~~~~~~~~~~~~~~~~~~
+from signalfx.detectors.population_comparison import streams
+from signalfx.detectors.population_comparison import conditions
+
+s = data('cpu.utilization')
+
+fire_bot, clear_bot, clear_top, fire_top = streams.growth_rate_thresholds(s)
+detect(when(s > fire_top and s > 80, lasting('5m', 0.9)).publish()
+
+fire_cond, clear_cond = conditions.growth_rate(s)
+detect(when(s > 85, '5m') or fire_cond, when(s < 75, '3m') and clear_cond).publish()
+~~~~~~~~~~~~~~~~~~~~
