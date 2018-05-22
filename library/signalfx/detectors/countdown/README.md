@@ -61,3 +61,21 @@ The `hours_left_stream_dewma_detector` function has the following parameters; it
 |damping|number|damping parameter for forecasting, must be between 0 and 1|1.0|
 |use_duration|boolean|if False, uses alpha and beta provided; if True, uses 5 * max(fire_lasting.duration, clear_lasting.duration) as double_ewma parameter|False|
 
+
+
+#### Streams and conditions
+
+The streams used in these detectors are given by `hours_left_stream`, `hours_left_stream_incr`, and `hours_left_dewma_streams`; and the conditions are produced by `hours_left_stream_conditions` and `hours_left_stream_incr_conditions` (these may call `hours_left_stream_dewma_conditions`, which is also exposed).
+
+~~~~~~~~~~~~~~~~~~~~
+from signalfx.detectors.countdown import streams
+from signalfx.detectors.countdown import conditions
+
+s = data('memory.utilization')
+
+hours_left = streams.hours_left_stream_incr(s, 100)
+detect(hours_left.max() < 24).publish('all_running_out_of_memory')
+
+fire_cond, clear_cond = conditions.hours_left_stream_incr_conditions(s, 95)
+detect(when(s > 90, '20m') or fire_cond).publish()
+~~~~~~~~~~~~~~~~~~~~
