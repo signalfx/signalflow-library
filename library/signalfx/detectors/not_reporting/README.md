@@ -17,6 +17,17 @@ from signalfx.detectors.not_reporting import not_reporting
 not_reporting.detector(data('memory.utilization')).publish('memory_stopped_reporting')
 ~~~~~~~~~~~~~~~~~~~~
 
+#### Condition
 
+The condition of no longer reporting is also exposed, and can be combined with other conditions.
 
+~~~~~~~~~~~~~~~~~~~~
+from signalfx.detectors.not_reporting import conditions
 
+s = data('memory.utilization')
+
+mem_stopped_reporting = conditions.condition(s)
+mem_too_high = when(s > 90, '12m')
+
+detect(mem_stopped_reporting or mem_too_high).publish()
+~~~~~~~~~~~~~~~~~~~~
