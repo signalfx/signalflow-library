@@ -1,0 +1,75 @@
+def hours_left_stream(stream, increment_size=duration('1m'), imputed_value=None):
+    # Args:
+    #     stream: data stream, assumed to be decreasing and non-negative
+    #     *increment_size deprecated but still part of signature; previously
+    #           used to estimate rate of change
+    #     imputed_value: if a number is provided, use this value when stream.rateofchange() > 0;
+    #           otherwise output stream will be null in this case (default=None)
+    #
+    # Returns:
+    #     hours left until stream has value 0, calculated via linear extrapolation; null or imputed value
+    #           if stream is increasing
+    if imputed_value is None:
+        return (stream / (-3600 * stream.rateofchange().below(0)))
+    else:
+        return (imputed_value if stream.rateofchange() >= 0 else (stream / (-3600 * stream.rateofchange().below(0)))).fill()
+
+
+def hours_left_stream_incr(stream, maximum_capacity, increment_size=duration('1m'),
+                           imputed_value=None):
+    # Args:
+    #     stream: data stream, assumed to be increasing
+    #     maximum_capacity (number): value at which stream is exhausted,
+    #         e.g. 100 for disk.summary_utilization
+    #     increment_size (duration): interval length used to estimate rate of change
+    #         (optional, default=duration('1m'))
+    #
+    # Returns:
+    #     hours left until stream has value maximum_capacity, calculated via linear extrapolation;
+    #         is optimistic in that it uses the maximum hours left over the estimation_period
+    return hours_left_stream(maximum_capacity - stream, increment_size=increment_size,
+                             imputed_value=imputed_value)
+
+
+def hours_left_dewma_streams(stream,
+                            lower_threshold=duration('24h'),
+                            fire_lasting=lasting('10m', 1.0),
+                            clear_threshold=duration('36h'),
+                            clear_lasting=lasting('10m', 1.0),
+                            alpha=0.1, beta=0.1, damping=1.0,
+                            use_durations=False):
+    # Args:
+    #     stream: data stream, assumed to be decreasing
+    #     stream_threshold (number): value at which stream is considered empty or full (optional, default=0)
+    #     orientation (string): monitor when stream is projected to go below (option
+    #         'to_empty') or above (option 'to_capacity') stream_threshold (optional, default='to_empty',
+    #         one of 'to_empty', 'to_capacity')
+    #     lower_threshold (duration):  threshold for firing (number of hours) (optional, default=24)
+    #     fire_lasting (lasting): lasting object associated with lower_threshold;
+    #         note the estimation_period serves as a quasi-duration argument
+    #         (optional, default=lasting('10m', 1.0))
+    #     clear_threshold (duration): threshold for clearing (number of hours) (optional, default=36);
+    #         using a clear_threshold larger than lower_threshold should reduce flappiness
+    #     clear_lasting (lasting): lasting object associated with clear threshold (optional,
+    #         default=lasting('10m', 1.0))
+    #     alpha (number): double exponential smoothing parameter (level)
+    #     beta (number): double exponential smoothing parameter (trend)
+    #     damping (number): double exponential smoothing parameter (damping factor)
+    # Returns:
+    #     detect block which fires when stream is estimated to "run out" (i.e., have value 0) within
+    #         lower_threshold hours (for fire_lasting); clears when stream is estimated not to be
+    #         exhausted for at least clear_threshold hours (for clear_lasting)
+    assert lower_threshold <= clear_threshold, {'lower_threshold': lower_threshold,
+                                                'clear_threshold': clear_threshold,
+                                                'sfui_errorKeys': ['lower_threshold',
+                                                                   'clear_threshold'],
+                                                'sfui_errorTemplate': "{{{lower_threshold}}} must be less than or equal to {{{clear_threshold}}}."}
+    if use_durations:
+        d1, d2 = fire_lasting.duration, clear_lasting.duration
+        double_ewma_param = 5 * (d1 if d1 > d2 else d2)
+        fire_forecast = stream.double_ewma(over=double_ewma_param, forecast=lower_threshold, damping=damping)
+        clear_forecast = stream.double_ewma(over=double_ewma_param, forecast=clear_threshold, damping=damping)
+    else:
+        fire_forecast = stream.double_ewma(alpha, beta, forecast=lower_threshold, damping=damping)
+        clear_forecast = stream.double_ewma(alpha, beta, forecast=clear_threshold, damping=damping)
+    return fire_forecast, clear_forecast

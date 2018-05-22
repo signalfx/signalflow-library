@@ -7,7 +7,7 @@
 
 from signalfx.detectors.countdown import streams
 
-def hours_left_stream_detector(stream, minimum_value=0, lower_threshold=24,
+def hours_left_stream_conditions(stream, minimum_value=0, lower_threshold=24,
                                fire_lasting=lasting('10m', 1.0),
                                clear_threshold=36, clear_lasting=lasting('10m', 1.0),
                                use_double_ewma=False, damping=1.0, increment_size=duration('1m')):
@@ -36,37 +36,23 @@ def hours_left_stream_detector(stream, minimum_value=0, lower_threshold=24,
                                                                    'clear_threshold'],
                                                 'sfui_errorTemplate': "{{{lower_threshold}}} must be less than or equal to {{{clear_threshold}}}."}
     if use_double_ewma:
-        return hours_left_stream_dewma_detector(stream, stream_threshold=minimum_value,
-                                                orientation='to_empty',
-                                                lower_threshold=lower_threshold * duration('1h'),
-                                                fire_lasting=fire_lasting,
-                                                clear_threshold=clear_threshold * duration('1h'),
-                                                clear_lasting=clear_lasting,
-                                                damping=damping,
-                                                use_durations=True)
+        return hours_left_stream_dewma_conditions(stream, stream_threshold=minimum_value,
+                                                  orientation='to_empty',
+                                                  lower_threshold=lower_threshold * duration('1h'),
+                                                  fire_lasting=fire_lasting,
+                                                  clear_threshold=clear_threshold * duration('1h'),
+                                                  clear_lasting=clear_lasting,
+                                                  damping=damping,
+                                                  use_durations=True)
     else:
         diff = stream - minimum_value
         hours_left = streams.hours_left_stream(diff, increment_size=increment_size,
                                                imputed_value=clear_threshold + 1)
         lower_threshold_signal = const(lower_threshold)
         clear_threshold_signal = const(clear_threshold)
-        annotations = [annotate(hours_left, 'hours left', {'sfui_streamType': 'signal', 'influencedBy':
-            'increment_size'}),
-                       annotate(lower_threshold_signal, 'lower fire threshold',
-                                {'sfui_streamType': 'threshold',
-                                 'sfui_state': 'fire',
-                                 'sfui_orientation': 'below',
-                                 'sfui_trigger': 'outside'}),
-                       annotate(clear_threshold_signal, 'lower clear threshold',
-                                {'sfui_streamType': 'threshold',
-                                 'sfui_state': 'clear',
-                                 'sfui_orientation': 'above',
-                                 'sfui_trigger': 'outside'})
-                       ]
-        return detect(when(hours_left < lower_threshold_signal, fire_lasting),
-                      when(hours_left > clear_threshold_signal, clear_lasting),
-                      mode='split',
-                      annotations=annotations)
+        return when(hours_left < lower_threshold_signal, fire_lasting), when(
+            hours_left > clear_threshold_signal, clear_lasting)
+
 
 
 def hours_left_stream_incr_detector(stream, maximum_capacity, lower_threshold=24,
@@ -96,32 +82,32 @@ def hours_left_stream_incr_detector(stream, maximum_capacity, lower_threshold=24
     #         clears when stream is estimated to have at least clear_threshold hours left
     #         (for clear_lasting)
     if use_double_ewma:
-        return hours_left_stream_dewma_detector(stream, stream_threshold=maximum_capacity,
-                                                orientation='to_capacity',
-                                                lower_threshold=lower_threshold * duration('1h'),
-                                                fire_lasting=fire_lasting,
-                                                clear_threshold=clear_threshold * duration('1h'),
-                                                clear_lasting=clear_lasting,
-                                                damping=damping,
-                                                use_durations=True)
+        return hours_left_stream_dewma_conditions(stream, stream_threshold=maximum_capacity,
+                                                  orientation='to_capacity',
+                                                  lower_threshold=lower_threshold * duration('1h'),
+                                                  fire_lasting=fire_lasting,
+                                                  clear_threshold=clear_threshold * duration('1h'),
+                                                  clear_lasting=clear_lasting,
+                                                  damping=damping,
+                                                  use_durations=True)
     else:
         diff = maximum_capacity - stream
-        return hours_left_stream_detector(diff,
-                                          lower_threshold=lower_threshold,
-                                          fire_lasting=fire_lasting,
-                                          clear_threshold=clear_threshold,
-                                          clear_lasting=clear_lasting,
-                                          increment_size=increment_size)
+        return hours_left_stream_conditions(diff,
+                                            lower_threshold=lower_threshold,
+                                            fire_lasting=fire_lasting,
+                                            clear_threshold=clear_threshold,
+                                            clear_lasting=clear_lasting,
+                                            increment_size=increment_size)
 
 
-def hours_left_stream_dewma_detector(stream, stream_threshold=0,
-                                     orientation='to_empty',
-                                     lower_threshold=duration('24h'),
-                                     fire_lasting=lasting('10m', 1.0),
-                                     clear_threshold=duration('36h'),
-                                     clear_lasting=lasting('10m', 1.0),
-                                     alpha=0.1, beta=0.1, damping=1.0,
-                                     use_durations=False):
+def hours_left_stream_dewma_conditions(stream, stream_threshold=0,
+                                       orientation='to_empty',
+                                       lower_threshold=duration('24h'),
+                                       fire_lasting=lasting('10m', 1.0),
+                                       clear_threshold=duration('36h'),
+                                       clear_lasting=lasting('10m', 1.0),
+                                       alpha=0.1, beta=0.1, damping=1.0,
+                                       use_durations=False):
     # Args:
     #     stream: data stream, assumed to be decreasing
     #     stream_threshold (number): value at which stream is considered empty or full (optional, default=0)
@@ -163,29 +149,9 @@ def hours_left_stream_dewma_detector(stream, stream_threshold=0,
             return 'fire', 'clear'
         elif orient == 'to_capacity':
             return 'clear', 'fire'
-    annotations = [annotate(fire_forecast, 'trigger forecast', {'sfui_streamType': 'signal'}),
-                   annotate(clear_forecast, 'clear forecast', {'sfui_streamType': 'signal'}),
-                   annotate(threshold_signal_below, 'stream threshold',
-                            {'sfui_streamType': 'threshold',
-                             'sfui_state': fire_clear_pair(orientation)[0],
-                             'sfui_orientation': 'below',
-                             'sfui_trigger': 'outside'}),
-                   annotate(threshold_signal_above, 'stream threshold',
-                            {'sfui_streamType': 'threshold',
-                             'sfui_state': fire_clear_pair(orientation)[1],
-                             'sfui_orientation': 'above',
-                             'sfui_trigger': 'outside'})]
-    event_annotations = {'fire_forecast_ahead': str(lower_threshold),
-                         'clear_forecast_ahead': str(clear_threshold)}
     if orientation == 'to_empty':
-        return detect(when(fire_forecast < threshold_signal_below, fire_lasting),
-                      when(clear_forecast > threshold_signal_above, clear_lasting),
-                      mode='split', annotations=annotations, event_annotations=event_annotations)
+        return when(fire_forecast < threshold_signal_below, fire_lasting), when(
+            clear_forecast > threshold_signal_above, clear_lasting)
     elif orientation == 'to_capacity':
-        return detect(when(fire_forecast > threshold_signal_above, fire_lasting),
-                      when(clear_forecast < threshold_signal_below, clear_lasting),
-                      mode='split', annotations=annotations, event_annotations=event_annotations)
-
-
-hours_left_stream = streams.hours_left_stream
-hours_left_stream_incr = streams.hours_left_stream_incr
+        return when(fire_forecast > threshold_signal_above, fire_lasting), when(
+            clear_forecast < threshold_signal_below, clear_lasting)
