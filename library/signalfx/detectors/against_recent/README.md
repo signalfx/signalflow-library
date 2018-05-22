@@ -30,6 +30,23 @@ against_recent.detector_mean_std(service_cpu, current_window=duration('3m'),
   historical_window=duration('2h'), fire_num_stddev=6).publish('custom_cpu_detector')
 ~~~~~~~~~~~~~~~~~~~~
 
+#### Streams and conditions
+
+The thresholds used in this detector are given by `mean_std_thresholds` and the conditions are produced by `mean_std`. See `streams` itself for more intermediate calculations.
+
+~~~~~~~~~~~~~~~~~~~~
+from signalfx.detectors.against_recent import streams
+from signalfx.detectors.against_recent import conditions
+
+s = data('cpu.utilization').mean()
+
+fire_bot, clear_bot, clear_top, fire_top = streams.mean_std_thresholds(s)
+detect(s.percentile(10, over='5m') > fire_top, s.percentile(80, over='5m') < clear_top).publish()
+
+fire_cond, clear_cond = conditions.mean_std(s)
+detect(when(s > 45, '10m') and fire_cond).publish()
+~~~~~~~~~~~~~~~~~~~~
+
 
 ## Percentile
 
@@ -62,6 +79,22 @@ against_recent.detector_percentile(service_cpu, current_window=duration('3m'),
   orientation='out_of_band').publish('custom_cpu_detector')
 ~~~~~~~~~~~~~~~~~~~~
 
+#### Streams and conditions
+
+The thresholds used in this detector are given by `percentile_thresholds` and the conditions are produced by `percentile`. See `streams` itself for more intermediate calculations.
+
+~~~~~~~~~~~~~~~~~~~~
+from signalfx.detectors.against_recent import streams
+from signalfx.detectors.against_recent import conditions
+
+s = data('cpu.utilization').mean()
+
+fire_bot, clear_bot, clear_top, fire_top = streams.percentile_thresholds(s)
+detect(s.percentile(10, over='5m') > fire_top, s.percentile(80, over='5m') < clear_top).publish()
+
+fire_cond, clear_cond = conditions.percentile(s)
+detect(when(s > 30, '10m') and fire_cond).publish()
+~~~~~~~~~~~~~~~~~~~~
 
 
 ## Mean plus percentage change
@@ -93,5 +126,22 @@ against_recent.detector_growth_rate_vanilla(service_cpu).publish('cpu_detector')
 ~~~~~~~~~~~~~~~~~~~~
 
 
+
+#### Streams and conditions
+
+The thresholds used in this detector are given by `growth_rate_thresholds` and the conditions are produced by `growth_rate`. See `streams` itself for more intermediate calculations.
+
+~~~~~~~~~~~~~~~~~~~~
+from signalfx.detectors.against_recent import streams
+from signalfx.detectors.against_recent import conditions
+
+s = data('cpu.utilization').mean()
+
+fire_bot, clear_bot, clear_top, fire_top = streams.growth_rate_thresholds(s)
+detect(s.percentile(10, over='5m') > fire_top, s.percentile(80, over='5m') < clear_top).publish()
+
+fire_cond, clear_cond = conditions.growth_rate(s)
+detect(when(s > 45, '5m') and fire_cond).publish()
+~~~~~~~~~~~~~~~~~~~~
 
 
