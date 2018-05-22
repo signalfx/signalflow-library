@@ -1,4 +1,4 @@
-The SignalFlow Library is a collection of SignalFlow functions, each of which captures a common analytical pattern used in alerting. For the most part, each function takes a required stream (signal) argument and some parameters (e.g. a percent of duration) and outputs a detector. A representative use is as follows:
+The SignalFlow Library is a collection of SignalFlow modules, each of which captures a common analytical pattern used in alerting. The core of a typical module is a function which takes a required stream (signal) argument and some parameters (percent of duration, number of standard deviations, etc.) and outputs a detector. A representative use is as follows:
 
 ~~~~~~~~~~~~~~~~~~~~
 from signalfx.detectors.against_recent import against_recent
@@ -14,6 +14,36 @@ against_recent.detector_percentile(service_cpu, current_window=duration('3m'),
 ~~~~~~~~~~~~~~~~~~~~
 
 Explanations of parameters and example usages can be found in the README file of each directory.
+
+Most modules also expose streams and conditions, intermediate objects used by the corresponding detector. This facilitates the creation of statistical thresholds, as in the following example.
+
+~~~~~~~~~~~~~~~~~~~~
+from signalfx.detectors.against_periods import streams
+
+s = data('cpu.utilization').mean()
+
+day_baseline = streams.n_period_trimmed_mean(s, duration('10m'), duration('1d'), 6)
+week_baseline = streams.n_period_trimmed_mean(s, duration('30m'), duration('1w'), 2)
+
+threshold = 1.2 * max(day_baseline, week_baseline)
+
+detect(s.mean(over='20m') > threshold).publish()
+~~~~~~~~~~~~~~~~~~~~
+
+One can also produce custom alerting conditions.
+
+~~~~~~~~~~~~~~~~~~~~
+from signalfx.detectors.population_comparison import conditions
+
+s = data('cpu.utilization')
+
+fire_, clear_ = conditions.growth_rate(s)
+
+fire_condition = when(s > 20, '5m') or fire_
+clear_condition = when(s < 18, '3m') and clear_
+
+detect(fire_condition, clear_condition).publish()
+~~~~~~~~~~~~~~~~~~~~
 
 
 Most of the functions in the library can also be accessed via the SignalFx UI. The following table maps the directories in this repository to the Alert Conditions in the UI.
