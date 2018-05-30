@@ -37,7 +37,7 @@ def generic_detector(stream, threshold_1, threshold_2, orientation, observed_las
 def above_or_below_detector(stream, threshold, orientation, observed_lasting,
                             expected_lasting=None, annotations=None, event_annotations=None):
     # fires when (stream > (or <) threshold is true in observed_lasting.duration) / (observed data points in
-    #    observed.duration) is larger than observed_lasting.at least, and (stream > (or <) threshold is
+    #    observed.duration) is larger than observed_lasting.at_least, and (stream > (or <) threshold is
     #    true in expected_lasting.duration) / (expected data points in expected_lasting.duration)
     #    is larger than expected_lasting.at_least
     # Args:
@@ -57,7 +57,7 @@ def above_or_below_detector(stream, threshold, orientation, observed_lasting,
 def range_detector(stream, lower_threshold, upper_threshold, orientation, observed_lasting,
                             expected_lasting=None, annotations=None, event_annotations=None):
     # fires when (range condition is true in observed_lasting.duration) / (observed data points in
-    #    observed.duration) is larger than observed_lasting.at least, and (range condition is
+    #    observed.duration) is larger than observed_lasting.at_least, and (range condition is
     #    true in expected_lasting.duration) / (expected data points in expected_lasting.duration)
     #    is larger than expected_lasting.at_least
     #       stream (stream): data stream
@@ -165,20 +165,9 @@ def range_detector_with_clear(stream, fire_lower_threshold, fire_upper_threshold
                                        mode=mode, annotations=annotations, event_annotations=event_annotations)
 
 
-
 def one_sided_detector(stream1, stream2, lasting):
     # detects when "stream1 > stream2 for lasting", ignoring missing values
-    return detect(when(streams.compare_streams_ignoring_nulls(stream1, stream2, lasting) > 0))
-
-
-def generic_one_sided_detector_with_clear(fire_stream1, fire_stream2, fire_lasting, clear_stream1,
-                                          clear_stream2, clear_lasting):
-    # detects when "fire_stream1 > fire_stream2 for fire_lasting",
-    # clears when "clear_stream1 > clear_stream2 for clear_lasting",
-    # both ignoring missing values
-    return detect(
-        when(streams.compare_streams_ignoring_nulls(fire_stream1, fire_stream2, fire_lasting) > 0),
-        when(streams.compare_streams_ignoring_nulls(clear_stream1, clear_stream2, clear_lasting) > 0))
+    return generic_detector(stream1, None, stream2, 'above', lasting)
 
 
 def one_sided_detector_with_clear(stream, fire_threshold, fire_lasting, clear_threshold,
@@ -186,17 +175,14 @@ def one_sided_detector_with_clear(stream, fire_threshold, fire_lasting, clear_th
     # fires when "stream > fire_threshold for fire_lasting",
     # clears when "stream < clear_threshold for clear_lasting",
     # both ignoring missing values
-    return generic_one_sided_detector_with_clear(stream, fire_threshold, fire_lasting,
-                                                 clear_threshold, stream, clear_lasting)
+    return generic_detector_with_clear(stream, None, fire_threshold, 'above', fire_lasting, clear_threshold, 
+                                       None, 'below', clear_lasting)
 
 
 def two_sided_detector(stream, upper_stream, lower_stream, lasting):
     # detects when "stream > upper_stream OR stream < lower_stream for lasting",
     # ignoring missing values
-    upper_indicator = utils.indicator(stream, upper_stream)
-    lower_indicator = utils.indicator(lower_stream, stream)
-    either_indicator = upper_indicator + lower_indicator  # 2 if both conditions, 0 if one, -2 if neither
-    return one_sided_detector(either_indicator, -1, lasting)
+    return generic_detector(stream, lower_stream, upper_stream, 'out_of_band', lasting)
 
 
 def two_sided_detector_with_clear(stream, fire_upper_stream, fire_lower_stream, fire_lasting,
@@ -204,12 +190,21 @@ def two_sided_detector_with_clear(stream, fire_upper_stream, fire_lower_stream, 
     # detects when "stream > fire_upper_stream OR stream < fire_lower_stream for fire_lasting",
     # clears when "stream < clear_upper_stream AND stream > clear_lower_stream for clear_lasting",
     # ignoring missing values
-    fire_indicator = utils.indicator(stream, fire_upper_stream) + utils.indicator(fire_lower_stream,
-                                                                      stream)  # 2 if both conditions, 0 if one, -2 if neither
-    clear_indicator = utils.indicator(clear_upper_stream, stream) + utils.indicator(stream,
-                                                                        clear_lower_stream)  # 2 if both conditions, 0 if one, -2 if neither
-    return generic_one_sided_detector_with_clear(fire_indicator, -1, fire_lasting, clear_indicator,
-                                                 1, clear_lasting)
+    return generic_detector_with_clear(stream, fire_lower_stream, fire_upper_stream, 'out_of_band', 
+                                       fire_lasting, clear_lower_stream, clear_upper_stream, 'within_range', 
+                                       clear_lasting)
+
+
+def generic_one_sided_detector_with_clear(fire_stream1, fire_stream2, fire_lasting, clear_stream1,
+                                          clear_stream2, clear_lasting):
+    # detects when "fire_stream1 > fire_stream2 for fire_lasting",
+    # clears when "clear_stream1 > clear_stream2 for clear_lasting",
+    # both ignoring missing values
+    fire_condition = conditions.generic_condition(fire_stream1, None, fire_stream2, 'above',
+                                           fire_lasting, denominator_mode='observed')
+    clear_condition = conditions.generic_condition(clear_stream1, None, clear_stream2, 'above',
+                                           clear_lasting, denominator_mode='observed')
+    return detect(fire_condition, off=clear_condition)
 
 
 
