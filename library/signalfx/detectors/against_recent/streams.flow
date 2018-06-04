@@ -25,19 +25,18 @@ def median_iqr_thresholds(stream, current_window=duration('5m'), historical_wind
                           fire_num_iqr=2.2, clear_num_iqr=1.85):
     current_window_ = duration(current_window)
     historical_window_ = duration(historical_window)
-
     new_s = stream.timeshift(current_window_)
 
-    iqr = new_s.percentile(75, over=historical_window_) - new_s.percentile(25, over=historical_window_)
-    median = stream.median(over=historical_window_)
+    iqr_of_historical_window = new_s.percentile(75, over=historical_window_) - new_s.percentile(25, over=historical_window_)
+    median_of_historical_window = new_s.median(over=historical_window_)
 
-    fire_threshold = fire_num_iqr * iqr
-    clear_threshold = clear_num_iqr * iqr
-
-    f_bot = median - fire_threshold
-    c_bot = median - clear_threshold
-    c_top = median + clear_threshold
-    f_top = median + fire_threshold
+    def h(x):
+        return median_of_historical_window + x * iqr_of_historical_window
+        
+    f_bot = h(-1 * fire_num_iqr)
+    c_bot = h(-1 * clear_num_iqr)
+    c_top = h(clear_num_iqr)
+    f_top = h(fire_num_iqr)
 
     return f_bot, c_bot, c_top, f_top
 
