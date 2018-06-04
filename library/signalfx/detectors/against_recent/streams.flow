@@ -22,7 +22,7 @@ def clamper(stream, historical_window_, num_stddev, calculation_mode):
 
 
 def median_iqr_thresholds(stream, current_window=duration('5m'), historical_window=duration('1h'),
-                          fire_num_iqr=2.2, clear_num_iqr=1.85):
+                          fire_num_iqr=2.2, clear_num_iqr=1.8):
     current_window_ = duration(current_window)
     historical_window_ = duration(historical_window)
     new_s = stream.timeshift(current_window_)
