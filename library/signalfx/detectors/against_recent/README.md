@@ -145,3 +145,51 @@ detect(when(s > 45, '5m') and fire_cond).publish()
 ~~~~~~~~~~~~~~~~~~~~
 
 
+## Median plus interquartile range
+
+This function is not currently exposed via the SignalFx UI.
+
+The `detector_median_iqr` function has the following parameters. Parameters with no default value are required.
+
+|Parameter name|Type|Description|Default value|
+|:---|:---|:---|:---|
+|stream|stream|data being monitored|*None*|
+|current_window|duration|window being tested for anomalous values|duration('5m')|
+|historical_window|duration|window that defines normal values|duration('1h')|
+|fire_num_iqr|number|number of interquartile range away from historical median required to trigger, should be >= 0 |2.2|
+|clear_num_iqr|number|number of interquartile range from historical median required to clear, should be >= 0|1.85|
+|orientation|string|specifies whether detect fires when signal is above, below, or out-of-band (options  'above', 'below', 'out_of_band')|'above'|
+
+It returns a detect block that triggers when all the values of the last `current_window` of `stream` are at least `fire_num_iqr` interquartile range away from the median of the preceding `historical_window`, and clears when all the values of the last `current_window` of `stream` remain within `clear_num_iqr` interquartile range from the median of the preceding `historical_window`. The value of `orientation` determines whether the `current_window` is required to be above or below (or either) the norm established by the `historical_window`.
+
+
+#### Example usage
+~~~~~~~~~~~~~~~~~~~~
+from signalfx.detectors.against_recent import against_recent
+
+service_cpu = data('cpu.utilization').mean(by=['aws_tag_service'])
+
+against_recent.detector_median_iqr(service_cpu).publish('cpu_detector') # uses default values
+
+against_recent.detector_median_iqr(service_cpu, current_window=duration('3m'),
+  historical_window=duration('2h'), fire_num_iqr=4.5, clear_num_iqr=3).publish('custom_cpu_detector')
+~~~~~~~~~~~~~~~~~~~~
+
+#### Streams and conditions
+
+The thresholds used in this detector are given by `median_iqr_thresholds` and the conditions are produced by `median_iqr`. See `streams` itself for more intermediate calculations.
+
+~~~~~~~~~~~~~~~~~~~~
+from signalfx.detectors.against_recent import streams
+from signalfx.detectors.against_recent import conditions
+
+s = data('cpu.utilization').mean()
+
+fire_bot, clear_bot, clear_top, fire_top = streams.median_iqr_thresholds(s)
+detect(s.percentile(10, over='5m') > fire_top, s.percentile(80, over='5m') < clear_top).publish()
+
+fire_cond, clear_cond = conditions.median_iqr(s)
+detect(when(s > 45, '10m') and fire_cond).publish()
+~~~~~~~~~~~~~~~~~~~~
+
+
