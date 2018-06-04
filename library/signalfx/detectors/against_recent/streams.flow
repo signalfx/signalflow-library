@@ -21,6 +21,26 @@ def clamper(stream, historical_window_, num_stddev, calculation_mode):
         return max(bot, min(stream, top)) if stream is not None else None
 
 
+def median_iqr_thresholds(stream, current_window=duration('5m'), historical_window=duration('1h'),
+                          fire_num_iqr=2.2, clear_num_iqr=1.85):
+    current_window_ = duration(current_window)
+    historical_window_ = duration(historical_window)
+    new_s = stream.timeshift(current_window_)
+
+    iqr_of_historical_window = new_s.percentile(75, over=historical_window_) - new_s.percentile(25, over=historical_window_)
+    median_of_historical_window = new_s.median(over=historical_window_)
+
+    def h(x):
+        return median_of_historical_window + x * iqr_of_historical_window
+        
+    f_bot = h(-1 * fire_num_iqr)
+    c_bot = h(-1 * clear_num_iqr)
+    c_top = h(clear_num_iqr)
+    f_top = h(fire_num_iqr)
+
+    return f_bot, c_bot, c_top, f_top
+
+
 def mean_std_thresholds(stream, current_window=duration('5m'), historical_window=duration('1h'),
                         fire_num_stddev=3, clear_num_stddev=2.5, ignore_extremes=True,
                         calculation_mode='vanilla'):
