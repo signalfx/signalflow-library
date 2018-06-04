@@ -44,26 +44,26 @@ def ewma_plus_stddev(stream, duration_, num_stddev):
 
 
 def detector_median_iqr(stream, current_window=duration('5m'), historical_window=duration('1h'),
-                        fire_num_iqr=2.2, clear_num_iqr=1.85, orientation='above'):
+                        fire_num_iqr=2.2, clear_num_iqr=1.8, orientation='above'):
     # Args:
     #       stream: data stream
     #       current_window (duration) : the window whose behavior is being tested for abnormality
     #           (optional, default=duration('5m'))
     #       historical_window (duration): the window whose behavior is used to define normality
     #           (optional, default=duration('1h'))
-    #       fire_num_iqr (number): number of interquartile range different from historical median
+    #       fire_num_iqr (number): number of interquartile ranges different from historical median
     #           required to fire (optional, default=2.2)
-    #       clear_num_iqr (number): number of interquartile range different from historical median
-    #           required to clear (optional, default=1.85)
+    #       clear_num_iqr (number): number of interquartile ranges different from historical median
+    #           required to clear (optional, default=1.8)
     #       orientation (string): specifies whether detect fires when signal is above, below, or
     #           or out-of-band (optional, default='above', one of 'above', 'below', 'out_of_band')
     #
     # Returns:
     #       detect block that fires when the last (current_window) of stream is at least
-    #           fire_num_iqr interquartile range above/below/away from the median of the
+    #           fire_num_iqr interquartile ranges above/below/away from the median of the
     #           preceding historical_window,
     #           and clears when the last (current_window) of stream remains below/above/within
-    #           clear_num_iqr interquartile range above/below/of the median of the
+    #           clear_num_iqr interquartile ranges above/below/of the median of the
     #           preceding historical_window
 
     current_window_ = duration(current_window)
