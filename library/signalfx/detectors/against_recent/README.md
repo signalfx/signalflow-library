@@ -157,7 +157,7 @@ The `detector_median_iqr` function has the following parameters. Parameters with
 |current_window|duration|window being tested for anomalous values|duration('5m')|
 |historical_window|duration|window that defines normal values|duration('1h')|
 |fire_num_iqr|number|number of interquartile ranges away from historical median required to trigger, should be >= 0 |2.2|
-|clear_num_iqr|number|number of interquartile ranges from historical median required to clear, should be >= 0|1.85|
+|clear_num_iqr|number|number of interquartile ranges from historical median required to clear, should be >= 0|1.8|
 |orientation|string|specifies whether detect fires when signal is above, below, or out-of-band (options  'above', 'below', 'out_of_band')|'above'|
 
 It returns a detect block that triggers when all the values of the last `current_window` of `stream` are at least `fire_num_iqr` interquartile ranges away from the median of the preceding `historical_window`, and clears when all the values of the last `current_window` of `stream` remain within `clear_num_iqr` interquartile ranges from the median of the preceding `historical_window`. The value of `orientation` determines whether the `current_window` is required to be above or below (or either) the norm established by the `historical_window`.

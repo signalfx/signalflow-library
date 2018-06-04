@@ -40,7 +40,7 @@ def growth_rate(stream, current_window=duration('5m'), historical_window=duratio
 
 
 def median_iqr(stream, current_window=duration('5m'), historical_window=duration('1h'),
-             fire_num_iqr=2.2, clear_num_iqr=1.85, orientation='above'):
+             fire_num_iqr=2.2, clear_num_iqr=1.8, orientation='above'):
     r_min, r_max = streams.recent_extrema(stream, current_window=current_window)
     return utils.conditions_helper(orientation, r_min, r_max,
                                     *streams.median_iqr_thresholds(stream, current_window=current_window,
