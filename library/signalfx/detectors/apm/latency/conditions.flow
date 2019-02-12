@@ -3,16 +3,6 @@ from signalfx.detectors.apm.latency import streams
 
 def static(fire_duration, fire_threshold, clear_duration, clear_threshold, filter_, pctile=90,
            exclude_errors=False):
-    """
-
-    :param fire_duration:
-    :param fire_threshold:
-    :param clear_duration:
-    :param clear_threshold:
-    :param filter_:
-    :param pctile:
-    :return:
-    """
     if exclude_errors is True:
         filter__ = filter_ and not filter('error', 'true')
     else:
@@ -31,14 +21,6 @@ def static(fire_duration, fire_threshold, clear_duration, clear_threshold, filte
 
 
 def static_on_volume(filter_, duration_, threshold, exclude_errors=False):
-    """
-
-    :param filter_:
-    :param duration_:
-    :param threshold: on rate (expressed in units per second)
-    :param exclude_errors:
-    :return:
-    """
     return when(
         streams.volume(filter_, window=duration_, exclude_errors=exclude_errors) > threshold)
 
@@ -47,16 +29,6 @@ def growth_rate_sc(filter_, pctile=90, current_window=duration('5m'),
                    historical_window=duration('1h'),
                    fire_growth_rate_threshold=0.2, clear_growth_rate_threshold=0.1,
                    exclude_errors=False):
-    """
-
-    :param filter_:
-    :param pctile:
-    :param current_window:
-    :param historical_window:
-    :param fire_growth_rate_threshold:
-    :param clear_growth_rate_threshold:
-    :return:
-    """
     curr = streams.pctile_over_window(filter_, pctile, current_window)
     t = streams.growth_rate_thresholds_sc(filter_, pctile=pctile, current_window=current_window,
                                           historical_window=historical_window,
