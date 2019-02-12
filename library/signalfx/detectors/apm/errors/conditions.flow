@@ -1,0 +1,60 @@
+from signalfx.detectors.apm.errors import streams
+
+
+def percentage_growth(current_window=duration('5m'), preceding_window=duration('1h'),
+                      fire_growth_threshold=0.5, clear_growth_threshold=0.1,
+                      filter_=None, group_by=None):
+    """
+    Compares current error rate to multiple of preceding error rate.
+    :param current_window:
+    :param preceding_window:
+    :param growth_threshold:
+    :param filter_:
+    :param group_by:
+    :return: (condition) when the (filtered and grouped) error rate calculated over the
+                specified window is an increase of the specified percentage threshold over the same
+                rate calculated over the preceding window
+    """
+    current_error_rate = streams.error_rate(duration_=current_window, filter_=filter_,
+                                            group_by=group_by)
+    preceding_error_rate = streams.error_rate(duration_=preceding_window, filter_=filter_,
+                                              group_by=group_by).timeshift(current_window)
+    return {'on': when(current_error_rate > (1 + fire_growth_threshold) * preceding_error_rate),
+            'off': when(current_window < (1 + clear_growth_threshold) * preceding_error_rate)}
+
+
+def volume(duration_=duration('5m'), shift=duration(0), filter_=None, group_by=None, num_errors=1,
+           num_attempts=1):
+    """
+
+    :param duration_:
+    :param filter_:
+    :param group_by:
+    :param num_errors:
+    :param num_attempts:
+    :return: (condition) when the (filtered and groups) error count calculated over the specified
+                    (possibly shifted) duration exceeds the specified threshold and the attempt
+                    count (calculated over the same shifted duration) exceeds the specified (other)
+                    threshold
+    """
+    gped_e_streams = streams.grouped_span_errors(filter_=filter_, group_by=group_by)
+    e = gped_e_streams['errors'].sum(over=duration_).timeshift(shift)
+    n_e = gped_e_streams['non_errors'].sum(over=duration_).timeshift(shift)
+    return when(e > num_errors and e + n_e > num_attempts)
+
+
+def error_rate_static(current_window=duration('5m'), filter_=None, group_by=None,
+                      fire_rate_threshold=0.01, clear_rate_threshold=0.001):
+    """
+
+    :param current_window:
+    :param filter_:
+    :param group_by:
+    :param rate_threshold:
+    :return: (condition) when the (filtered and grouped) error rate calculated over the
+                specified duration exceeds the specified thershold
+    """
+    return {'on': when(streams.error_rate(current_window=current_window, filter_=filter_,
+                                          group_by=group_by) > fire_rate_threshold),
+            'off': when(streams.error_rate(current_window=current_window, filter_=filter_,
+                                           group_by=group_by) < clear_rate_threshold)}
