@@ -1,0 +1,181 @@
+from signalfx.detectors.apm.latency import streams
+
+
+def static(fire_duration, fire_threshold, clear_duration, clear_threshold, filter_, pctile=90,
+           exclude_errors=False):
+    """
+
+    :param fire_duration:
+    :param fire_threshold:
+    :param clear_duration:
+    :param clear_threshold:
+    :param filter_:
+    :param pctile:
+    :return:
+    """
+    if exclude_errors is True:
+        filter__ = filter_ and not filter('error', 'true')
+    else:
+        filter__ = filter_
+    d = data(streams.pctile_to_metric[pctile], filter=filter__)
+    ann = [annotate(d, 'latency', {'sfui_streamType': 'signal'})]
+    event_ann = {
+        'fire_duration': str(fire_duration),
+        'fire_threshold': str(fire_threshold),
+        'clear_duration': str(clear_duration),
+        'clear_threshold': str(clear_threshold)}
+    return {'on': when(d > fire_threshold, fire_duration),
+            'off': when(d < clear_threshold, clear_duration),
+            'annotations': ann,
+            'event_annotations': event_ann}
+
+
+def static_on_volume(filter_, duration_, threshold, exclude_errors=False):
+    """
+
+    :param filter_:
+    :param duration_:
+    :param threshold: on rate (expressed in units per second)
+    :param exclude_errors:
+    :return:
+    """
+    return when(
+        streams.volume(filter_, window=duration_, exclude_errors=exclude_errors) > threshold)
+
+
+def growth_rate_sc(filter_, pctile=90, current_window=duration('5m'),
+                   historical_window=duration('1h'),
+                   fire_growth_rate_threshold=0.2, clear_growth_rate_threshold=0.1,
+                   exclude_errors=False):
+    """
+
+    :param filter_:
+    :param pctile:
+    :param current_window:
+    :param historical_window:
+    :param fire_growth_rate_threshold:
+    :param clear_growth_rate_threshold:
+    :return:
+    """
+    curr = streams.pctile_over_window(filter_, pctile, current_window)
+    t = streams.growth_rate_thresholds_sc(filter_, pctile=pctile, current_window=current_window,
+                                          historical_window=historical_window,
+                                          fire_growth_rate_threshold=fire_growth_rate_threshold,
+                                          clear_growth_rate_threshold=clear_growth_rate_threshold,
+                                          exclude_errors=exclude_errors)
+    f_t, c_t = t['fire_threshold'], t['clear_threshold']
+    ann = [annotate(curr, 'current window', {'sfui_streamType': 'signal'}),
+           annotate(f_t, 'fire threshold', {'sfui_streamType': 'threshold',
+                                            'sfui_state': 'fire',
+                                            'sfui_orientation': 'above'}),
+           annotate(c_t, 'clear threshold', {'sfui_streamType': 'threshold',
+                                             'sfui_state': 'clear',
+                                             'sfui_orientation': 'above'})]
+    event_ann = {'percentile': str(pctile),
+                 'current_window': str(current_window),
+                 'historical_window': str(historical_window),
+                 'fire_growth_rate_threshold': str(fire_growth_rate_threshold),
+                 'clear_growth_rate_threshold': str(clear_growth_rate_threshold)}
+    return {'on': when(curr > f_t),
+            'off': when(curr < c_t),
+            'annotations': ann,
+            'event_annotations': event_ann}
+
+
+def growth_rate_ha(filter_, pctile=90, current_window=duration('5m'),
+                   historical_window=duration('1h'),
+                   cycle_length=duration('1w'),
+                   num_cycles=4,
+                   fire_growth_rate_threshold=0.2, clear_growth_rate_threshold=0.1,
+                   exclude_errors=False):
+    curr = streams.pctile_over_window(filter_, pctile, current_window)
+    t = streams.growth_rate_thresholds_ha(filter_, pctile=pctile,
+                                          historical_window=historical_window,
+                                          cycle_length=cycle_length,
+                                          num_cycles=num_cycles,
+                                          fire_growth_rate_threshold=fire_growth_rate_threshold,
+                                          clear_growth_rate_threshold=clear_growth_rate_threshold,
+                                          exclude_errors=exclude_errors)
+    f_t, c_t = t['fire_threshold'], t['clear_threshold']
+    ann = [annotate(curr, 'current window', {'sfui_streamType': 'signal'}),
+           annotate(f_t, 'fire threshold', {'sfui_streamType': 'threshold',
+                                            'sfui_state': 'fire',
+                                            'sfui_orientation': 'above'}),
+           annotate(c_t, 'clear threshold', {'sfui_streamType': 'threshold',
+                                             'sfui_state': 'clear',
+                                             'sfui_orientation': 'above'})]
+    event_ann = {'percentile': str(pctile),
+                 'current_window': str(current_window),
+                 'historical_window': str(historical_window),
+                 'cycle_length': str(cycle_length),
+                 'num_cycles': str(num_cycles),
+                 'fire_growth_rate_threshold': str(fire_growth_rate_threshold),
+                 'clear_growth_rate_threshold': str(clear_growth_rate_threshold)}
+    return {'on': when(curr > f_t),
+            'off': when(curr < c_t),
+            'annotations': ann,
+            'event_annotations': event_ann}
+
+
+def deviations_from_norm_sc(filter_, current_window=duration('5m'),
+                            historical_window=duration('1h'), exclude_errors=False,
+                            fire_num_dev_threshold=3.5, clear_num_dev_threshold=3):
+    score = streams.deviations_from_norm_sc(filter_, current_window=current_window,
+                                            historical_window=historical_window,
+                                            exclude_errors=exclude_errors)
+    ann = [annotate(score, 'score')]
+    event_ann = {'current_window': str(current_window),
+                 'historical_window': str(historical_window),
+                 'fire_num_dev_threshold': str(fire_num_dev_threshold),
+                 'clear_num_dev_threshold': str(clear_num_dev_threshold)}
+    return {'on': when(score > fire_num_dev_threshold),
+            'off': when(score < clear_num_dev_threshold),
+            'annotations': ann,
+            'event_annotations': event_ann}
+
+
+def deviations_from_norm_ha(filter_, current_window=duration('5m'),
+                            historical_window=duration('1h'),
+                            cycle_length=duration('1w'),
+                            num_cycles=4, exclude_errors=False,
+                            fire_num_dev_threshold=3.5, clear_num_dev_threshold=3):
+    score = streams.deviations_from_norm_ha(filter_, current_window=current_window,
+                                            historical_window=historical_window,
+                                            cycle_length=cycle_length,
+                                            num_cycles=num_cycles,
+                                            exclude_errors=exclude_errors)
+    ann = [annotate(score, 'score')]
+    event_ann = {'current_window': str(current_window),
+                 'historical_window': str(historical_window),
+                 'cycle_length': str(cycle_length),
+                 'num_cycles': str(num_cycles),
+                 'fire_num_dev_threshold': str(fire_num_dev_threshold),
+                 'clear_num_dev_threshold': str(clear_num_dev_threshold)}
+    return {'on': when(score > fire_num_dev_threshold),
+            'off': when(score < clear_num_dev_threshold),
+            'annotations': ann,
+            'event_annotations': event_ann}
+
+
+def volume_sc(filter_, current_window=duration('5m'), historical_window=duration('1h'),
+              fire_drop=0.5, clear_drop=0.6, exclude_errors=False):
+    v = streams.volumes_sc(filter_, current_window=current_window,
+                           historical_window=historical_window,
+                           exclude_errors=exclude_errors)
+    c, h = v['current'], v['historical']
+    return {'on': when(c < (1 - fire_drop) * h),
+            'off': when(c > (1 - clear_drop) * h)}
+
+
+def volume_ha(filter_, current_window=duration('5m'), historical_window=duration('1h'),
+              cycle_length=duration('1w'), num_cycles=4, fire_drop=0.5, clear_drop=0.6,
+              exclude_errors=False):
+    v = streams.volumes_ha(filter_, current_window=current_window,
+                           historical_window=historical_window,
+                           cycle_length=cycle_length, num_cycles=num_cycles,
+                           exclude_errors=exclude_errors)
+    c, h = v['current'], v['historical']
+    return {'on': when(c < (1 - fire_drop) * h),
+            'off': when(c > (1 - clear_drop) * h)}
+
+

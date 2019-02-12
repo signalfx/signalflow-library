@@ -1,0 +1,61 @@
+def span_errors(filter_=None):
+    """
+    Filters spans.count metric and builds an outer join schema
+    :param filter_: (filter object), applied to span.count metric, default=None
+    :return: dictionary with two entries
+                'errors' -> error stream, filtered (by filter_)
+                'non_errors' -> non error stream, filtered (by filter_)
+    """
+    if filter_ is None:
+        error_filter = filter('error', 'true')
+        non_error_filter = filter('error', 'false')
+    else:
+        error_filter = filter_ and filter('error', 'true')
+        non_error_filter = filter_ and filter('error', 'false')
+    error_stream = data('spans.count', error_filter, rollup='delta').fill(0)
+    non_error_stream = data('spans.count', non_error_filter, rollup='delta').fill(0)
+    zero_non_error_schema = min(non_error_stream, const(0))
+    zero_error_schema = min(error_stream, const(0))
+    e = union(error_stream, zero_non_error_schema)
+    n_e = union(non_error_stream, zero_error_schema)
+    return {'errors': e, 'non_errors': n_e}
+
+
+def grouped_span_errors(filter_=None, group_by=None):
+    """
+    Filters and groups spans.count metric
+    :param filter_: (filter object), applied to span.count metric, default=None
+    :param group_by: (list of strings) used to group the error and non-error counts; default=None
+                        uses grouping by ['operation', 'service']
+    :return: dictionary with two entries
+                'errors' -> error count, first filtered (by filter_), then summed (by group_by
+                             and 'operation', 'service)
+                'non_errors' -> non error count, first filtered (by filter_), then summed
+                            (by group_by and 'operation', 'service)
+    """
+    if group_by is None:
+        gp_by = ['operation', 'service']
+    else:
+        gp_by = ['operation', 'service'] + group_by
+    e_streams = span_errors(filter_=filter_)
+    err_stream, non_err_stream = e_streams['errors'], e_streams['non_errors']
+    e = err_stream.sum(by=gp_by)
+    n_e = non_err_stream.sum(by=gp_by)
+    return {'errors': e, 'non_errors': n_e}
+
+
+def error_rate(duration_=duration('1m'), filter_=None, group_by=None):
+    """
+    Calculates error rate over a duration using a filtered and grouped error input
+    :param duration_: (duration) specifies window over which to calculate error rate,
+                        default=duration('1m')
+    :param filter_: (filter object), applied to span.count metric, default=None
+    :param group_by: (list of strings) used to group the error and non-error counts; default=None
+                        uses grouping by ['operation', 'service']
+    :return: error rate as a stream
+    """
+    gped_e_streams = grouped_span_errors(filter_=filter_, group_by=group_by)
+    e = gped_e_streams['errors'].sum(over=duration_)
+    n_e = gped_e_streams['non_errors'].sum(over=duration_)
+    attempts = e + n_e
+    return e / attempts
