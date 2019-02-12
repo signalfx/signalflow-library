@@ -3,19 +3,6 @@ from signalfx.detectors.apm.latency import conditions
 
 def detector(fire_duration, fire_threshold, clear_duration, clear_threshold, filter_, pctile=90,
              exclude_errors=False, volume_static_threshold=None, volume_pct_threshold=None):
-    """
-
-    :param fire_duration:
-    :param fire_threshold:
-    :param clear_duration:
-    :param clear_threshold:
-    :param filter_:
-    :param pctile:
-    :param exclude_errors:
-    :param volume_static_threshold: on rate! (only for firing)
-    :param volume_pct_threshold: (only for firing){{
-    :return:
-    """
     conds = conditions.static(fire_duration, fire_threshold, clear_duration, clear_threshold,
                               filter_, pctile=pctile, exclude_errors=exclude_errors)
     if volume_static_threshold is not None and volume_pct_threshold is not None:

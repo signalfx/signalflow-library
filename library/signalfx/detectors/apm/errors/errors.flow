@@ -4,18 +4,6 @@ from signalfx.detectors.apm.errors import conditions
 def detector(current_window=duration('5m'), preceding_window=duration('1h'),
              fire_growth_threshold=0.5, clear_growth_threshold=0.1,
              fire_rate_threshold=0.01, clear_rate_threshold=0.001, filter_=None, group_by=None):
-    """
-
-    :param current_window:
-    :param preceding_window:
-    :param fire_growth_threshold:
-    :param clear_growth_threshold:
-    :param fire_rate_threshold:
-    :param clear_rate_threshold:
-    :param filter_:
-    :param group_by:
-    :return:
-    """
     growth_conditions = conditions.percentage_growth(current_window=current_window,
                                                      preceding_window=preceding_window,
                                                      fire_growth_threshold=fire_growth_threshold,
@@ -28,5 +16,3 @@ def detector(current_window=duration('5m'), preceding_window=duration('1h'),
     return detect(growth_conditions['on'] and static_conditions['on'],
                   off=growth_conditions['off'] and static_conditions['off'])
 
-
-### VOLUME??!!!!!
