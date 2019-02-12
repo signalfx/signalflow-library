@@ -19,17 +19,6 @@ def growth_rate_thresholds_sc(filter_, pctile=90, current_window=duration('5m'),
                               historical_window=duration('1h'),
                               fire_growth_rate_threshold=0.2, clear_growth_rate_threshold=0.1,
                               exclude_errors=False):
-    """
-    :param filter_:
-    :param pctile:
-    :param current_window:
-    :param historical_window:
-    :param fire_growth_rate_threshold:
-    :param clear_growth_rate_threshold:
-    :param exclude_errors:
-    :return:
-    """
-
     hist = pctile_over_window(filter_, pctile, duration(historical_window),
                               exclude_errors=exclude_errors).timeshift(
         duration(current_window))
