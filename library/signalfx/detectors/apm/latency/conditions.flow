@@ -8,14 +8,17 @@ def static(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear_l
                                    exclude_errors=exclude_errors, group_by=group_by)
     ann = [annotate(d, 'latency', {'sfui_streamType': 'signal'})]
     event_ann = {
-        'fire_lasting': str(fire_lasting),
         'fire_threshold': str(fire_threshold),
-        'clear_lasting': str(clear_lasting),
         'clear_threshold': str(clear_threshold)}
-    return {'on': when(d > fire_threshold, fire_lasting),
-            'off': when(d < clear_threshold, clear_lasting),
-            'annotations': ann,
-            'event_annotations': event_ann}
+    if clear_threshold is not None:
+        return {'on': when(d > fire_threshold, fire_lasting),
+                'off': when(d < clear_threshold, clear_lasting),
+                'annotations': ann,
+                'event_annotations': event_ann}
+    else:
+        return {'on': when(d > fire_threshold, fire_lasting),
+                'annotations': ann,
+                'event_annotations': event_ann}
 
 
 def static_on_volume(duration_, threshold, filter_=None, exclude_errors=True):
