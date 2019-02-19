@@ -31,5 +31,9 @@ def detector(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear
         on = conds['on'] and pct
     else:
         on = conds['on']
-    return detect(on, off=conds['off'], annotations=conds['annotations'],
-                  event_annotations=conds['event_annotations'])
+    if clear_threshold is not None:
+        return detect(on, off=conds['off'], annotations=conds['annotations'],
+                      event_annotations=conds['event_annotations'])
+    else:
+        return detect(on, annotations=conds['annotations'],
+                      event_annotations=conds['event_annotations'])
