@@ -1,52 +1,56 @@
-pctile_to_metric = {50: 'spans.duration.ns.median',
-                    90: 'spans.duration.ns.p90',
-                    99: 'spans.duration.ns.p99'}
+from signalfx.detectors.apm import utils
 
-def pctile_over_window(filter_, pctile, window, exclude_errors=False):
+
+def pctile_over_window(pctile=90, filter_=None, window=duration('5m'), exclude_errors=True,
+                       group_by=None):
     #
     #:param filter_:
     #:param pctile:
     #:return: (stream) representing specified percentile over specified window
+    #  NB   if errors are included, the error and non-error streams will simply be averaged
+    #           (unless of course 'error' is part of the group_by ..)
     #
-    if exclude_errors is True:
-        filter__ = filter_ and not filter('error', 'true')
+    filter__ = utils.merge_filters(filter_, exclude_errors)
+    gp_by = utils.merge_group_by_with_default(group_by)
+    metric_name = utils.PCTILE_TO_METRIC[pctile]
+    if window is None:
+        return data(metric_name, filter=filter__).mean(by=gp_by)
     else:
-        filter__ = filter_
-    return data(pctile_to_metric[pctile], filter=filter__).percentile(50, over=window)
+        return data(metric_name, filter=filter__).percentile(50, over=window).mean(by=gp_by)
 
 
-def growth_rate_thresholds_sc(filter_, pctile=90, current_window=duration('5m'),
+def growth_rate_thresholds_sc(pctile=90, filter_=None, current_window=duration('5m'),
                               historical_window=duration('1h'),
                               fire_growth_rate_threshold=0.2, clear_growth_rate_threshold=0.1,
-                              exclude_errors=False):
-    hist = pctile_over_window(filter_, pctile, duration(historical_window),
+                              exclude_errors=True):
+    hist = pctile_over_window(pctile=pctile, filter_=filter_, window=duration(historical_window),
                               exclude_errors=exclude_errors).timeshift(
         duration(current_window))
     return {'fire_threshold': hist * (1 + fire_growth_rate_threshold),
             'clear_threshold': hist * (1 + clear_growth_rate_threshold)}
 
 
-def growth_rate_thresholds_ha(filter_, pctile=90,
+def growth_rate_thresholds_ha(pctile=90, filter_=None,
                               historical_window=duration('1h'),
-                              cycle_length=duration('1w'),
-                              num_cycles=4,
+                              cycle_length=duration('1w'), num_cycles=4,
                               fire_growth_rate_threshold=0.2, clear_growth_rate_threshold=0.1,
-                              exclude_errors=False):
-    hist = median(*[pctile_over_window(filter_, pctile, historical_window,
-                                                 exclude_errors=exclude_errors).timeshift(
+                              exclude_errors=True):
+    hist = median(*[pctile_over_window(pctile=pctile, filter_=filter_, window=historical_window,
+                                       exclude_errors=exclude_errors).timeshift(
         duration(cycle_length) * i) for i in range(1, num_cycles + 1)])
     return {'fire_threshold': hist * (1 + fire_growth_rate_threshold),
             'clear_threshold': hist * (1 + clear_growth_rate_threshold)}
 
 
-def deviations_from_norm_sc(filter_, current_window=duration('5m'),
+def deviations_from_norm_sc(filter_=None, current_window=duration('5m'),
                             historical_window=duration('1h'),
-                            exclude_errors=False):
-    current_p50 = pctile_over_window(filter_, 50, current_window, exclude_errors=exclude_errors)
-    historical_p50 = pctile_over_window(filter_, 50, historical_window,
+                            exclude_errors=True):
+    current_p50 = pctile_over_window(pctile=50, filter_=filter_, window=current_window,
+                                     exclude_errors=exclude_errors)
+    historical_p50 = pctile_over_window(pctile=50, filter_=filter_, window=historical_window,
                                         exclude_errors=exclude_errors).timeshift(
         duration(current_window))
-    historical_p90 = pctile_over_window(filter_, 90, historical_window,
+    historical_p90 = pctile_over_window(pctile=90, filter_=filter_, window=historical_window,
                                         exclude_errors=exclude_errors).timeshift(
         duration(current_window))
     hist_spread = historical_p90 - historical_p50
@@ -57,36 +61,39 @@ def deviations_from_norm_ha(filter_, current_window=duration('5m'),
                             historical_window=duration('1h'),
                             cycle_length=duration('1w'),
                             num_cycles=4,
-                            exclude_errors=False):
-    current_p50 = pctile_over_window(filter_, 50, current_window, exclude_errors=exclude_errors)
-    historical_p50 = median(*[pctile_over_window(filter_, 50, historical_window,
-                                                 exclude_errors=exclude_errors).timeshift(
-        duration(cycle_length) * i) for i in range(1, num_cycles + 1)])
-    historical_p90 = median(*[pctile_over_window(filter_, 90, historical_window,
-                                                 exclude_errors=exclude_errors).timeshift(
-        duration(cycle_length * i)) for i in range(1, num_cycles + 1)])
+                            exclude_errors=True):
+    current_p50 = pctile_over_window(pctile=50, filter_=filter_, window=current_window,
+                                     exclude_errors=exclude_errors)
+    historical_p50 = median(
+        *[pctile_over_window(pctile=50, filter_=filter_, window=historical_window,
+                             exclude_errors=exclude_errors).timeshift(
+            duration(cycle_length) * i) for i in range(1, num_cycles + 1)])
+    historical_p90 = median(
+        *[pctile_over_window(pctile=90, filter_=filter_, window=historical_window,
+                             exclude_errors=exclude_errors).timeshift(
+            duration(cycle_length * i)) for i in range(1, num_cycles + 1)])
     hist_spread = historical_p90 - historical_p50
     return (current_p50 - historical_p50) / hist_spread
 
 
-def volume(filter_, window=duration('5m'), exclude_errors=False):
-    if exclude_errors is True:
-        filter__ = filter_ and not filter('error', 'true')
-    else:
-        filter__ = filter_
-    return data('spans.count', filter=filter__, rollup='rate').mean(over=window)
+def volume(filter_=None, window=duration('5m'), exclude_errors=True):
+    filter__ = utils.merge_filters(filter_, exclude_errors)
+    return data('spans.count', filter=filter__, rollup='rate').fill(0).mean(over=window)
 
 
-def volumes_sc(filter_, current_window=duration('5m'), historical_window=duration('1h'),
-               exclude_errors=False):
-    return {'current': volume(filter_, window=current_window, exclude_errors=exclude_errors),
-            'historical': volume(filter_, window=historical_window,
-                                 exclude_errors=exclude_errors).timeshift(current_window)}
+def volumes_sc(filter_=None, current_window=duration('5m'), historical_window=duration('1h'),
+               exclude_errors=True):
+    return {
+        'current': volume(filter_=filter_, window=current_window, exclude_errors=exclude_errors),
+        'historical': volume(filter_=filter_, window=historical_window,
+                             exclude_errors=exclude_errors).timeshift(current_window)}
 
 
-def volumes_ha(filter_, current_window=duration('5m'), historical_window=duration('1h'),
-               cycle_length=duration('1w'), num_cycles=4, exclude_errors=False):
-    h = mean(*[volume(filter_, window=historical_window, exclude_errors=exclude_errors).timeshift(
-        duration(cycle_length) * i) for i in range(1, num_cycles + 1)])
-    return {'current': volume(filter_, window=current_window, exclude_errors=exclude_errors),
-            'historical': h}
+def volumes_ha(filter_=None, current_window=duration('5m'), historical_window=duration('1h'),
+               cycle_length=duration('1w'), num_cycles=4, exclude_errors=True):
+    h = mean(*[
+        volume(filter_=filter_, window=historical_window, exclude_errors=exclude_errors).timeshift(
+            duration(cycle_length) * i) for i in range(1, num_cycles + 1)])
+    return {
+        'current': volume(filter_=filter_, window=current_window, exclude_errors=exclude_errors),
+        'historical': h}

@@ -16,3 +16,5 @@ def detector(current_window=duration('5m'), preceding_window=duration('1h'),
     return detect(growth_conditions['on'] and static_conditions['on'],
                   off=growth_conditions['off'] and static_conditions['off'])
 
+
+# extract volume conditions into module??

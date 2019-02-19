@@ -1,27 +1,31 @@
 from signalfx.detectors.apm.latency import conditions
 
 
-def detector(fire_duration, fire_threshold, clear_duration, clear_threshold, filter_, pctile=90,
-             exclude_errors=False, volume_static_threshold=None, volume_pct_threshold=None):
-    conds = conditions.static(fire_duration, fire_threshold, clear_duration, clear_threshold,
-                              filter_, pctile=pctile, exclude_errors=exclude_errors)
+def detector(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear_lasting=None,
+             pctile=90, filter_=None, exclude_errors=True, volume_static_threshold=None,
+             volume_pct_threshold=None):
+    conds = conditions.static(fire_threshold=fire_threshold,
+                              fire_lasting=fire_lasting,
+                              clear_threshold=clear_threshold,
+                              clear_lasting=clear_lasting,
+                              pctile=pctile, filter_=filter_, exclude_errors=exclude_errors)
     if volume_static_threshold is not None and volume_pct_threshold is not None:
-        static = conditions.static_on_volume(filter_, fire_duration.duration,
-                                             volume_static_threshold,
+        static = conditions.static_on_volume(fire_lasting.duration,
+                                             volume_static_threshold, filter_=filter_,
                                              exclude_errors=exclude_errors)
-        pct = conditions.volume_sc(filter_, current_window=fire_duration.duration,
-                                   historical_window=5 * fire_duration.duration,
+        pct = conditions.volume_sc(filter_=filter_, current_window=fire_lasting.duration,
+                                   historical_window=5 * fire_lasting.duration,
                                    fire_drop=volume_pct_threshold, clear_drop=volume_pct_threshold,
                                    exclude_errors=exclude_errors)['on']
         on = conds['on'] and static and pct
     elif volume_static_threshold is not None:
-          static = conditions.static_on_volume(filter_, fire_duration.duration,
-                                               volume_static_threshold,
-                                               exclude_errors=exclude_errors)
-          on = conds['on'] and static
+        static = conditions.static_on_volume(fire_lasting.duration,
+                                             volume_static_threshold, filter_=filter_,
+                                             exclude_errors=exclude_errors)
+        on = conds['on'] and static
     elif volume_pct_threshold is not None:
-        pct = conditions.volume_sc(filter_, current_window=fire_duration.duration,
-                                   historical_window=5 * fire_duration.duration,
+        pct = conditions.volume_sc(filter_=filter_, current_window=fire_lasting.duration,
+                                   historical_window=5 * fire_lasting.duration,
                                    fire_drop=volume_pct_threshold, clear_drop=volume_pct_threshold,
                                    exclude_errors=exclude_errors)['on']
         on = conds['on'] and pct
