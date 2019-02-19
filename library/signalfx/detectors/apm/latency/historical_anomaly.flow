@@ -1,10 +1,10 @@
 from signalfx.detectors.apm.latency import conditions
 
 
-def growth_rate(filter_, pctile=90, current_window=duration('5m'),
+def growth_rate(pctile=90, filter_=None, current_window=duration('5m'),
                 historical_window=duration('1h'), cycle_length=duration('1w'), num_cycles=4,
                 fire_growth_rate_threshold=0.2, clear_growth_rate_threshold=0.1,
-                exclude_errors=False, volume_static_threshold=None, volume_pct_fire_threshold=None,
+                exclude_errors=True, volume_static_threshold=None, volume_pct_fire_threshold=None,
                 volume_pct_clear_threshold=None):
     conds = conditions.growth_rate_ha(filter_, pctile=pctile, current_window=current_window,
                                       historical_window=historical_window,
@@ -13,10 +13,11 @@ def growth_rate(filter_, pctile=90, current_window=duration('5m'),
                                       clear_growth_rate_threshold=clear_growth_rate_threshold,
                                       exclude_errors=exclude_errors)
     if volume_static_threshold is not None and volume_pct_fire_threshold is not None and volume_pct_clear_threshold is not None:
-        static = conditions.static_on_volume(filter_, current_window,
+        static = conditions.static_on_volume(current_window,
                                              volume_static_threshold,
+                                             filter_=filter_,
                                              exclude_errors=exclude_errors)
-        pct = conditions.volume_ha(filter_, current_window=current_window,
+        pct = conditions.volume_ha(filter_=filter_, current_window=current_window,
                                    historical_window=historical_window,
                                    cycle_length=cycle_length, num_cycles=num_cycles,
                                    fire_drop=volume_pct_fire_threshold,
@@ -25,13 +26,14 @@ def growth_rate(filter_, pctile=90, current_window=duration('5m'),
         on = conds['on'] and static and pct['on']
         off_ = conds['off'] and pct['off']
     elif volume_static_threshold is not None:
-         static = conditions.static_on_volume(filter_, current_window,
+        static = conditions.static_on_volume(current_window,
                                              volume_static_threshold,
+                                             filter_=filter_,
                                              exclude_errors=exclude_errors)
-         on = conds['on'] and static
-         off_ = conds['off']
+        on = conds['on'] and static
+        off_ = conds['off']
     elif volume_pct_fire_threshold is not None and volume_pct_clear_threshold is not None:
-        pct = conditions.volume_ha(filter_, current_window=current_window,
+        pct = conditions.volume_ha(filter_=filter_, current_window=current_window,
                                    historical_window=historical_window,
                                    cycle_length=cycle_length, num_cycles=num_cycles,
                                    fire_drop=volume_pct_fire_threshold,
@@ -46,23 +48,24 @@ def growth_rate(filter_, pctile=90, current_window=duration('5m'),
                   event_annotations=conds['event_annotations'])
 
 
-def deviations_from_norm(filter_, current_window=duration('5m'),
+def deviations_from_norm(filter_=None, current_window=duration('5m'),
                          historical_window=duration('1h'),
-                         cycle_length=duration('1w'), num_cycles=4, exclude_errors=False,
+                         cycle_length=duration('1w'), num_cycles=4, exclude_errors=True,
                          fire_num_dev_threshold=3.5, clear_num_dev_threshold=3,
                          volume_static_threshold=None, volume_pct_fire_threshold=None,
                          volume_pct_clear_threshold=None):
-    conds = conditions.deviations_from_norm_ha(filter_, current_window=current_window,
+    conds = conditions.deviations_from_norm_ha(filter_=filter_, current_window=current_window,
                                                historical_window=historical_window,
                                                cycle_length=cycle_length, num_cycles=num_cycles,
                                                exclude_errors=exclude_errors,
                                                fire_num_dev_threshold=fire_num_dev_threshold,
                                                clear_num_dev_threshold=clear_num_dev_threshold)
     if volume_static_threshold is not None and volume_pct_fire_threshold is not None and volume_pct_clear_threshold is not None:
-        static = conditions.static_on_volume(filter_, current_window,
+        static = conditions.static_on_volume(current_window,
                                              volume_static_threshold,
+                                             filter_=filter_,
                                              exclude_errors=exclude_errors)
-        pct = conditions.volume_ha(filter_, current_window=current_window,
+        pct = conditions.volume_ha(filter_=filter_, current_window=current_window,
                                    historical_window=historical_window,
                                    cycle_length=cycle_length, num_cycles=num_cycles,
                                    fire_drop=volume_pct_fire_threshold,
@@ -71,13 +74,14 @@ def deviations_from_norm(filter_, current_window=duration('5m'),
         on = conds['on'] and static and pct['on']
         off_ = conds['off'] and pct['off']
     elif volume_static_threshold is not None:
-         static = conditions.static_on_volume(filter_, current_window,
+        static = conditions.static_on_volume(current_window,
                                              volume_static_threshold,
+                                             filter_=filter_,
                                              exclude_errors=exclude_errors)
-         on = conds['on'] and static
-         off_ = conds['off']
+        on = conds['on'] and static
+        off_ = conds['off']
     elif volume_pct_fire_threshold is not None and volume_pct_clear_threshold is not None:
-        pct = conditions.volume_ha(filter_, current_window=current_window,
+        pct = conditions.volume_ha(filter_=filter_, current_window=current_window,
                                    historical_window=historical_window,
                                    cycle_length=cycle_length, num_cycles=num_cycles,
                                    fire_drop=volume_pct_fire_threshold,
