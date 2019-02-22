@@ -4,12 +4,14 @@ from signalfx.detectors.apm.errors import conditions
 def detector(current_window=duration('5m'), preceding_window=duration('1h'),
              fire_growth_threshold=0.5, clear_growth_threshold=0.1,
              attempt_threshold=1, filter_=None, group_by=None):
-    growth_conditions = conditions.percentage_growth(current_window=current_window,
-                                                     preceding_window=preceding_window,
+    current_window_ = duration(current_window)
+    preceding_window_ = duration(preceding_window)
+    growth_conditions = conditions.percentage_growth(current_window=current_window_,
+                                                     preceding_window=preceding_window_,
                                                      fire_growth_threshold=fire_growth_threshold,
                                                      clear_growth_threshold=clear_growth_threshold,
                                                      filter_=filter_, group_by=group_by)
-    attempt_condition = conditions.volume(duration_=current_window, shift=duration(0),
+    attempt_condition = conditions.volume(duration_=current_window_, shift=duration(0),
                                           filter_=filter_, group_by=group_by, num_errors=0,
                                           num_attempts=attempt_threshold)
     return detect(growth_conditions['on'] and attempt_condition,
