@@ -14,14 +14,16 @@ def percentage_growth(current_window=duration('5m'), preceding_window=duration('
     #:return: (condition) when the (filtered and grouped) error rate calculated over the
     #            specified window is an increase of the specified percentage threshold over the same
     #            rate calculated over the preceding window
-    current_error_rate = streams.error_rate(duration_=current_window, filter_=filter_,
+    current_window_ = duration(current_window)
+    preceding_window_ = duration(preceding_window)
+    current_error_rate = streams.error_rate(duration_=current_window_, filter_=filter_,
                                             group_by=group_by)
-    preceding_error_rate = streams.error_rate(duration_=preceding_window, filter_=filter_,
-                                              group_by=group_by).timeshift(current_window)
+    preceding_error_rate = streams.error_rate(duration_=preceding_window_, filter_=filter_,
+                                              group_by=group_by).timeshift(current_window_)
     ann = [annotate(current_error_rate, 'current error rate', {'sfui_streamType': 'signal'}),
            annotate(preceding_error_rate, 'preceding error rate', {'sfui_streamType': 'signal'})]
-    event_ann = {'current_window': str(current_window),
-                 'preceding_window': str(preceding_window),
+    event_ann = {'current_window': str(current_window_),
+                 'preceding_window': str(preceding_window_),
                  'fire_growth_threshold': str(fire_growth_threshold),
                  'clear_growth_threshold': str(clear_growth_threshold)}
     return {'on': when(current_error_rate > (1 + fire_growth_threshold) * preceding_error_rate),
@@ -42,9 +44,11 @@ def volume(duration_=duration('5m'), shift=duration(0), filter_=None, group_by=N
     #                (possibly shifted) duration exceeds the specified threshold and the attempt
     #                count (calculated over the same shifted duration) exceeds the specified (other)
     #                threshold
+    duration__ = duration(duration_)
+    shift_ = duration(shift)
     gped_e_streams = streams.grouped_span_errors(filter_=filter_, group_by=group_by)
-    e = gped_e_streams['errors'].sum(over=duration_).timeshift(shift)
-    n_e = gped_e_streams['non_errors'].sum(over=duration_).timeshift(shift)
+    e = gped_e_streams['errors'].sum(over=duration__).timeshift(shift_)
+    n_e = gped_e_streams['non_errors'].sum(over=duration__).timeshift(shift_)
     return when(e > num_errors and e + n_e > num_attempts)
 
 
@@ -57,9 +61,10 @@ def error_rate_static(current_window=duration('5m'), filter_=None, group_by=None
     #:param rate_threshold:
     #:return: (condition) when the (filtered and grouped) error rate calculated over the
     #            specified duration exceeds the specified threshold
-    err_rate = streams.error_rate(current_window=current_window, filter_=filter_, group_by=group_by)
+    current_window_ = duration(current_window)
+    err_rate = streams.error_rate(duration_=current_window_, filter_=filter_, group_by=group_by)
     ann = [annotate(err_rate, 'error rate', {'sfui_streamType': 'signal'})]
-    event_ann = {'current_window': str(current_window),
+    event_ann = {'current_window': str(current_window_),
                  'fire_rate_threshold': str(fire_rate_threshold),
                  'clear_rate_threshold': str(clear_rate_threshold)}
     return {'on': when(err_rate > fire_rate_threshold),
