@@ -50,8 +50,9 @@ def error_rate(duration_=duration('1m'), filter_=None, group_by=None):
     # :param group_by: (list of strings) used to group the error and non-error counts; default=None
     #                    uses grouping by ['operation', 'service']
     # :return: error rate as a stream
+    duration__ = duration(duration_)
     gped_e_streams = grouped_span_errors(filter_=filter_, group_by=group_by)
-    e = gped_e_streams['errors'].sum(over=duration_)
-    n_e = gped_e_streams['non_errors'].sum(over=duration_)
+    e = gped_e_streams['errors'].sum(over=duration__)
+    n_e = gped_e_streams['non_errors'].sum(over=duration__)
     attempts = e + n_e
     return e / attempts
