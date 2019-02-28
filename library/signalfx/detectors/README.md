@@ -22,8 +22,8 @@ from signalfx.detectors.against_periods import streams
 
 s = data('cpu.utilization').mean()
 
-day_baseline = streams.n_period_trimmed_mean(s, duration('10m'), duration('1d'), 6)
-week_baseline = streams.n_period_trimmed_mean(s, duration('30m'), duration('1w'), 2)
+day_baseline = streams.n_period_trimmed_mean(s, duration('10m'), duration('1d'), 6)[2]
+week_baseline = streams.n_period_trimmed_mean(s, duration('30m'), duration('1w'), 2)[2]
 
 threshold = 1.2 * max(day_baseline, week_baseline)
 
