@@ -16,8 +16,8 @@ def pctile_over_window(pctile=90, filter_=None, window=duration('5m'), exclude_e
     if window is None:
         return data(metric_name, filter=filter__).mean(by=gp_by)
     else:
-        return data(metric_name, filter=filter__).percentile(50, over=duration(window)).mean(
-            by=gp_by)
+        return data(metric_name, filter=filter__).mean(by=gp_by).percentile(50,
+                                                                            over=duration(window))
 
 
 def growth_rate_thresholds_sc(pctile=90, filter_=None, current_window=duration('5m'),
@@ -79,7 +79,8 @@ def deviations_from_norm_ha(filter_, current_window=duration('5m'),
     return (current_p50 - historical_p50) / hist_spread
 
 
-def volume(filter_=None, window=duration('5m'), exclude_errors=True, use_trimmed_mean=True, pctile=95):
+def volume(filter_=None, window=duration('5m'), exclude_errors=True, use_trimmed_mean=True, pctile=95,
+           group_by=None):
     #
     # :param filter_:
     # :param window:
@@ -89,7 +90,8 @@ def volume(filter_=None, window=duration('5m'), exclude_errors=True, use_trimmed
     #       effect when use_trimmed_mean is not True
     # :return:
     filter__ = utils.merge_filters(filter_, exclude_errors)
-    vol = data('spans.count', filter=filter__, rollup='rate')
+    gp_by = utils.merge_group_by_with_default(group_by)
+    vol = data('spans.count', filter=filter__, rollup='rate').sum(by=gp_by)
     if window is None:
         return vol
     elif use_trimmed_mean is True:

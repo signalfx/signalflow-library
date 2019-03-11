@@ -21,14 +21,14 @@ def static(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear_l
                 'event_annotations': event_ann}
 
 
-def static_on_volume(duration_, threshold, filter_=None, exclude_errors=True):
+def static_on_volume(duration_, threshold, filter_=None, exclude_errors=True, group_by=None):
     return when(streams.volume(filter_=filter_, window=duration(duration_),
-                               exclude_errors=exclude_errors) > threshold)
+                               exclude_errors=exclude_errors, group_by=group_by) > threshold)
 
 
-def static_volume_nonempty(lasting_, filter_=None, exclude_errors=True):
-    return when(streams.volume(filter_=filter_, window=None, exclude_errors=exclude_errors) > 0,
-                lasting_)
+def static_volume_nonempty(lasting_, filter_=None, exclude_errors=True, group_by=None):
+    return when(streams.volume(filter_=filter_, window=None, exclude_errors=exclude_errors,
+                               group_by=group_by) > 0, lasting_)
 
 
 def growth_rate_sc(pctile=90, filter_=None, current_window=duration('5m'),
