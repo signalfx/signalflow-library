@@ -89,10 +89,10 @@ def volume(filter_=None, window=duration('5m'), exclude_errors=True, use_trimmed
     #       effect when use_trimmed_mean is not True
     # :return:
     filter__ = utils.merge_filters(filter_, exclude_errors)
-    window_ = duration(window)
     vol = data('spans.count', filter=filter__, rollup='rate')
     if window is None:
         return vol
+    window_ = duration(window)
     elif use_trimmed_mean is True:
         return a_r_streams.clamper(vol, window_, 2, 'vanilla').mean(over=window_)
     else:
