@@ -16,5 +16,5 @@ def detector(current_window=duration('5m'), preceding_window=duration('1h'),
                                           num_attempts=attempt_threshold)
     return detect(growth_conditions['on'] and attempt_condition,
                   off=growth_conditions['off'],
-                  annotations=growth_conditions['annotations'],
+                  annotations=growth_c{}onditions['annotations'],
                   event_annotations=growth_conditions['event_annotations'])
