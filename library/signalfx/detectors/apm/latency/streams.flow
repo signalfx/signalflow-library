@@ -92,12 +92,12 @@ def volume(filter_=None, window=duration('5m'), exclude_errors=True, use_trimmed
     vol = data('spans.count', filter=filter__, rollup='rate')
     if window is None:
         return vol
-    window_ = duration(window)
     elif use_trimmed_mean is True:
+        window_ = duration(window)
         return a_r_streams.clamper(vol, window_, 2, 'vanilla').mean(over=window_)
     else:
         assert pctile >= 0 and pctile <= 100
-        return vol.percentile(pctile, over=window_)
+        return vol.percentile(pctile, over=duration(window))
 
 
 def volumes_sc(filter_=None, current_window=duration('5m'), historical_window=duration('1h'),
