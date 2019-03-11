@@ -1,5 +1,5 @@
 from signalfx.detectors.apm import utils
-
+from signalfx.detectors.against_recent import streams as a_r_streams
 
 def pctile_over_window(pctile=90, filter_=None, window=duration('5m'), exclude_errors=True,
                        group_by=None):
@@ -79,25 +79,46 @@ def deviations_from_norm_ha(filter_, current_window=duration('5m'),
     return (current_p50 - historical_p50) / hist_spread
 
 
-def volume(filter_=None, window=duration('5m'), exclude_errors=True):
+def volume(filter_=None, window=duration('5m'), exclude_errors=True, use_trimmed_mean=True, pctile=95):
+    #
+    # :param filter_:
+    # :param window:
+    # :param exclude_errors:
+    # :param use_trimmed_mean (boolean): if True, use trimmed mean; else use percentile specified
+    # :param pctile (number): percentile to use, expressed as number between 0 and 100; only in
+    #       effect when use_trimmed_mean is not True
+    # :return:
     filter__ = utils.merge_filters(filter_, exclude_errors)
-    return data('spans.count', filter=filter__, rollup='rate').fill(0).mean(over=duration(window))
+    window_ = duration(window)
+    vol = data('spans.count', filter=filter__, rollup='rate')
+    if window is None:
+        return vol
+    elif use_trimmed_mean is True:
+        return a_r_streams.clamper(vol, window_, 2, 'vanilla').mean(over=window_)
+    else:
+        assert pctile >= 0 and pctile <= 100
+        return vol.percentile(pctile, over=window_)
 
 
 def volumes_sc(filter_=None, current_window=duration('5m'), historical_window=duration('1h'),
-               exclude_errors=True):
+               exclude_errors=True, use_trimmed_mean=True, pctile=95):
     return {'current': volume(filter_=filter_, window=duration(current_window),
-                              exclude_errors=exclude_errors),
+                              exclude_errors=exclude_errors, use_trimmed_mean=use_trimmed_mean,
+                              pctile=pctile),
             'historical': volume(filter_=filter_, window=duration(historical_window),
-                                 exclude_errors=exclude_errors).timeshift(duration(current_window))}
+                                 exclude_errors=exclude_errors, use_trimmed_mean=use_trimmed_mean,
+                                 pctile=pctile).timeshift(duration(current_window))}
 
 
 def volumes_ha(filter_=None, current_window=duration('5m'), historical_window=duration('1h'),
-               cycle_length=duration('1w'), num_cycles=4, exclude_errors=True):
-    h = mean(*[
+               cycle_length=duration('1w'), num_cycles=4, exclude_errors=True,
+               use_trimmed_mean=True, pctile=95):
+    h = median(*[
         volume(filter_=filter_, window=duration(historical_window),
-               exclude_errors=exclude_errors).timeshift(
+               exclude_errors=exclude_errors, use_trimmed_mean=use_trimmed_mean,
+               pctile=pctile).timeshift(
             duration(cycle_length) * i) for i in range(1, num_cycles + 1)])
     return {'current': volume(filter_=filter_, window=duration(current_window),
-                              exclude_errors=exclude_errors),
+                              exclude_errors=exclude_errors, use_trimmed_mean=use_trimmed_mean,
+                              pctile=pctile),
             'historical': h}
