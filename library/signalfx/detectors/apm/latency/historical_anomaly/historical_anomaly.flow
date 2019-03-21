@@ -4,7 +4,7 @@ from signalfx.detectors.apm.latency import conditions
 def growth_rate(pctile=90, filter_=None, current_window=duration('5m'),
                 historical_window=duration('1h'), cycle_length=duration('1w'), num_cycles=4,
                 fire_growth_rate_threshold=0.2, clear_growth_rate_threshold=0.1,
-                exclude_errors=True, volume_static_threshold=None, volume_pct_fire_threshold=None,
+                exclude_errors=True, group_by=None, volume_static_threshold=None, volume_pct_fire_threshold=None,
                 volume_pct_clear_threshold=None, vol_pctile_req_pos=90):
     current_window_ = duration(current_window)
     historical_window_ = duration(historical_window)
@@ -14,31 +14,32 @@ def growth_rate(pctile=90, filter_=None, current_window=duration('5m'),
                                       cycle_length=cycle_length_, num_cycles=num_cycles,
                                       fire_growth_rate_threshold=fire_growth_rate_threshold,
                                       clear_growth_rate_threshold=clear_growth_rate_threshold,
-                                      exclude_errors=exclude_errors)
+                                      exclude_errors=exclude_errors, group_by=group_by)
     non_empty_cond = conditions.volume_ha_nonempty(filter_=filter_, current_window=current_window_,
                                                    historical_window=historical_window_,
                                                    cycle_length=cycle_length_,
                                                    num_cycles=num_cycles,
                                                    exclude_errors=exclude_errors,
-                                                   pctile=vol_pctile_req_pos)
+                                                   pctile=vol_pctile_req_pos, group_by=group_by)
     if volume_static_threshold is not None and volume_pct_fire_threshold is not None and volume_pct_clear_threshold is not None:
         static = conditions.static_on_volume(current_window_,
                                              volume_static_threshold,
                                              filter_=filter_,
-                                             exclude_errors=exclude_errors)
+                                             exclude_errors=exclude_errors, group_by=group_by)
         pct = conditions.volume_ha(filter_=filter_, current_window=current_window_,
                                    historical_window=historical_window_,
                                    cycle_length=cycle_length_, num_cycles=num_cycles,
                                    fire_threshold=volume_pct_fire_threshold,
                                    clear_threshold=volume_pct_clear_threshold,
-                                   exclude_errors=exclude_errors)
+                                   exclude_errors=exclude_errors, group_by=group_by)
         on = conds['on'] and static and pct['on'] and non_empty_cond
         off_ = conds['off'] and pct['off'] and non_empty_cond
     elif volume_static_threshold is not None:
         static = conditions.static_on_volume(current_window_,
                                              volume_static_threshold,
                                              filter_=filter_,
-                                             exclude_errors=exclude_errors)
+                                             exclude_errors=exclude_errors,
+                                             group_by=group_by)
         on = conds['on'] and static and non_empty_cond
         off_ = conds['off'] and non_empty_cond
     elif volume_pct_fire_threshold is not None and volume_pct_clear_threshold is not None:
@@ -47,7 +48,7 @@ def growth_rate(pctile=90, filter_=None, current_window=duration('5m'),
                                    cycle_length=cycle_length_, num_cycles=num_cycles,
                                    fire_threshold=volume_pct_fire_threshold,
                                    clear_threshold=volume_pct_clear_threshold,
-                                   exclude_errors=exclude_errors)
+                                   exclude_errors=exclude_errors, group_by=group_by)
         on = conds['on'] and pct['on'] and non_empty_cond
         off_ = conds['off'] and pct['off'] and non_empty_cond
     else:
@@ -60,6 +61,7 @@ def growth_rate(pctile=90, filter_=None, current_window=duration('5m'),
 def deviations_from_norm(filter_=None, current_window=duration('5m'),
                          historical_window=duration('1h'),
                          cycle_length=duration('1w'), num_cycles=4, exclude_errors=True,
+                         group_by=None,
                          fire_num_dev_threshold=3.5, clear_num_dev_threshold=3,
                          volume_static_threshold=None, volume_pct_fire_threshold=None,
                          volume_pct_clear_threshold=None, vol_pctile_req_pos=90):
@@ -69,7 +71,7 @@ def deviations_from_norm(filter_=None, current_window=duration('5m'),
     conds = conditions.deviations_from_norm_ha(filter_=filter_, current_window=current_window_,
                                                historical_window=historical_window_,
                                                cycle_length=cycle_length_, num_cycles=num_cycles,
-                                               exclude_errors=exclude_errors,
+                                               exclude_errors=exclude_errors, group_by=group_by,
                                                fire_num_dev_threshold=fire_num_dev_threshold,
                                                clear_num_dev_threshold=clear_num_dev_threshold)
     non_empty_cond = conditions.volume_ha_nonempty(filter_=filter_, current_window=current_window_,
@@ -77,18 +79,20 @@ def deviations_from_norm(filter_=None, current_window=duration('5m'),
                                                    cycle_length=cycle_length_,
                                                    num_cycles=num_cycles,
                                                    exclude_errors=exclude_errors,
-                                                   pctile=vol_pctile_req_pos)
+                                                   pctile=vol_pctile_req_pos,
+                                                   group_by=group_by)
     if volume_static_threshold is not None and volume_pct_fire_threshold is not None and volume_pct_clear_threshold is not None:
         static = conditions.static_on_volume(current_window_,
                                              volume_static_threshold,
                                              filter_=filter_,
-                                             exclude_errors=exclude_errors)
+                                             exclude_errors=exclude_errors,
+                                             group_by=group_by)
         pct = conditions.volume_ha(filter_=filter_, current_window=current_window_,
                                    historical_window=historical_window_,
                                    cycle_length=cycle_length_, num_cycles=num_cycles,
                                    fire_threshold=volume_pct_fire_threshold,
                                    clear_threshold=volume_pct_clear_threshold,
-                                   exclude_errors=exclude_errors)
+                                   exclude_errors=exclude_errors, group_by=group_by)
         on = conds['on'] and static and pct['on'] and non_empty_cond
         off_ = conds['off'] and pct['off'] and non_empty_cond
     elif volume_static_threshold is not None:
@@ -104,7 +108,7 @@ def deviations_from_norm(filter_=None, current_window=duration('5m'),
                                    cycle_length=cycle_length_, num_cycles=num_cycles,
                                    fire_threshold=volume_pct_fire_threshold,
                                    clear_threshold=volume_pct_clear_threshold,
-                                   exclude_errors=exclude_errors)
+                                   exclude_errors=exclude_errors, group_by=group_by)
         on = conds['on'] and pct['on'] and non_empty_cond
         off_ = conds['off'] and pct['off'] and non_empty_cond
     else:
