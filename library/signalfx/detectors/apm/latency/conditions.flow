@@ -34,16 +34,17 @@ def static_volume_nonempty(lasting_, filter_=None, exclude_errors=True, group_by
 def growth_rate_sc(pctile=90, filter_=None, current_window=duration('5m'),
                    historical_window=duration('1h'),
                    fire_growth_rate_threshold=0.2, clear_growth_rate_threshold=0.1,
-                   exclude_errors=True):
+                   exclude_errors=True, group_by=None):
     current_window_ = duration(current_window)
     historical_window_ = duration(historical_window)
-    curr = streams.pctile_over_window(pctile=pctile, filter_=filter_, window=current_window_)
+    curr = streams.pctile_over_window(pctile=pctile, filter_=filter_, window=current_window_,
+                                      exclude_errors=exclude_errors, group_by=group_by)
     t = streams.growth_rate_thresholds_sc(pctile=pctile, filter_=filter_,
                                           current_window=current_window_,
                                           historical_window=historical_window_,
                                           fire_growth_rate_threshold=fire_growth_rate_threshold,
                                           clear_growth_rate_threshold=clear_growth_rate_threshold,
-                                          exclude_errors=exclude_errors)
+                                          exclude_errors=exclude_errors, group_by=group_by)
     f_t, c_t = t['fire_threshold'], t['clear_threshold']
     ann = [annotate(curr, 'current window', {'sfui_streamType': 'signal'}),
            annotate(f_t, 'fire threshold', {'sfui_streamType': 'threshold',
@@ -68,18 +69,19 @@ def growth_rate_ha(pctile=90, filter_=None, current_window=duration('5m'),
                    cycle_length=duration('1w'),
                    num_cycles=4,
                    fire_growth_rate_threshold=0.2, clear_growth_rate_threshold=0.1,
-                   exclude_errors=True):
+                   exclude_errors=True, group_by=None):
     current_window_ = duration(current_window)
     historical_window_ = duration(historical_window)
     cycle_length_ = duration(cycle_length)
-    curr = streams.pctile_over_window(pctile=pctile, filter_=filter_, window=current_window_)
+    curr = streams.pctile_over_window(pctile=pctile, filter_=filter_, window=current_window_,
+                                      exclude_errors=exclude_errors, group_by=group_by)
     t = streams.growth_rate_thresholds_ha(pctile=pctile, filter_=filter_,
                                           historical_window=historical_window_,
                                           cycle_length=cycle_length_,
                                           num_cycles=num_cycles,
                                           fire_growth_rate_threshold=fire_growth_rate_threshold,
                                           clear_growth_rate_threshold=clear_growth_rate_threshold,
-                                          exclude_errors=exclude_errors)
+                                          exclude_errors=exclude_errors, group_by=group_by)
     f_t, c_t = t['fire_threshold'], t['clear_threshold']
     ann = [annotate(curr, 'current window', {'sfui_streamType': 'signal'}),
            annotate(f_t, 'fire threshold', {'sfui_streamType': 'threshold',
@@ -102,13 +104,13 @@ def growth_rate_ha(pctile=90, filter_=None, current_window=duration('5m'),
 
 
 def deviations_from_norm_sc(filter_=None, current_window=duration('5m'),
-                            historical_window=duration('1h'), exclude_errors=True,
+                            historical_window=duration('1h'), exclude_errors=True, group_by=None,
                             fire_num_dev_threshold=3.5, clear_num_dev_threshold=3):
     current_window_ = duration(current_window)
     historical_window_ = duration(historical_window)
     score = streams.deviations_from_norm_sc(filter_=filter_, current_window=current_window_,
                                             historical_window=historical_window_,
-                                            exclude_errors=exclude_errors)
+                                            exclude_errors=exclude_errors, group_by=group_by)
     ann = [annotate(score, 'score')]
     event_ann = {'current_window': str(current_window_),
                  'historical_window': str(historical_window_),
@@ -123,7 +125,7 @@ def deviations_from_norm_sc(filter_=None, current_window=duration('5m'),
 def deviations_from_norm_ha(filter_=None, current_window=duration('5m'),
                             historical_window=duration('1h'),
                             cycle_length=duration('1w'),
-                            num_cycles=4, exclude_errors=True,
+                            num_cycles=4, exclude_errors=True, group_by=None,
                             fire_num_dev_threshold=3.5, clear_num_dev_threshold=3):
     current_window_ = duration(current_window)
     historical_window_ = duration(historical_window)
@@ -132,7 +134,7 @@ def deviations_from_norm_ha(filter_=None, current_window=duration('5m'),
                                             historical_window=historical_window_,
                                             cycle_length=cycle_length_,
                                             num_cycles=num_cycles,
-                                            exclude_errors=exclude_errors)
+                                            exclude_errors=exclude_errors, group_by=group_by)
     ann = [annotate(score, 'score')]
     event_ann = {'current_window': str(current_window_),
                  'historical_window': str(historical_window_),
@@ -148,34 +150,36 @@ def deviations_from_norm_ha(filter_=None, current_window=duration('5m'),
 
 def volume_sc(filter_=None, current_window=duration('5m'), historical_window=duration('1h'),
               fire_threshold=0.1, clear_threshold=0.2, exclude_errors=True, use_trimmed_mean=True,
-              pctile=95):
+              pctile=95, group_by=None):
     v = streams.volumes_sc(filter_=filter_, current_window=duration(current_window),
                            historical_window=duration(historical_window),
                            exclude_errors=exclude_errors, use_trimmed_mean=use_trimmed_mean,
-                           pctile=pctile)
+                           pctile=pctile, group_by=group_by)
     c, h = v['current'], v['historical']
     return {'on': when(c > fire_threshold * h),
             'off': when(c > clear_threshold * h)}
 
 
 def volume_sc_nonempty(filter_=None, current_window=duration('5m'),
-                       historical_window=duration('1h'), exclude_errors=True, pctile=95):
+                       historical_window=duration('1h'), exclude_errors=True, pctile=95,
+                       group_by=None):
     v = streams.volumes_sc(filter_=filter_, current_window=duration(current_window),
                            historical_window=duration(historical_window),
                            exclude_errors=exclude_errors, use_trimmed_mean=False,
-                           pctile=pctile)
+                           pctile=pctile, group_by=group_by)
     h = v['historical']
     return when(h > 0)
 
 
 def volume_ha(filter_=None, current_window=duration('5m'), historical_window=duration('1h'),
               cycle_length=duration('1w'), num_cycles=4, fire_threshold=0.1,
-              clear_threshold=0.2, exclude_errors=True, use_trimmed_mean=True, pctile=95):
+              clear_threshold=0.2, exclude_errors=True, use_trimmed_mean=True, pctile=95,
+              group_by=None):
     v = streams.volumes_ha(filter_=filter_, current_window=duration(current_window),
                            historical_window=duration(historical_window),
                            cycle_length=duration(cycle_length), num_cycles=num_cycles,
                            exclude_errors=exclude_errors, use_trimmed_mean=use_trimmed_mean,
-                           pctile=pctile)
+                           pctile=pctile, group_by=group_by)
     c, h = v['current'], v['historical']
     return {'on': when(c > fire_threshold * h),
             'off': when(c > clear_threshold * h)}
@@ -183,11 +187,12 @@ def volume_ha(filter_=None, current_window=duration('5m'), historical_window=dur
 
 
 def volume_ha_nonempty(filter_=None, current_window=duration('5m'), historical_window=duration('1h'),
-                       cycle_length=duration('1w'), num_cycles=4, exclude_errors=True, pctile=90):
+                       cycle_length=duration('1w'), num_cycles=4, exclude_errors=True, pctile=90,
+                       group_by=None):
     v = streams.volumes_ha(filter_=filter_, current_window=duration(current_window),
                            historical_window=duration(historical_window),
                            cycle_length=duration(cycle_length), num_cycles=num_cycles,
                            exclude_errors=exclude_errors, use_trimmed_mean=False,
-                           pctile=pctile)
+                           pctile=pctile, group_by=group_by)
     h = v['historical']
     return when(h > 0)
