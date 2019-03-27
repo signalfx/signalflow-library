@@ -14,6 +14,7 @@ def percentage_growth(current_window=duration('5m'), preceding_window=duration('
     #:return: (condition) when the (filtered and grouped) error rate calculated over the
     #            specified window is an increase of the specified percentage threshold over the same
     #            rate calculated over the preceding window
+    assert fire_growth_threshold >= clear_growth_threshold
     current_window_ = duration(current_window)
     preceding_window_ = duration(preceding_window)
     current_error_rate = streams.error_rate(duration_=current_window_, filter_=filter_,
@@ -61,6 +62,7 @@ def error_rate_static(current_window=duration('5m'), filter_=None, group_by=None
     #:param rate_threshold:
     #:return: (condition) when the (filtered and grouped) error rate calculated over the
     #            specified duration exceeds the specified threshold
+    assert fire_rate_threshold >= clear_rate_threshold
     current_window_ = duration(current_window)
     err_rate = streams.error_rate(duration_=current_window_, filter_=filter_, group_by=group_by)
     ann = [annotate(err_rate, 'error rate', {'sfui_streamType': 'signal'})]

@@ -4,7 +4,8 @@ from signalfx.detectors.apm.latency import conditions
 def growth_rate(pctile=90, filter_=None, current_window=duration('5m'),
                 historical_window=duration('1h'),
                 fire_growth_rate_threshold=0.2, clear_growth_rate_threshold=0.1,
-                exclude_errors=True, group_by=None, volume_static_threshold=None, volume_pct_fire_threshold=None,
+                exclude_errors=True, group_by=None, volume_static_threshold=None,
+                volume_pct_fire_threshold=None,
                 volume_pct_clear_threshold=None, vol_pctile_req_pos=95):
     # Detect when latency grows by a specified amount relative to the immediately preceding window
     # :param pctile (number): percentile to monitor, one of 50, 90, 99, default=90
@@ -29,7 +30,17 @@ def growth_rate(pctile=90, filter_=None, current_window=duration('5m'),
     #           clears when latency is less than 1 + clear_growth_rate_threshold times the baseline
     current_window_ = duration(current_window)
     historical_window_ = duration(historical_window)
-    conds = conditions.growth_rate_sc(pctile=pctile, filter_=filter_, current_window=current_window_,
+    assert pctile == 50 or pctile == 90 or pctile == 99, {
+        'pctile': pctile,
+        'sfui_errorKeys': ['pctile'],
+        'sfui_errorTemplate': "{{{pctile}}} must be one of 50, 90, 99."}
+    assert fire_growth_rate_threshold >= clear_growth_rate_threshold, {
+        'fire_growth_rate_threshold': fire_growth_rate_threshold,
+        'clear_growth_rate_threshold': clear_growth_rate_threshold,
+        'sfui_errorKeys': ['fire_growth_rate_threshold', 'clear_growth_rate_threshold'],
+        'sfui_errorTemplate': "{{{fire_growth_rate_threshold}}} must be greater than or equal to {{{clear_growth_rate_threshold}}}."}
+    conds = conditions.growth_rate_sc(pctile=pctile, filter_=filter_,
+                                      current_window=current_window_,
                                       historical_window=historical_window_,
                                       fire_growth_rate_threshold=fire_growth_rate_threshold,
                                       clear_growth_rate_threshold=clear_growth_rate_threshold,
@@ -105,6 +116,11 @@ def deviations_from_norm(filter_=None, current_window=duration('5m'),
     #           clears when latency is less than clear_num_dev_threshold deviations from the norm
     current_window_ = duration(current_window)
     historical_window_ = duration(historical_window)
+    assert fire_num_dev_threshold >= clear_num_dev_threshold, {
+        'fire_num_dev_threshold': fire_num_dev_threshold,
+        'clear_num_dev_threshold': clear_num_dev_threshold,
+        'sfui_errorKeys': ['fire_num_dev_threshold', 'clear_num_dev_threshold'],
+        'sfui_errorTemplate': "{{{fire_num_dev_threshold}}} must be greater than or equal to {{{clear_num_dev_threshold}}}."}
     conds = conditions.deviations_from_norm_sc(filter_=filter_, current_window=current_window_,
                                                historical_window=historical_window_,
                                                exclude_errors=exclude_errors, group_by=group_by,
