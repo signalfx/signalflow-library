@@ -4,6 +4,7 @@ from signalfx.detectors.apm.latency import streams
 
 def static(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear_lasting=None,
            pctile=90, filter_=None, exclude_errors=True, group_by=None):
+    assert pctile == 50 or pctile == 90 or pctile == 99
     d = streams.pctile_over_window(pctile=pctile, filter_=filter_, window=None,
                                    exclude_errors=exclude_errors, group_by=group_by)
     ann = [annotate(d, 'latency', {'sfui_streamType': 'signal'})]
@@ -37,6 +38,8 @@ def growth_rate_sc(pctile=90, filter_=None, current_window=duration('5m'),
                    exclude_errors=True, group_by=None):
     current_window_ = duration(current_window)
     historical_window_ = duration(historical_window)
+    assert pctile == 50 or pctile == 90 or pctile == 99
+    assert fire_growth_rate_threshold >= clear_growth_rate_threshold
     curr = streams.pctile_over_window(pctile=pctile, filter_=filter_, window=current_window_,
                                       exclude_errors=exclude_errors, group_by=group_by)
     t = streams.growth_rate_thresholds_sc(pctile=pctile, filter_=filter_,
@@ -73,6 +76,10 @@ def growth_rate_ha(pctile=90, filter_=None, current_window=duration('5m'),
     current_window_ = duration(current_window)
     historical_window_ = duration(historical_window)
     cycle_length_ = duration(cycle_length)
+    assert pctile == 50 or pctile == 90 or pctile == 99
+    assert cycle_length_ >= historical_window_
+    assert num_cycles >= 1
+    assert fire_growth_rate_threshold >= clear_growth_rate_threshold
     curr = streams.pctile_over_window(pctile=pctile, filter_=filter_, window=current_window_,
                                       exclude_errors=exclude_errors, group_by=group_by)
     t = streams.growth_rate_thresholds_ha(pctile=pctile, filter_=filter_,
@@ -108,6 +115,7 @@ def deviations_from_norm_sc(filter_=None, current_window=duration('5m'),
                             fire_num_dev_threshold=3.5, clear_num_dev_threshold=3):
     current_window_ = duration(current_window)
     historical_window_ = duration(historical_window)
+    assert fire_num_dev_threshold >= clear_num_dev_threshold
     score = streams.deviations_from_norm_sc(filter_=filter_, current_window=current_window_,
                                             historical_window=historical_window_,
                                             exclude_errors=exclude_errors, group_by=group_by)
@@ -130,6 +138,9 @@ def deviations_from_norm_ha(filter_=None, current_window=duration('5m'),
     current_window_ = duration(current_window)
     historical_window_ = duration(historical_window)
     cycle_length_ = duration(cycle_length)
+    assert num_cycles >= 1
+    assert cycle_length_ >= historical_window_
+    assert fire_num_dev_threshold >= clear_num_dev_threshold
     score = streams.deviations_from_norm_ha(filter_=filter_, current_window=current_window_,
                                             historical_window=historical_window_,
                                             cycle_length=cycle_length_,
@@ -185,8 +196,8 @@ def volume_ha(filter_=None, current_window=duration('5m'), historical_window=dur
             'off': when(c > clear_threshold * h)}
 
 
-
-def volume_ha_nonempty(filter_=None, current_window=duration('5m'), historical_window=duration('1h'),
+def volume_ha_nonempty(filter_=None, current_window=duration('5m'),
+                       historical_window=duration('1h'),
                        cycle_length=duration('1w'), num_cycles=4, exclude_errors=True, pctile=90,
                        group_by=None):
     v = streams.volumes_ha(filter_=filter_, current_window=duration(current_window),

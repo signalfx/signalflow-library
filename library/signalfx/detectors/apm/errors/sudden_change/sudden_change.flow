@@ -22,6 +22,11 @@ def detector(current_window=duration('5m'), preceding_window=duration('1h'),
     # clears when the error rate is less than 1 + clear_growth_threshold times the baseline error rate
     current_window_ = duration(current_window)
     preceding_window_ = duration(preceding_window)
+    assert fire_growth_threshold >= clear_growth_threshold, {
+        'fire_growth_threshold': fire_growth_threshold,
+        'clear_growth_threshold': clear_growth_threshold,
+        'sfui_errorKeys': ['fire_growth_threshold', 'clear_growth_threshold'],
+        'sfui_errorTemplate': "{{{fire_growth_threshold}}} must be greater than or equal to {{{clear_growth_threshold}}}."}
     growth_conditions = conditions.percentage_growth(current_window=current_window_,
                                                      preceding_window=preceding_window_,
                                                      fire_growth_threshold=fire_growth_threshold,
