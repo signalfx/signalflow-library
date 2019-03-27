@@ -4,6 +4,21 @@ from signalfx.detectors.apm.errors import conditions
 def detector(current_window=duration('5m'),
              fire_rate_threshold=0.01, clear_rate_threshold=0.001,
              attempt_threshold=1, filter_=None, group_by=None):
+    # Detect when error rate exceeds a static threshold
+    # :param current_window (duration): window on which error rate is calculated,
+    #                                      default=duration('5m')
+    # :param fire_rate_threshold (number): error rate needed to trigger, expressed as number
+    #                               between 0 and 1, default=0.01
+    # :param clear_rate_threshold (number) : error rate needed to clear, expressed as number
+    #                               between 0 and 1, default=0.001
+    # :param attempt_threshold (?integer?) : FIXME
+    # :param filter_ (filter): specifies dimensional scope of the detector, default=None
+    # :param group_by (list of strings): group errors and non-errors by these (in addition to default grouping
+    #                    by cluster, service, operation), default=None
+    # :return: detect block that triggers when the error rate for filter_,
+    #    grouped by group_by, over the last current_window is greater than fire_rate_threshold
+    #    AND when at least attempt_threshold spans FIXME .....;
+    #    clears when the error rate is below clear_rate_threshold
     current_window_ = duration(current_window)
     static_conditions = conditions.error_rate_static(current_window=current_window_,
                                                      filter_=filter_, group_by=group_by,
