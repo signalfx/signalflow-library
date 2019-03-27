@@ -3,10 +3,10 @@ from signalfx.detectors.apm.latency import streams
 
 
 def static(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear_lasting=None,
-           pctile=90, filter_=None, exclude_errors=True, group_by=None):
+           pctile=90, filter_=None, exclude_errors=True, group_by=None, use_ms=False):
     assert pctile == 50 or pctile == 90 or pctile == 99
     d = streams.pctile_over_window(pctile=pctile, filter_=filter_, window=None,
-                                   exclude_errors=exclude_errors, group_by=group_by)
+                                   exclude_errors=exclude_errors, group_by=group_by, use_ms=use_ms)
     ann = [annotate(d, 'latency', {'sfui_streamType': 'signal'})]
     event_ann = {
         'fire_threshold': str(fire_threshold),

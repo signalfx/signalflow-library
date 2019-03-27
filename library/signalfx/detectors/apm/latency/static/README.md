@@ -11,6 +11,7 @@ The `detector` function detects when latency exceeds a specified static threshol
 |fire_lasting|lasting|percent of duration associated with fire_threshold|*None*|
 |clear_threshold|numnber|latency threshold required to clear, expressed in FIXME|*None*|
 |clear_lasting|lasting|percent of duration associated with clear_threshold|*None*|
+|use_ms|boolean|if True, use milliseconds; if False, use nanoseconds|False|
 |pctile|number|percentile to monitor, one of 50, 90, 99|90|
 |filter_|filter|specifies dimensional scope of the detector|None|
 |exclude_errors|boolean|whether to exclude error spans from latency metric|True|
@@ -18,6 +19,7 @@ The `detector` function detects when latency exceeds a specified static threshol
 |volume_static_threshold|||FIXME|
 |volume_pct_threshold|||FIXME|
 |volume_nonzero_required|||FIXME|
+
 
 It returns detect block that triggers when the specified percentile of latency,
 suitably filtered and grouped, exceeds the specified threshold for the required percent of duration;
