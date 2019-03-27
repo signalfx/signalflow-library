@@ -4,7 +4,8 @@ from signalfx.detectors.apm.latency import conditions
 def growth_rate(pctile=90, filter_=None, current_window=duration('5m'),
                 historical_window=duration('1h'), cycle_length=duration('1w'), num_cycles=4,
                 fire_growth_rate_threshold=0.2, clear_growth_rate_threshold=0.1,
-                exclude_errors=True, group_by=None, volume_static_threshold=None, volume_pct_fire_threshold=None,
+                exclude_errors=True, group_by=None, volume_static_threshold=None,
+                volume_pct_fire_threshold=None,
                 volume_pct_clear_threshold=None, vol_pctile_req_pos=90):
     # Detect when latency grows by a specified amount relative to its historical baseline
     # :param pctile (number): percentile to monitor, one of 50, 90, 99, default=90
@@ -34,6 +35,24 @@ def growth_rate(pctile=90, filter_=None, current_window=duration('5m'),
     current_window_ = duration(current_window)
     historical_window_ = duration(historical_window)
     cycle_length_ = duration(cycle_length)
+    assert fire_growth_rate_threshold >= clear_growth_rate_threshold, {
+        'fire_growth_rate_threshold': fire_growth_rate_threshold,
+        'clear_growth_rate_threshold': clear_growth_rate_threshold,
+        'sfui_errorKeys': ['fire_growth_rate_threshold', 'clear_growth_rate_threshold'],
+        'sfui_errorTemplate': "{{{fire_growth_rate_threshold}}} must be greater than or equal to {{{clear_growth_rate_threshold}}}."}
+    assert pctile == 50 or pctile == 90 or pctile == 99, {
+        'pctile': pctile,
+        'sfui_errorKeys': ['pctile'],
+        'sfui_errorTemplate': "{{{pctile}}} must be one of 50, 90, 99."}
+    assert num_cycles >= 1, {
+        'num_cycles': num_cycles,
+        'sfui_errorKeys': ['num_cycles'],
+        'sfui_errorTemplate': "{{{num_cycles}}} must be a positive integer."}
+    assert cycle_length_ >= historical_window_, {
+        'cycle_length': cycle_length_,
+        'historical_window': historical_window_,
+        'sfui_errorKeys': ['cycle_length', 'historical_window'],
+        'sfui_errorTemplate': "{{{cycle_length}}} must be greater than or equal to {{{historical_window}}}."}
     conds = conditions.growth_rate_ha(filter_, pctile=pctile, current_window=current_window_,
                                       historical_window=historical_window_,
                                       cycle_length=cycle_length_, num_cycles=num_cycles,
@@ -119,6 +138,20 @@ def deviations_from_norm(filter_=None, current_window=duration('5m'),
     current_window_ = duration(current_window)
     historical_window_ = duration(historical_window)
     cycle_length_ = duration(cycle_length)
+    assert fire_num_dev_threshold >= clear_num_dev_threshold, {
+        'fire_num_dev_threshold': fire_num_dev_threshold,
+        'clear_num_dev_threshold': clear_num_dev_threshold,
+        'sfui_errorKeys': ['fire_num_dev_threshold', 'clear_num_dev_threshold'],
+        'sfui_errorTemplate': "{{{fire_num_dev_threshold}}} must be greater than or equal to {{{clear_num_dev_threshold}}}."}
+    assert num_cycles >= 1, {
+        'num_cycles': num_cycles,
+        'sfui_errorKeys': ['num_cycles'],
+        'sfui_errorTemplate': "{{{num_cycles}}} must be a positive integer."}
+    assert cycle_length_ >= historical_window_, {
+        'cycle_length': cycle_length_,
+        'historical_window': historical_window_,
+        'sfui_errorKeys': ['cycle_length', 'historical_window'],
+        'sfui_errorTemplate': "{{{cycle_length}}} must be greater than or equal to {{{historical_window}}}."}
     conds = conditions.deviations_from_norm_ha(filter_=filter_, current_window=current_window_,
                                                historical_window=historical_window_,
                                                cycle_length=cycle_length_, num_cycles=num_cycles,
