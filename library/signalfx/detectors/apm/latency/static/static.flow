@@ -3,7 +3,7 @@ from signalfx.detectors.apm.latency import conditions
 
 def detector(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear_lasting=None,
              pctile=90, filter_=None, exclude_errors=True, group_by=None, volume_static_threshold=None,
-             volume_pct_threshold=None, volume_nonzero_required=0.1):
+             volume_pct_threshold=None, volume_nonzero_required=0.1, use_ms=False):
     # Detect when latency exceeds a specified static threshold for a specified percent of duration
     # :param fire_threshold (number): latency threshold required to trigger, expressed in FIXME
     # :param fire_lasting (lasting): percent of duration associated with fire_threshold
@@ -17,6 +17,7 @@ def detector(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear
     # :param volume_static_threshold: FIXME
     # :param volume_pct_threshold: FIXME
     # :param volume_nonzero_required: FIXME
+    # :param use_ms (boolean): if True, use milliseconds; else use nanoseconds
     # :return: detect block that triggers when the specified percentile of latency, suitably
     #           filtered and grouped, exceeds the specified threshold for the required percent
     #           of duration; clears when latency remains below the specified clear threshold
@@ -34,7 +35,7 @@ def detector(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear
                               clear_threshold=clear_threshold,
                               clear_lasting=clear_lasting,
                               pctile=pctile, filter_=filter_, exclude_errors=exclude_errors,
-                              group_by=group_by)
+                              group_by=group_by, use_ms=use_ms)
     non_empty_cond = conditions.static_volume_nonempty(lasting(fire_lasting.duration,
                                                                volume_nonzero_required),
                                                        filter_=filter_,
