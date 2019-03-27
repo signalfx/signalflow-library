@@ -21,6 +21,14 @@ def detector(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear
     #           filtered and grouped, exceeds the specified threshold for the required percent
     #           of duration; clears when latency remains below the specified clear threshold
     #           for the required percent of duration
+    assert fire_threshold >= clear_threshold, {
+        'fire_threshold': fire_threshold, 'clear_threshold': clear_threshold,
+        'sfui_errorKeys': ['fire_threshold', 'clear_threshold'],
+        'sfui_errorTemplate': "{{{fire_threshold}}} must be greater than or equal to {{{clear_threshold}}}."}
+    assert pctile == 50 or pctile == 90 or pctile == 99, {
+        'pctile': pctile,
+        'sfui_errorKeys': ['pctile'],
+        'sfui_errorTemplate': "{{{pctile}}} must be one of 50, 90, 99."}
     conds = conditions.static(fire_threshold=fire_threshold,
                               fire_lasting=fire_lasting,
                               clear_threshold=clear_threshold,
