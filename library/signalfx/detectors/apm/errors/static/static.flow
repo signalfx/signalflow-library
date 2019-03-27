@@ -20,6 +20,10 @@ def detector(current_window=duration('5m'),
     #    AND when at least attempt_threshold spans FIXME .....;
     #    clears when the error rate is below clear_rate_threshold
     current_window_ = duration(current_window)
+    assert fire_rate_threshold >= clear_rate_threshold, {
+        'fire_rate_threshold': fire_rate_threshold, 'clear_rate_threshold': clear_rate_threshold,
+        'sfui_errorKeys': ['fire_rate_threshold', 'clear_rate_threshold'],
+        'sfui_errorTemplate': "{{{fire_rate_threshold}}} must be greater than or equal to {{{clear_rate_threshold}}}."}
     static_conditions = conditions.error_rate_static(current_window=current_window_,
                                                      filter_=filter_, group_by=group_by,
                                                      fire_rate_threshold=fire_rate_threshold,
