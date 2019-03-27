@@ -2,7 +2,7 @@ from signalfx.detectors.apm import utils
 from signalfx.detectors.against_recent import streams as a_r_streams
 
 def pctile_over_window(pctile=90, filter_=None, window=duration('5m'), exclude_errors=True,
-                       group_by=None):
+                       group_by=None, use_ms=False):
     #
     #:param filter_:
     #:param pctile:
@@ -13,11 +13,16 @@ def pctile_over_window(pctile=90, filter_=None, window=duration('5m'), exclude_e
     filter__ = utils.merge_filters(filter_, exclude_errors)
     gp_by = utils.merge_group_by_with_default(group_by)
     metric_name = utils.PCTILE_TO_METRIC[pctile]
-    if window is None:
-        return data(metric_name, filter=filter__).mean(by=gp_by)
+    if use_ms is True:
+        scale_by = 0.000001
     else:
-        return data(metric_name, filter=filter__).mean(by=gp_by).percentile(50,
-                                                                            over=duration(window))
+        scale_by = 1.0
+    if window is None:
+        return data(metric_name, filter=filter__).mean(by=gp_by).scale(scale_by)
+    else:
+        return data(metric_name, filter=filter__).mean(by=gp_by).scale(scale_by).percentile(50,
+                                                                                            over=duration(
+                                                                                                window))
 
 
 def growth_rate_thresholds_sc(pctile=90, filter_=None, current_window=duration('5m'),
