@@ -4,6 +4,22 @@ from signalfx.detectors.apm.errors import conditions
 def detector(current_window=duration('5m'), preceding_window=duration('1h'),
              fire_growth_threshold=0.5, clear_growth_threshold=0.1,
              attempt_threshold=1, filter_=None, group_by=None):
+    # Detect when error rate grows by a specified percentage
+    # :param current_window (duration): window whose error rate is evaluated for being too high,
+    #                                      default=duration('5m')
+    # :param preceding_window (duration): window whose error rate is used to define a baseline,
+    #                                        default=duration('1h')
+    # :param fire_growth_threshold (number): error rate growth required to trigger
+    # :param clear_growth_threshold (number): error rate growth required to clear
+    # :param attempt_threshold (?integer?) : FIXME
+    # :param filter_ (filter): specifies dimensional scope of the detector, default=None
+    # :param group_by (list of strings): group errors and non-errors by these (in addition to default grouping
+    #                    by cluster, service, operation), default=None
+    # :return: detect block that triggers when the error rate for filter_,
+    #    grouped by group_by, over the last current_window is greater than 1 + fire_growth_threshold
+    #    times the error rate of the preceding preceding_window AND when at least attempt_threshold
+    #    spans FIXME ;
+    # clears when the error rate is less than 1 + clear_growth_threshold times the baseline error rate
     current_window_ = duration(current_window)
     preceding_window_ = duration(preceding_window)
     growth_conditions = conditions.percentage_growth(current_window=current_window_,

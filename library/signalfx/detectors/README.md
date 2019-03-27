@@ -1,4 +1,4 @@
-The SignalFlow Library is a collection of SignalFlow modules, each of which captures a common analytical pattern used in alerting. The core of a typical module is a function which takes a required stream (signal) argument and some parameters (percent of duration, number of standard deviations, etc.) and outputs a detector. A representative use is as follows:
+The SignalFlow Library is a collection of SignalFlow modules, each of which captures a common analytical pattern used in alerting. The core of a typical module is a function which takes a required stream (signal) argument and some parameters (percent of duration, number of standard deviations, etc.) and outputs a detector (i.e., a detect block). A representative use is as follows:
 
 ~~~~~~~~~~~~~~~~~~~~
 from signalfx.detectors.against_recent import against_recent
@@ -57,3 +57,6 @@ Most of the functions in the library can also be accessed via the SignalFx UI. T
 |[against_periods](https://github.com/signalfx/signalflow-library/tree/master/library/signalfx/detectors/against_periods)|[Historical Anomaly](https://docs.signalfx.com/en/latest/detect-alert/alert-condition-reference/hist-anomaly.html)|
 |[aperiodic](https://github.com/signalfx/signalflow-library/tree/master/library/signalfx/detectors/aperiodic)|*not available*|
 |[multivariate](https://github.com/signalfx/signalflow-library/tree/master/library/signalfx/detectors/multivariate)|*not available*|
+
+
+The library also contains functions to facilitate the creation of detectors specific to the APM metrics (relating to latency and error) that are emitted by the Smart Gateway. See the `apm` directory under `detectors` for more information. 
