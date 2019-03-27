@@ -4,6 +4,23 @@ from signalfx.detectors.apm.latency import conditions
 def detector(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear_lasting=None,
              pctile=90, filter_=None, exclude_errors=True, group_by=None, volume_static_threshold=None,
              volume_pct_threshold=None, volume_nonzero_required=0.1):
+    # Detect when latency exceeds a specified static threshold for a specified percent of duration
+    # :param fire_threshold (number): latency threshold required to trigger, expressed in FIXME
+    # :param fire_lasting (lasting): percent of duration associated with fire_threshold
+    # :param clear_threshold: latency threshold required to clear, expressed in FIXME
+    # :param clear_lasting (lasting): percent of duration associated with clear_threshold
+    # :param pctile (number): percentile to monitor, one of 50, 90, 99, default=90
+    # :param filter_ (filter): specifies dimensional scope of the detector, default=None
+    # :param exclude_errors (boolean): whether to exclude error spans from latency metric, default=True
+    # :param group_by (list of strings): average latency by these (in addition to default grouping
+    #                    by cluster, service, operation), default=None
+    # :param volume_static_threshold: FIXME
+    # :param volume_pct_threshold: FIXME
+    # :param volume_nonzero_required: FIXME
+    # :return: detect block that triggers when the specified percentile of latency, suitably
+    #           filtered and grouped, exceeds the specified threshold for the required percent
+    #           of duration; clears when latency remains below the specified clear threshold
+    #           for the required percent of duration
     conds = conditions.static(fire_threshold=fire_threshold,
                               fire_lasting=fire_lasting,
                               clear_threshold=clear_threshold,

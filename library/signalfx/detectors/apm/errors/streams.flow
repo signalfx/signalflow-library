@@ -26,8 +26,8 @@ def grouped_span_errors(filter_=None, group_by=None):
     #
     # Filters and groups spans.count metric
     #:param filter_: (filter object), applied to spans.count metric, default=None
-    #:param group_by: (list of strings) used to group the error and non-error counts; default=None
-    #                    uses grouping by ['operation', 'service']
+    # :param group_by (list of strings): group errors and non-errors by these (in addition to default grouping
+    #                    by cluster, service, operation), default=None
     #:return: dictionary with two entries
     #            'errors' -> error count, first filtered (by filter_), then summed (by group_by
     #                         and 'operation', 'service)
@@ -47,8 +47,8 @@ def error_rate(duration_=duration('1m'), filter_=None, group_by=None):
     # :param duration_: (duration) specifies window over which to calculate error rate,
     #                    default=duration('1m')
     # :param filter_: (filter object), applied to span.count metric, default=None
-    # :param group_by: (list of strings) used to group the error and non-error counts; default=None
-    #                    uses grouping by ['operation', 'service']
+    # :param group_by (list of strings): group errors and non-errors by these (in addition to default grouping
+    #                    by cluster, service, operation), default=None
     # :return: error rate as a stream
     duration__ = duration(duration_)
     gped_e_streams = grouped_span_errors(filter_=filter_, group_by=group_by)
