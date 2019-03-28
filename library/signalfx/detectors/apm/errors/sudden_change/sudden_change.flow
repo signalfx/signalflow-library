@@ -11,7 +11,8 @@ def detector(current_window=duration('5m'), preceding_window=duration('1h'),
     #                                        default=duration('1h')
     # :param fire_growth_threshold (number): error rate growth required to trigger
     # :param clear_growth_threshold (number): error rate growth required to clear
-    # :param attempt_threshold (?integer?) : FIXME
+    # :param attempt_threshold (?integer?) : threshold on number of attempts (errors + non-errors)
+    #                    in the window being evaluated in order to trigger, default=1
     # :param filter_ (filter): specifies dimensional scope of the detector, default=None
     # :param group_by (list of strings): group errors and non-errors by these (in addition to default grouping
     #                    by cluster, service, operation), default=None
@@ -33,8 +34,8 @@ def detector(current_window=duration('5m'), preceding_window=duration('1h'),
                                                      clear_growth_threshold=clear_growth_threshold,
                                                      filter_=filter_, group_by=group_by)
     attempt_condition = conditions.volume(duration_=current_window_, shift=duration(0),
-                                          filter_=filter_, group_by=group_by, num_errors=0,
-                                          num_attempts=attempt_threshold)
+                                          filter_=filter_, group_by=group_by, num_error_threshold=0,
+                                          num_attempt_threshold=attempt_threshold)
     return detect(growth_conditions['on'] and attempt_condition,
                   off=growth_conditions['off'],
                   annotations=growth_conditions['annotations'],
