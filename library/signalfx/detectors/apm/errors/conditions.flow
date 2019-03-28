@@ -33,8 +33,8 @@ def percentage_growth(current_window=duration('5m'), preceding_window=duration('
             'event_annotations': event_ann}
 
 
-def volume(duration_=duration('5m'), shift=duration(0), filter_=None, group_by=None, num_errors=1,
-           num_attempts=1):
+def volume(duration_=duration('5m'), shift=duration(0), filter_=None, group_by=None, num_error_threshold=1,
+           num_attempt_threshold=1):
     #
     #:param duration_:
     #:param filter_:
@@ -50,7 +50,7 @@ def volume(duration_=duration('5m'), shift=duration(0), filter_=None, group_by=N
     gped_e_streams = streams.grouped_span_errors(filter_=filter_, group_by=group_by)
     e = gped_e_streams['errors'].sum(over=duration__).timeshift(shift_)
     n_e = gped_e_streams['non_errors'].sum(over=duration__).timeshift(shift_)
-    return when(e > num_errors and e + n_e > num_attempts)
+    return when(e > num_error_threshold and e + n_e > num_attempt_threshold)
 
 
 def error_rate_static(current_window=duration('5m'), filter_=None, group_by=None,

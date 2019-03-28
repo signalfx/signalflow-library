@@ -5,19 +5,26 @@ def detector(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear
              pctile=90, filter_=None, exclude_errors=True, group_by=None, volume_static_threshold=None,
              volume_pct_threshold=None, volume_nonzero_required=0.1, use_ms=False):
     # Detect when latency exceeds a specified static threshold for a specified percent of duration
-    # :param fire_threshold (number): latency threshold required to trigger, expressed in FIXME
+    # :param fire_threshold (number): latency threshold required to trigger, expressed in
+    #                   nanoseconds or milliseconds (see use_ms)
     # :param fire_lasting (lasting): percent of duration associated with fire_threshold
-    # :param clear_threshold: latency threshold required to clear, expressed in FIXME
+    # :param clear_threshold: latency threshold required to clear, expressed in, expressed in
+    #                   nanoseconds or milliseconds (see use_ms)
     # :param clear_lasting (lasting): percent of duration associated with clear_threshold
     # :param pctile (number): percentile to monitor, one of 50, 90, 99, default=90
     # :param filter_ (filter): specifies dimensional scope of the detector, default=None
     # :param exclude_errors (boolean): whether to exclude error spans from latency metric, default=True
     # :param group_by (list of strings): average latency by these (in addition to default grouping
     #                    by cluster, service, operation), default=None
-    # :param volume_static_threshold: FIXME
-    # :param volume_pct_threshold: FIXME
-    # :param volume_nonzero_required: FIXME
-    # :param use_ms (boolean): if True, use milliseconds; else use nanoseconds
+    # :param volume_static_threshold (number): threshold on request rate (per second) required for
+    #                    alert to trigger, default=None FIXME?
+    # :param volume_pct_threshold (number): require request rate on window being evaluated to be
+    #                    at least this proportion of request rate on preceding window (used for
+    #                    trigger and clear), default=None FIXME?
+    # :param volume_nonzero_required (number between 0 and 1): require request rate to be nonzero
+    #                    for this proportion of fire_lasting.duration (used for trigger and clear),
+    #                     default=0.1
+    # :param use_ms (boolean): if True, use milliseconds; else use nanoseconds (see fire_threshold and clear_threshold)
     # :return: detect block that triggers when the specified percentile of latency, suitably
     #           filtered and grouped, exceeds the specified threshold for the required percent
     #           of duration; clears when latency remains below the specified clear threshold
