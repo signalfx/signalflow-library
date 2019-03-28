@@ -11,7 +11,8 @@ def detector(current_window=duration('5m'),
     #                               between 0 and 1, default=0.01
     # :param clear_rate_threshold (number) : error rate needed to clear, expressed as number
     #                               between 0 and 1, default=0.001
-    # :param attempt_threshold (?integer?) : FIXME
+    # :param attempt_threshold (?integer?) : threshold on number of attempts (errors + non-errors)
+    #                    in the window being evaluated in order to trigger, default=1
     # :param filter_ (filter): specifies dimensional scope of the detector, default=None
     # :param group_by (list of strings): group errors and non-errors by these (in addition to default grouping
     #                    by cluster, service, operation), default=None
@@ -29,8 +30,8 @@ def detector(current_window=duration('5m'),
                                                      fire_rate_threshold=fire_rate_threshold,
                                                      clear_rate_threshold=clear_rate_threshold)
     attempt_condition = conditions.volume(duration_=current_window_, shift=duration(0),
-                                          filter_=filter_, group_by=group_by, num_errors=0,
-                                          num_attempts=attempt_threshold)
+                                          filter_=filter_, group_by=group_by, num_error_threshold=0,
+                                          num_attempt_threshold=attempt_threshold)
     return detect(static_conditions['on'] and attempt_condition,
                   off=static_conditions['off'],
                   annotations=static_conditions['annotations'],
