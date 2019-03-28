@@ -15,10 +15,10 @@ The `growth_rate` function detects when latency grows by a specified amount rela
 |clear_growth_rate_threshold (number): latency growth required to clear|0.1|
 |exclude_errors|boolean|whether to exclude error spans from latency metric|True|
 |group_by|list of strings|average latency by these (in addition to default grouping by cluster, service, operation)|None|
-|volume_static_threshold|||FIXME|
-|volume_pct_fire_threshold|||FIXME|
-|volume_pct_clear_threshold|||FIXME|
-|vol_pctile_req_pos|||FIXME|
+|volume_static_threshold|number|threshold on request rate (per second) required for alert to trigger|None|
+|volume_pct_fire_threshold|number|require request rate on window being evaluated to be at least this proportion of request rate on preceding window (used for trigger)|None|
+|volume_pct_clear_threshold|number|require request rate on window being evaluated to be at least this proportion of request rate on preceding window (used for clear)|None|
+|vol_pctile_req_pos|number (percentage)|percentage of historical window permitted to have request rate 0|90|
 
 It returns a detect block that triggers when the specified percentile of latency, suitably
 filtered and grouped, over the last `current_window` is greater than
@@ -48,15 +48,17 @@ The `deviations_from_norm` function detects when latency is too many deviations 
 |group_by|list of strings|average latency by these (in addition to default grouping by cluster, service, operation)|None|
 |fire_num_dev_threshold|number|number of historical (P90 - P50)'s from the historical P50 the current P50 must be in order to trigger|3.5|
 |clear_num_dev_threshold|number|number of historical (P90 - P50)'s from the historical P50 the current P50 must be in order to clear|3|
-|volume_static_threshold|||FIXME|
-|volume_pct_fire_threshold|||FIXME|
-|volume_pct_clear_threshold|||FIXME|
-|vol_pctile_req_pos|||FIXME|
+|volume_static_threshold|number|threshold on request rate (per second) required for alert to trigger|None|
+|volume_pct_fire_threshold|number|require request rate on window being evaluated to be at least this proportion of request rate on preceding window (used for trigger)|None|
+|volume_pct_clear_threshold|number|require request rate on window being evaluated to be at least this proportion of request rate on preceding window (used for clear)|None|
+|vol_pctile_req_pos|number (percentage)|percentage of historical window permitted to have request rate 0|90|
+
+
 
 It returns a detect block that triggers when the latency, suitably filtered and grouped,
 over the last `current_window` is more than
 `fire_num_dev_threshold` deviations from the norm (similarly filtered and grouped),
-calculated on the preceding `historical_window` AND when .... FIXME ;
+calculated on the preceding `historical_window` AND when ..VOLUME_CONDITIONS.. FIXME ;
 clears when latency is less than `clear_num_dev_threshold` deviations from the norm.
 
 

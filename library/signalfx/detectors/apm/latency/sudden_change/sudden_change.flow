@@ -19,10 +19,16 @@ def growth_rate(pctile=90, filter_=None, current_window=duration('5m'),
     # :param exclude_errors (boolean): whether to exclude error spans from latency metric, default=True
     # :param group_by (list of strings): average latency by these (in addition to default grouping
     #                    by cluster, service, operation), default=None
-    # :param volume_static_threshold: FIXME
-    # :param volume_pct_fire_threshold: FIXME
-    # :param volume_pct_clear_threshold: FIXME
-    # :param vol_pctile_req_pos: FIXME
+    # :param volume_static_threshold (number): threshold on request rate (per second) required for
+    #                    alert to trigger, default=None FIXME?
+    # :param volume_pct_fire_threshold (number): require request rate on window being evaluated to be
+    #                    at least this proportion of request rate on preceding window (used for
+    #                    trigger), default=None FIXME?
+    # :param volume_pct_clear_threshold (number): require request rate on window being evaluated to be
+    #                    at least this proportion of request rate on preceding window (used for
+    #                    clear), default=None FIXME?
+    # :param vol_pctile_req_pos (number, percentage): percentage of historical window permitted to
+    #                    have request rate 0, default=90, FIXME?
     # :return: detect block that triggers when the specified percentile of latency, suitably
     #           filtered and grouped, over the last current_window is greater than
     #           1 + fire_growth_rate_threshold times the latency (for the same percentile,
@@ -105,10 +111,16 @@ def deviations_from_norm(filter_=None, current_window=duration('5m'),
     #                                the current P50 must be in order to trigger, default=3.5
     # :param clear_num_dev_threshold (number): number of historical (P90 - P50)'s from the historical P50
     #                                the current P50 must be in order to clear, default=3
-    # :param volume_static_threshold: FIXME
-    # :param volume_pct_fire_threshold: FIXME
-    # :param volume_pct_clear_threshold: FIXME
-    # :param vol_pctile_req_pos: FIXME
+    # :param volume_static_threshold (number): threshold on request rate (per second) required for
+    #                    alert to trigger, default=None FIXME?
+    # :param volume_pct_fire_threshold (number): require request rate on window being evaluated to be
+    #                    at least this proportion of request rate on preceding window (used for
+    #                    trigger), default=None FIXME?
+    # :param volume_pct_clear_threshold (number): require request rate on window being evaluated to be
+    #                    at least this proportion of request rate on preceding window (used for
+    #                    clear), default=None FIXME?
+    # :param vol_pctile_req_pos (number, percentage): percentage of historical window permitted to
+    #                    have request rate 0, default=90, FIXME?
     # :return: detect block that triggers when the latency, suitably filtered and grouped,
     #           over the last current_window is more than
     #           fire_num_dev_threshold deviations from the norm (similarly filtered and grouped),
