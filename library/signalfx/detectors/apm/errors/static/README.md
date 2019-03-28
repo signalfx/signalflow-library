@@ -10,7 +10,7 @@ The `detector` function has the following parameters.
 |current_window|duration|window on which error rate is calculated|duration('5m')|
 |fire_rate_threshold|number|error rate needed to trigger, expressed as number between 0 and 1|0.01|
 |clear_rate_threshold|number|error rate needed to clear, expressed as number between 0 and 1|0.001|
-|attempt_threshold|integer|FIXME|1|
+|attempt_threshold|integer|threshold on number of attempts (errors + non-errors) in the window being evaluated in order to trigger|1|
 |filter_|filter|specifies dimensional scope of the detector|None|
 |group_by|list of strings|group both errors and non-errors by these (in addition to default grouping by cluster, service, operation)|None|
 
