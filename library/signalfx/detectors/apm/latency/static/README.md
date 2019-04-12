@@ -11,7 +11,7 @@ The `detector` function detects when latency exceeds a specified static threshol
 |fire_lasting|lasting|percent of duration associated with fire_threshold|*None*|
 |clear_threshold|numnber|latency threshold required to clear, expressed in nanoseconds or milliseconds (see use_ms) FIX?|*None*|
 |clear_lasting|lasting|percent of duration associated with clear_threshold|*None*|
-|use_ms|boolean|if True, use milliseconds; if False, use nanoseconds (see fire_threshold and clear_threshold)|False|
+|use_ms|boolean|if True, use milliseconds; if False, use nanoseconds (see fire_threshold and clear_threshold)|True|
 |pctile|number|percentile to monitor, one of 50, 90, 99|90|
 |filter_|filter|specifies dimensional scope of the detector|None|
 |exclude_errors|boolean|whether to exclude error spans from latency metric|True|
