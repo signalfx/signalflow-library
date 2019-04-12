@@ -2,7 +2,7 @@ from signalfx.detectors.apm import utils
 from signalfx.detectors.against_recent import streams as a_r_streams
 
 def pctile_over_window(pctile=90, filter_=None, window=duration('5m'), exclude_errors=True,
-                       group_by=None, use_ms=False):
+                       group_by=None, use_ms=True):
     #
     #:param filter_:
     #:param pctile:
