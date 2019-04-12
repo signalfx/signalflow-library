@@ -3,7 +3,7 @@ from signalfx.detectors.apm.latency import conditions
 
 def detector(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear_lasting=None,
              pctile=90, filter_=None, exclude_errors=True, group_by=None, volume_static_threshold=None,
-             volume_pct_threshold=None, volume_nonzero_required=0.1, use_ms=False):
+             volume_pct_threshold=None, volume_nonzero_required=0.1, use_ms=True):
     # Detect when latency exceeds a specified static threshold for a specified percent of duration
     # :param fire_threshold (number): latency threshold required to trigger, expressed in
     #                   nanoseconds or milliseconds (see use_ms)
