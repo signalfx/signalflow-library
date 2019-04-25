@@ -15,7 +15,7 @@ def detector(current_window=duration('5m'),
     #                    in the window being evaluated in order to trigger, default=1
     # :param filter_ (filter): specifies dimensional scope of the detector, default=None
     # :param group_by (list of strings): group errors and non-errors by these (in addition to default grouping
-    #                    by cluster, service, operation), default=None
+    #                    by cluster, service, operation),    default=None
     # :return: detect block that triggers when the error rate for filter_,
     #    grouped by group_by, over the last current_window is greater than fire_rate_threshold
     #    AND when at least attempt_threshold spans FIXME .....;
