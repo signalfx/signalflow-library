@@ -59,7 +59,7 @@ def growth_rate(pctile=90, filter_=None, current_window=duration('5m'),
         'historical_window': historical_window_,
         'sfui_errorKeys': ['cycle_length', 'historical_window'],
         'sfui_errorTemplate': "{{{cycle_length}}} must be greater than or equal to {{{historical_window}}}."}
-    conds = conditions.growth_rate_ha(filter_, pctile=pctile, current_window=current_window_,
+    conds = conditions.growth_rate_ha(filter_=filter_, pctile=pctile, current_window=current_window_,
                                       historical_window=historical_window_,
                                       cycle_length=cycle_length_, num_cycles=num_cycles,
                                       fire_growth_rate_threshold=fire_growth_rate_threshold,
