@@ -1,5 +1,7 @@
 KIND_FILTER = filter('kind', 'CONSUMER') or filter('kind', 'SERVER')
 
+EXCLUDE_ERRORS_FILTER = not filter('error', 'true')
+
 DEFAULT_GROUPBY = ['cluster', 'service', 'operation']
 
 PCTILE_TO_METRIC = {50: 'spans.duration.ns.median',
@@ -7,13 +9,29 @@ PCTILE_TO_METRIC = {50: 'spans.duration.ns.median',
                     99: 'spans.duration.ns.p99'}
 
 
-def merge_filters(filter_, exclude_errors):
-    if exclude_errors is True and filter_ is not None:
-        return filter_ and not filter('error', 'true') and KIND_FILTER
-    elif exclude_errors is True:
-        return not filter('error', 'true') and KIND_FILTER
+def merge_filters(filter_, exclude_errors, use_kind_filter=True):
+    if filter_ is not None:
+        if exclude_errors is True:
+            if use_kind_filter is True:
+                return filter_ and EXCLUDE_ERRORS_FILTER and KIND_FILTER
+            else:
+                return filter_ and EXCLUDE_ERRORS_FILTER
+        else:
+            if use_kind_filter is True:
+                return filter_ and KIND_FILTER
+            else:
+                return filter_
     else:
-        return filter_ and KIND_FILTER
+        if exclude_errors is True:
+            if use_kind_filter is True:
+                return EXCLUDE_ERRORS_FILTER and KIND_FILTER
+            else:
+                return EXCLUDE_ERRORS_FILTER
+        else:
+            if use_kind_filter is True:
+                return KIND_FILTER
+            else:
+                return None
 
 
 def merge_group_by_with_default(group_by):
