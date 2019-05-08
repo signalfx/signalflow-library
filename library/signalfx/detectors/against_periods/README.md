@@ -117,7 +117,7 @@ There is also a `triple_ewma` function that performs triple exponential smoothin
 ~~~~~~~~~~~~~~~~~~~~
 from signalfx.detectors.against_periods import against_periods
 
-cpu_mean = data('cpu.utilization').mean()
+service_cpu = data('cpu.utilization').mean()
 
 against_periods.triple_ewma(service_cpu, forecast=duration('5m')).publish('cpu_in_5_min_stream')
 ~~~~~~~~~~~~~~~~~~~~
