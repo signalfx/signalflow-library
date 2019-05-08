@@ -3,7 +3,8 @@ from signalfx.detectors.apm.latency import conditions
 
 
 def detector(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear_lasting=None,
-             pctile=90, filter_=None, exclude_errors=True, group_by=None, volume_static_threshold=None,
+             pctile=90, filter_=None, exclude_errors=True, group_by=None,
+             volume_static_threshold=None,
              volume_pct_threshold=None, volume_nonzero_required=0.1, use_ms=True):
     # Detect when latency exceeds a specified static threshold for a specified percent of duration
     # :param fire_threshold (number): latency threshold required to trigger, expressed in
@@ -42,20 +43,13 @@ def detector(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear
                                    exclude_errors=exclude_errors, group_by=group_by, use_ms=use_ms)
     fire_threshold_stream = const(fire_threshold)
     clear_threshold_stream = const(clear_threshold)
-        #
-        # 'sfui_config': '{"A_above_limit_above_27_0_duration":{"sfui_streamType":"threshold","sfui_state":"fire","sfui_orientation":"above","sfui_trigger":"outside","sfui_targetPlot":"A"}}'}),
-        #
-        # annotate(ftc, 'threshold', {"sfui_streamType":"threshold","sfui_state":"fire","sfui_orientation":"above"})]
     ann = [annotate(d, 'latency', {'sfui_streamType': 'signal'}),
-           annotate(fire_threshold_stream, 'fire_threshold', {'sfui_config': '{"d_above_ft_duration": {"sfui_streamType":"threshold","sfui_state":"fire","sfui_orientation":"above"}}'}),
-           annotate(clear_threshold_stream, 'clear_threshold', {'sfui_config':'{"c_below_ct_duration": {"sfui_streamType":"threshold","sfui_state":"clear","sfui_orientation":"below"}}'})]
-    # how do we model clear events in sfui_incidentInformation? currently get same chart!
-    inc_info = '[{"selectedIdentifiers":["fire_threshold_stream","d"], "conditionIdentifier":"d_above_ft_duration", "readableCondition":"Latency is above '+str(fire_threshold)+' ms."}]'
+           annotate(fire_threshold_stream, 'fire_threshold', {
+               'sfui_config': '{"d_above_ft_duration": {"sfui_streamType":"threshold","sfui_state":"fire","sfui_orientation":"above"}}'})]
     event_ann = {
         'fire_threshold': str(fire_threshold),
         'clear_threshold': str(clear_threshold),
-         'sfui_incidentInformation': inc_info}
-    #    'sfui_incidentInformation': '[{"selectedIdentifiers":["fire_threshold_stream","d"], "conditionIdentifier":"d_above_ft_duration", "readableCondition":"The value of latency is {{inputs.d.value}} threshold for duration."}]'}
+        'sfui_incidentInformation': '[{"selectedIdentifiers":["fire_threshold_stream","d"], "conditionIdentifier":"d_above_ft_duration"}]'}
     non_empty_cond = conditions.static_volume_nonempty(lasting(fire_lasting.duration,
                                                                volume_nonzero_required),
                                                        filter_=filter_,
@@ -63,21 +57,21 @@ def detector(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear
                                                        group_by=group_by)
     if volume_static_threshold is not None and volume_pct_threshold is not None:
         static_ = conditions.static_on_volume(fire_lasting.duration,
-                                             volume_static_threshold, filter_=filter_,
-                                             exclude_errors=exclude_errors,
-                                             group_by=group_by)
+                                              volume_static_threshold, filter_=filter_,
+                                              exclude_errors=exclude_errors,
+                                              group_by=group_by)
         pct = conditions.volume_sc(filter_=filter_, current_window=fire_lasting.duration,
                                    historical_window=5 * fire_lasting.duration,
                                    fire_threshold=volume_pct_threshold,
                                    clear_threshold=volume_pct_threshold,
                                    exclude_errors=exclude_errors,
                                    group_by=group_by)['on']
-        on =  static_ and pct and non_empty_cond
+        on = static_ and pct and non_empty_cond
     elif volume_static_threshold is not None:
         static_ = conditions.static_on_volume(fire_lasting.duration,
-                                             volume_static_threshold, filter_=filter_,
-                                             exclude_errors=exclude_errors,
-                                             group_by=group_by)
+                                              volume_static_threshold, filter_=filter_,
+                                              exclude_errors=exclude_errors,
+                                              group_by=group_by)
         on = static_ and non_empty_cond
     elif volume_pct_threshold is not None:
         pct = conditions.volume_sc(filter_=filter_, current_window=fire_lasting.duration,
@@ -89,10 +83,6 @@ def detector(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear
         on = pct and non_empty_cond
     else:
         on = non_empty_cond
-    #if clear_threshold is not None:
     return detect(when(d > fire_threshold_stream, fire_lasting) and on,
                   off=when(d < clear_threshold_stream, clear_lasting) and non_empty_cond,
                   annotations=ann, event_annotations=event_ann)
-    # else:
-    #     return detect(when(d > fire_threshold, fire_lasting) and on, annotations=ann,
-    #                   event_annotations=event_ann)
