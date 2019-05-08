@@ -8,7 +8,6 @@ PCTILE_TO_METRIC = {50: 'spans.duration.ns.median',
                     90: 'spans.duration.ns.p90',
                     99: 'spans.duration.ns.p99'}
 
-
 def merge_filters(filter_, exclude_errors, use_kind_filter=True):
     if filter_ is not None:
         if exclude_errors is True:
