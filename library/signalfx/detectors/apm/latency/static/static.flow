@@ -86,3 +86,4 @@ def detector(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear
     return detect(when(d > fire_threshold_stream, fire_lasting) and on,
                   off=when(d < clear_threshold_stream, clear_lasting) and non_empty_cond,
                   annotations=ann, event_annotations=event_ann)
+
