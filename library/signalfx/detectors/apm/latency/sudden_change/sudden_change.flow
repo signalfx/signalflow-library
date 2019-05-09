@@ -1,4 +1,4 @@
-from signalfx.detectors.apm.latency import conditions
+from signalfx.detectors.apm.latency import streams, conditions
 
 
 def growth_rate(pctile=90, filter_=None, current_window=duration('5m'),
@@ -20,20 +20,21 @@ def growth_rate(pctile=90, filter_=None, current_window=duration('5m'),
     # :param group_by (list of strings): average latency by these (in addition to default grouping
     #                    by cluster, service, operation), default=None
     # :param volume_static_threshold (number): threshold on request rate (per second) required for
-    #                    alert to trigger, default=None FIXME?
+    #                    alert to trigger, default=None
     # :param volume_pct_fire_threshold (number): require request rate on window being evaluated to be
     #                    at least this proportion of request rate on preceding window (used for
-    #                    trigger), default=None FIXME?
+    #                    trigger), default=None
     # :param volume_pct_clear_threshold (number): require request rate on window being evaluated to be
     #                    at least this proportion of request rate on preceding window (used for
-    #                    clear), default=None FIXME?
+    #                    clear), default=None
     # :param vol_pctile_req_pos (number, percentage): percentage of historical window permitted to
-    #                    have request rate 0, default=90, FIXME?
+    #                    have request rate 0, default=95
     # :return: detect block that triggers when the specified percentile of latency, suitably
     #           filtered and grouped, over the last current_window is greater than
     #           1 + fire_growth_rate_threshold times the latency (for the same percentile,
-    #           similarly filtered and grouped) of the preceding historical_window AND when FIXME ;
-    #           clears when latency is less than 1 + clear_growth_rate_threshold times the baseline
+    #           similarly filtered and grouped) of the preceding historical_window;
+    #           clears when latency is less than 1 + clear_growth_rate_threshold times the baseline;
+    #           plus suitable volume conditions
     current_window_ = duration(current_window)
     historical_window_ = duration(historical_window)
     assert pctile == 50 or pctile == 90 or pctile == 99, {
@@ -45,12 +46,24 @@ def growth_rate(pctile=90, filter_=None, current_window=duration('5m'),
         'clear_growth_rate_threshold': clear_growth_rate_threshold,
         'sfui_errorKeys': ['fire_growth_rate_threshold', 'clear_growth_rate_threshold'],
         'sfui_errorTemplate': "{{{fire_growth_rate_threshold}}} must be greater than or equal to {{{clear_growth_rate_threshold}}}."}
-    conds = conditions.growth_rate_sc(pctile=pctile, filter_=filter_,
-                                      current_window=current_window_,
-                                      historical_window=historical_window_,
-                                      fire_growth_rate_threshold=fire_growth_rate_threshold,
-                                      clear_growth_rate_threshold=clear_growth_rate_threshold,
+    curr = streams.pctile_over_window(pctile=pctile, filter_=filter_, window=current_window_,
                                       exclude_errors=exclude_errors, group_by=group_by)
+    hist = streams.pctile_over_window(pctile=pctile, filter_=filter_, window=historical_window_,
+                                      exclude_errors=exclude_errors, group_by=group_by).timeshift(
+        current_window_)
+    fire_threshold = hist * (1 + fire_growth_rate_threshold)
+    clear_threshold = hist * (1 + clear_growth_rate_threshold)
+    ann = [annotate(curr, 'current window', {'sfui_streamType': 'signal'}),
+           annotate(hist, 'baseline',
+                    {'sfui_config': '{"signal_baseline": {"sfui_streamType":"signal"}}'}),
+           annotate(fire_threshold, 'fire threshold', {
+               'sfui_config': '{"signal_baseline": {"sfui_streamType":"threshold","sfui_state":"fire","sfui_orientation":"above"}}'})]
+    event_ann = {'percentile': str(pctile),
+                 'current_window': str(current_window_),
+                 'historical_window': str(historical_window_),
+                 'fire_growth_rate_threshold': str(fire_growth_rate_threshold),
+                 'clear_growth_rate_threshold': str(clear_growth_rate_threshold),
+                 'sfui_incidentInformation': '[{"selectedIdentifiers":["curr","hist", "fire_threshold"], "conditionIdentifier":"signal_baseline"}]'}
     non_empty_cond = conditions.volume_sc_nonempty(filter_=filter_, current_window=current_window_,
                                                    historical_window=historical_window_,
                                                    exclude_errors=exclude_errors,
@@ -67,29 +80,32 @@ def growth_rate(pctile=90, filter_=None, current_window=duration('5m'),
                                    clear_threshold=volume_pct_clear_threshold,
                                    exclude_errors=exclude_errors,
                                    group_by=group_by)
-        on = conds['on'] and static and pct['on'] and non_empty_cond
-        off_ = conds['off'] and pct['off'] and non_empty_cond
+        on = static and pct['on'] and non_empty_cond
+        off_ = pct['off'] and non_empty_cond
     elif volume_static_threshold is not None:
         static = conditions.static_on_volume(current_window_,
                                              volume_static_threshold,
                                              filter_=filter_,
                                              exclude_errors=exclude_errors,
                                              group_by=group_by)
-        on = conds['on'] and static and non_empty_cond
-        off_ = conds['off'] and non_empty_cond
+        on = static and non_empty_cond
+        off_ = non_empty_cond
     elif volume_pct_fire_threshold is not None and volume_pct_clear_threshold is not None:
         pct = conditions.volume_sc(filter_=filter_, current_window=current_window_,
                                    historical_window=historical_window_,
                                    fire_threshold=volume_pct_fire_threshold,
                                    clear_threshold=volume_pct_clear_threshold,
                                    exclude_errors=exclude_errors, group_by=group_by)
-        on = conds['on'] and pct['on'] and non_empty_cond
-        off_ = conds['off'] and pct['off'] and non_empty_cond
+        on = pct['on'] and non_empty_cond
+        off_ = pct['off'] and non_empty_cond
     else:
-        on = conds['on'] and non_empty_cond
-        off_ = conds['off'] and non_empty_cond
-    return detect(on, off=off_, annotations=conds['annotations'],
-                  event_annotations=conds['event_annotations'])
+        on = non_empty_cond
+        off_ = non_empty_cond
+    # "hist is not None" has no effect on the detection, but does allow for the stream
+    # hist to participate in event details, e.g., the alert modal
+    return detect(when(curr > fire_threshold) and on and hist is not None,
+                  off=when(curr < clear_threshold) and off_, annotations=ann,
+                  event_annotations=event_ann)
 
 
 def deviations_from_norm(filter_=None, current_window=duration('5m'),
@@ -112,20 +128,21 @@ def deviations_from_norm(filter_=None, current_window=duration('5m'),
     # :param clear_num_dev_threshold (number): number of historical (P90 - P50)'s from the historical P50
     #                                the current P50 must be in order to clear, default=3
     # :param volume_static_threshold (number): threshold on request rate (per second) required for
-    #                    alert to trigger, default=None FIXME?
+    #                    alert to trigger, default=None
     # :param volume_pct_fire_threshold (number): require request rate on window being evaluated to be
     #                    at least this proportion of request rate on preceding window (used for
-    #                    trigger), default=None FIXME?
+    #                    trigger), default=None
     # :param volume_pct_clear_threshold (number): require request rate on window being evaluated to be
     #                    at least this proportion of request rate on preceding window (used for
-    #                    clear), default=None FIXME?
+    #                    clear), default=None
     # :param vol_pctile_req_pos (number, percentage): percentage of historical window permitted to
-    #                    have request rate 0, default=90, FIXME?
+    #                    have request rate 0, default=95
     # :return: detect block that triggers when the latency, suitably filtered and grouped,
     #           over the last current_window is more than
     #           fire_num_dev_threshold deviations from the norm (similarly filtered and grouped),
-    #           calculated on the preceding historical_window AND when .... FIXME ;
-    #           clears when latency is less than clear_num_dev_threshold deviations from the norm
+    #           calculated on the preceding historical_window;
+    #           clears when latency is less than clear_num_dev_threshold deviations from the norm;
+    #           plus suitable volume conditions
     current_window_ = duration(current_window)
     historical_window_ = duration(historical_window)
     assert fire_num_dev_threshold >= clear_num_dev_threshold, {
@@ -133,11 +150,29 @@ def deviations_from_norm(filter_=None, current_window=duration('5m'),
         'clear_num_dev_threshold': clear_num_dev_threshold,
         'sfui_errorKeys': ['fire_num_dev_threshold', 'clear_num_dev_threshold'],
         'sfui_errorTemplate': "{{{fire_num_dev_threshold}}} must be greater than or equal to {{{clear_num_dev_threshold}}}."}
-    conds = conditions.deviations_from_norm_sc(filter_=filter_, current_window=current_window_,
-                                               historical_window=historical_window_,
-                                               exclude_errors=exclude_errors, group_by=group_by,
-                                               fire_num_dev_threshold=fire_num_dev_threshold,
-                                               clear_num_dev_threshold=clear_num_dev_threshold)
+    current_p50 = streams.pctile_over_window(pctile=50, filter_=filter_, window=current_window_,
+                                             exclude_errors=exclude_errors, group_by=group_by)
+    historical_p50 = streams.pctile_over_window(pctile=50, filter_=filter_,
+                                                window=historical_window_,
+                                                exclude_errors=exclude_errors,
+                                                group_by=group_by).timeshift(current_window_)
+    historical_p90 = streams.pctile_over_window(pctile=90, filter_=filter_,
+                                                window=historical_window_,
+                                                exclude_errors=exclude_errors,
+                                                group_by=group_by).timeshift(current_window_)
+    hist_spread = historical_p90 - historical_p50
+    fire_threshold = historical_p50 + fire_num_dev_threshold * hist_spread
+    clear_threshold = historical_p50 + clear_num_dev_threshold * hist_spread
+    ann = [annotate(current_p50, 'current window', {'sfui_streamType': 'signal'}),
+           annotate(historical_p50, 'baseline',
+                    {'sfui_config': '{"signal_baseline": {"sfui_streamType":"signal"}}'}),
+           annotate(fire_threshold, 'fire threshold', {
+               'sfui_config': '{"signal_baseline": {"sfui_streamType":"threshold","sfui_state":"fire","sfui_orientation":"above"}}'})]
+    event_ann = {'current_window': str(current_window_),
+                 'historical_window': str(historical_window_),
+                 'fire_num_dev_threshold': str(fire_num_dev_threshold),
+                 'clear_num_dev_threshold': str(clear_num_dev_threshold),
+                 'sfui_incidentInformation': '[{"selectedIdentifiers":["current_p50","historical_p50", "fire_threshold"], "conditionIdentifier":"signal_baseline"}]'}
     non_empty_cond = conditions.volume_sc_nonempty(filter_=filter_, current_window=current_window_,
                                                    historical_window=historical_window_,
                                                    exclude_errors=exclude_errors,
@@ -152,26 +187,29 @@ def deviations_from_norm(filter_=None, current_window=duration('5m'),
                                    fire_threshold=volume_pct_fire_threshold,
                                    clear_threshold=volume_pct_clear_threshold,
                                    exclude_errors=exclude_errors, group_by=group_by)
-        on = conds['on'] and static and pct['on'] and non_empty_cond
-        off_ = conds['off'] and pct['off'] and non_empty_cond
+        on = static and pct['on'] and non_empty_cond
+        off_ = pct['off'] and non_empty_cond
     elif volume_static_threshold is not None:
         static = conditions.static_on_volume(current_window_,
                                              volume_static_threshold,
                                              filter_=filter_,
                                              exclude_errors=exclude_errors,
                                              group_by=group_by)
-        on = conds['on'] and static and non_empty_cond
-        off_ = conds['off'] and non_empty_cond
+        on = static and non_empty_cond
+        off_ = non_empty_cond
     elif volume_pct_fire_threshold is not None and volume_pct_clear_threshold is not None:
         pct = conditions.volume_sc(filter_=filter_, current_window=current_window_,
                                    historical_window=historical_window_,
                                    fire_threshold=volume_pct_fire_threshold,
                                    clear_threshold=volume_pct_clear_threshold,
                                    exclude_errors=exclude_errors, group_by=group_by)
-        on = conds['on'] and pct['on'] and non_empty_cond
-        off_ = conds['off'] and pct['off'] and non_empty_cond
+        on = pct['on'] and non_empty_cond
+        off_ = pct['off'] and non_empty_cond
     else:
-        on = conds['on'] and non_empty_cond
-        off_ = conds['off'] and non_empty_cond
-    return detect(on, off=off_, annotations=conds['annotations'],
-                  event_annotations=conds['event_annotations'])
+        on = non_empty_cond
+        off_ = non_empty_cond
+    # "historical_p50 is not None" has no effect on the detection, but does allow for the stream
+    # historical_p50 to participate in event details, e.g., the alert modal
+    return detect(when(current_p50 > fire_threshold) and on and historical_p50 is not None,
+                  off=when(current_p50 < clear_threshold) and off_, annotations=ann,
+                  event_annotations=event_ann)
