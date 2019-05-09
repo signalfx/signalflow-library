@@ -25,7 +25,7 @@ The `growth_rate` function detects when latency grows by a specified amount rela
 It returns a detect block that triggers when the specified percentile of latency, suitably filtered and grouped,
 over the last `current_window `is greater than `1 + fire_growth_rate_threshold` times the baseline latency 
 (for the same percentile,  similarly filtered and grouped), calculated on `num_cycles` windows each of length 
-`historical_window` and spaced `cycle_length` apart AND when .... FIXME ;
+`historical_window` and spaced `cycle_length` apart, and when volume conditions are met;
 clears when latency is less than `1 + clear_growth_rate_threshold` times the baseline.
 
 
@@ -60,7 +60,7 @@ The `deviations_from_norm` function detects when latency is too many deviations 
 It returns a detect block that triggers when the specified percentile of latency, suitably filtered and grouped,
 over the last `current_window `is more than `fire_num_dev_threshold` deviations from the norm
 (similarly filtered and grouped), calculated on `num_cycles` windows each of length 
-`historical_window` and spaced `cycle_length` apart AND when .... FIXME ;
+`historical_window` and spaced `cycle_length` apart, and when volume conditions are met;
 clears when latency is less than `clear_num_dev_threshold` deviations from the norm.
 
 

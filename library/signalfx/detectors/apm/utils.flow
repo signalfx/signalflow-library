@@ -32,7 +32,6 @@ def merge_filters(filter_, exclude_errors, use_kind_filter=True):
             else:
                 return None
 
-
 def merge_group_by_with_default(group_by):
     if group_by is None:
         return DEFAULT_GROUPBY
