@@ -15,7 +15,7 @@ The `detector` function detect when the error rate grows by a specified amount a
 |filter_|filter|specifies dimensional scope of the detector|None|
 |group_by|list of strings|group both errors and non-errors by these (in addition to default grouping by cluster, service, operation)|None|
 
-It returns a detect block that triggers when the error rate for `filter_`, grouped by `group_by`, over the last `current_window` is greater than `1 + fire_growth_threshold` times the error rate of the preceding preceding_window AND when at least `attempt_threshold` ... FIXME; and clears when the error rate is less than `1 + clear_growth_threshold` times the baseline error rate.
+It returns a detect block that triggers when the error rate for `filter_`, grouped by `group_by`, over the last `current_window` is greater than `1 + fire_growth_threshold` times the error rate of the preceding `preceding_window`, and when at least `attempt_threshold` requests were made over the last `current_window`; clears when the error rate is less than `1 + clear_growth_threshold` times the baseline error rate.
 
 
 #### Example usage

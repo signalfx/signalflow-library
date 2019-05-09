@@ -1,4 +1,4 @@
-from signalfx.detectors.apm.errors import conditions
+from signalfx.detectors.apm.errors import streams, conditions
 
 
 def detector(current_window=duration('5m'),
@@ -17,22 +17,29 @@ def detector(current_window=duration('5m'),
     # :param group_by (list of strings): group errors and non-errors by these (in addition to default grouping
     #                    by cluster, service, operation), default=None
     # :return: detect block that triggers when the error rate for filter_,
-    #    grouped by group_by, over the last current_window is greater than fire_rate_threshold
-    #    AND when at least attempt_threshold spans FIXME .....;
+    #    grouped by group_by, over the last current_window is greater than fire_rate_threshold,
+    #    and when at least attempt_threshold requests were made over the last current_window;
     #    clears when the error rate is below clear_rate_threshold
     current_window_ = duration(current_window)
     assert fire_rate_threshold >= clear_rate_threshold, {
         'fire_rate_threshold': fire_rate_threshold, 'clear_rate_threshold': clear_rate_threshold,
         'sfui_errorKeys': ['fire_rate_threshold', 'clear_rate_threshold'],
         'sfui_errorTemplate': "{{{fire_rate_threshold}}} must be greater than or equal to {{{clear_rate_threshold}}}."}
-    static_conditions = conditions.error_rate_static(current_window=current_window_,
-                                                     filter_=filter_, group_by=group_by,
-                                                     fire_rate_threshold=fire_rate_threshold,
-                                                     clear_rate_threshold=clear_rate_threshold)
+    err_pct = streams.error_rate(duration_=current_window_, filter_=filter_,
+                                 group_by=group_by) * 100
+    fire_pct_threshold = fire_rate_threshold * 100
+    fire_pct_threshold_stream = const(fire_pct_threshold)
+    clear_pct_threshold_stream = const(clear_rate_threshold * 100)
+    ann = [annotate(err_pct, 'error percentage', {'sfui_streamType': 'signal'}),
+           annotate(fire_pct_threshold_stream, 'fire_threshold', {
+               'sfui_config': '{"ep_above_ft": {"sfui_streamType":"threshold","sfui_state":"fire","sfui_orientation":"above"}}'})]
+    event_ann = {'current_window': str(current_window_),
+                 'fire_pct_threshold': str(fire_pct_threshold),
+                 'sfui_incidentInformation': '[{"selectedIdentifiers":["fire_pct_threshold_stream","err_pct"], "conditionIdentifier":"ep_above_ft"}]'}
     attempt_condition = conditions.volume(duration_=current_window_, shift=duration(0),
                                           filter_=filter_, group_by=group_by, num_error_threshold=0,
                                           num_attempt_threshold=attempt_threshold)
-    return detect(static_conditions['on'] and attempt_condition,
-                  off=static_conditions['off'],
-                  annotations=static_conditions['annotations'],
-                  event_annotations=static_conditions['event_annotations'])
+    return detect(when(err_pct > fire_pct_threshold_stream) and attempt_condition,
+                  off=when(err_pct < clear_pct_threshold_stream),
+                  annotations=ann,
+                  event_annotations=event_ann)
