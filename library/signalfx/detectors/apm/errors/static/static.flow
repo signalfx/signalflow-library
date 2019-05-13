@@ -40,6 +40,6 @@ def detector(current_window=duration('5m'),
                                           filter_=filter_, group_by=group_by, num_error_threshold=0,
                                           num_attempt_threshold=attempt_threshold)
     return detect(when(err_pct > fire_pct_threshold_stream) and attempt_condition,
-                  off=when(err_pct < clear_pct_threshold_stream),
+                  off=when(err_pct <= clear_pct_threshold_stream),
                   annotations=ann,
                   event_annotations=event_ann)
