@@ -4,7 +4,7 @@ from signalfx.detectors.apm.latency import streams, conditions
 def detector(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear_lasting=None,
              pctile=90, filter_=None, exclude_errors=True, group_by=None,
              volume_static_threshold=None,
-             volume_pct_threshold=None, volume_nonzero_required=0.1, use_ms=True):
+             volume_relative_threshold=None, volume_nonzero_required=0.1, use_ms=True):
     # Detect when latency exceeds a specified static threshold for a specified percent of duration
     # :param fire_threshold (number): latency threshold required to trigger, expressed in
     #                   nanoseconds or milliseconds (see use_ms)
@@ -19,7 +19,7 @@ def detector(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear
     #                    by cluster, service, operation), default=None
     # :param volume_static_threshold (number): threshold on request rate (per second) required for
     #                    alert to trigger, default=None
-    # :param volume_pct_threshold (number): require request rate on window being evaluated to be
+    # :param volume_relative_threshold (number): require request rate on window being evaluated to be
     #                    at least this proportion of request rate on preceding window (used for
     #                    trigger and clear), default=None
     # :param volume_nonzero_required (number between 0 and 1): require request rate to be nonzero
@@ -54,34 +54,38 @@ def detector(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear
                                                        filter_=filter_,
                                                        exclude_errors=exclude_errors,
                                                        group_by=group_by)
-    if volume_static_threshold is not None and volume_pct_threshold is not None:
+    if volume_static_threshold is not None and volume_relative_threshold is not None:
         static_ = conditions.static_on_volume(fire_lasting.duration,
                                               volume_static_threshold, filter_=filter_,
                                               exclude_errors=exclude_errors,
                                               group_by=group_by)
-        pct = conditions.volume_sc(filter_=filter_, current_window=fire_lasting.duration,
+        relative = conditions.volume_sc(filter_=filter_, current_window=fire_lasting.duration,
                                    historical_window=5 * fire_lasting.duration,
-                                   fire_threshold=volume_pct_threshold,
-                                   clear_threshold=volume_pct_threshold,
+                                   fire_threshold=volume_relative_threshold,
+                                   clear_threshold=volume_relative_threshold,
                                    exclude_errors=exclude_errors,
                                    group_by=group_by)['on']
-        on = static_ and pct and non_empty_cond
+        on_ = static_ and relative and non_empty_cond
+        off_ = relative and non_empty_cond
     elif volume_static_threshold is not None:
         static_ = conditions.static_on_volume(fire_lasting.duration,
                                               volume_static_threshold, filter_=filter_,
                                               exclude_errors=exclude_errors,
                                               group_by=group_by)
-        on = static_ and non_empty_cond
-    elif volume_pct_threshold is not None:
-        pct = conditions.volume_sc(filter_=filter_, current_window=fire_lasting.duration,
+        on_ = static_ and non_empty_cond
+        off_ = non_empty_cond
+    elif volume_relative_threshold is not None:
+        relative = conditions.volume_sc(filter_=filter_, current_window=fire_lasting.duration,
                                    historical_window=5 * fire_lasting.duration,
-                                   fire_threshold=volume_pct_threshold,
-                                   clear_threshold=volume_pct_threshold,
+                                   fire_threshold=volume_relative_threshold,
+                                   clear_threshold=volume_relative_threshold,
                                    exclude_errors=exclude_errors,
                                    group_by=group_by)['on']
-        on = pct and non_empty_cond
+        on_ = relative and non_empty_cond
+        off_ = relative and non_empty_cond
     else:
-        on = non_empty_cond
-    return detect(when(d > fire_threshold_stream, fire_lasting) and on,
-                  off=when(d < clear_threshold_stream, clear_lasting) and non_empty_cond,
+        on_ = non_empty_cond
+        off_ = non_empty_cond
+    return detect(when(d > fire_threshold_stream, fire_lasting) and on_,
+                  off=when(d < clear_threshold_stream, clear_lasting) and off_,
                   annotations=ann, event_annotations=event_ann)

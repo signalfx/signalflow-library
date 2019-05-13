@@ -18,8 +18,7 @@ The `growth_rate` function detects when latency grows by a specified amount rela
 |exclude_errors|boolean|whether to exclude error spans from latency metric|True|
 |group_by|list of strings|average latency by these (in addition to default grouping by cluster, service, operation)|None|
 |volume_static_threshold|number|threshold on request rate (per second) required for alert to trigger|None|
-|volume_pct_fire_threshold|number|require request rate on window being evaluated to be at least this proportion of request rate on preceding window (used for trigger)|None|
-|volume_pct_clear_threshold|number|require request rate on window being evaluated to be at least this proportion of request rate on preceding window (used for clear)|None|
+|volume_relative_threshold|number|require request rate on window being evaluated to be at least this proportion of request rate on preceding window (used for trigger and clear)|None|
 |vol_pctile_req_pos|number (percentage)|percentage of historical window permitted to have request rate 0|90|
 
 It returns a detect block that triggers when the specified percentile of latency, suitably filtered and grouped,
@@ -53,8 +52,7 @@ The `deviations_from_norm` function detects when latency is too many deviations 
 |fire_num_dev_threshold|number|number of historical (P90 - P50)'s from the historical P50 the current P50 must be in order to trigger|3.5|
 |clear_num_dev_threshold|number|number of historical (P90 - P50)'s from the historical P50 the current P50 must be in order to clear|3|
 |volume_static_threshold|number|threshold on request rate (per second) required for alert to trigger|None|
-|volume_pct_fire_threshold|number|require request rate on window being evaluated to be at least this proportion of request rate on preceding window (used for trigger)|None|
-|volume_pct_clear_threshold|number|require request rate on window being evaluated to be at least this proportion of request rate on preceding window (used for clear)|None|
+|volume_relative_threshold|number|require request rate on window being evaluated to be at least this proportion of request rate on preceding window (used for trigger and clear)|None|
 |vol_pctile_req_pos|number (percentage)|percentage of historical window permitted to have request rate 0|90|
 
 It returns a detect block that triggers when the specified percentile of latency, suitably filtered and grouped,
