@@ -1,9 +1,10 @@
-from signalfx.detectors.apm.latency import conditions
+from signalfx.detectors.apm.latency import streams, conditions
 
 
 def detector(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear_lasting=None,
-             pctile=90, filter_=None, exclude_errors=True, group_by=None, volume_static_threshold=None,
-             volume_pct_threshold=None, volume_nonzero_required=0.1, use_ms=True):
+             pctile=90, filter_=None, exclude_errors=True, group_by=None,
+             volume_static_threshold=None,
+             volume_relative_threshold=None, volume_nonzero_required=0.1, use_ms=True):
     # Detect when latency exceeds a specified static threshold for a specified percent of duration
     # :param fire_threshold (number): latency threshold required to trigger, expressed in
     #                   nanoseconds or milliseconds (see use_ms)
@@ -17,10 +18,10 @@ def detector(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear
     # :param group_by (list of strings): average latency by these (in addition to default grouping
     #                    by cluster, service, operation), default=None
     # :param volume_static_threshold (number): threshold on request rate (per second) required for
-    #                    alert to trigger, default=None FIXME?
-    # :param volume_pct_threshold (number): require request rate on window being evaluated to be
+    #                    alert to trigger, default=None
+    # :param volume_relative_threshold (number): require request rate on window being evaluated to be
     #                    at least this proportion of request rate on preceding window (used for
-    #                    trigger and clear), default=None FIXME?
+    #                    trigger and clear), default=None
     # :param volume_nonzero_required (number between 0 and 1): require request rate to be nonzero
     #                    for this proportion of fire_lasting.duration (used for trigger and clear),
     #                     default=0.1
@@ -28,7 +29,7 @@ def detector(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear
     # :return: detect block that triggers when the specified percentile of latency, suitably
     #           filtered and grouped, exceeds the specified threshold for the required percent
     #           of duration; clears when latency remains below the specified clear threshold
-    #           for the required percent of duration
+    #           for the required percent of duration; plus suitable volume conditions
     assert fire_threshold >= clear_threshold, {
         'fire_threshold': fire_threshold, 'clear_threshold': clear_threshold,
         'sfui_errorKeys': ['fire_threshold', 'clear_threshold'],
@@ -37,48 +38,54 @@ def detector(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear
         'pctile': pctile,
         'sfui_errorKeys': ['pctile'],
         'sfui_errorTemplate': "{{{pctile}}} must be one of 50, 90, 99."}
-    conds = conditions.static(fire_threshold=fire_threshold,
-                              fire_lasting=fire_lasting,
-                              clear_threshold=clear_threshold,
-                              clear_lasting=clear_lasting,
-                              pctile=pctile, filter_=filter_, exclude_errors=exclude_errors,
-                              group_by=group_by, use_ms=use_ms)
+    d = streams.pctile_over_window(pctile=pctile, filter_=filter_, window=None,
+                                   exclude_errors=exclude_errors, group_by=group_by, use_ms=use_ms)
+    fire_threshold_stream = const(fire_threshold)
+    clear_threshold_stream = const(clear_threshold)
+    ann = [annotate(d, 'latency', {'sfui_streamType': 'signal'}),
+           annotate(fire_threshold_stream, 'fire_threshold', {
+               'sfui_config': '{"d_above_ft": {"sfui_streamType":"threshold","sfui_state":"fire","sfui_orientation":"above"}}'})]
+    event_ann = {
+        'fire_threshold': str(fire_threshold),
+        'clear_threshold': str(clear_threshold),
+        'sfui_incidentInformation': '[{"selectedIdentifiers":["fire_threshold_stream","d"], "conditionIdentifier":"d_above_ft"}]'}
     non_empty_cond = conditions.static_volume_nonempty(lasting(fire_lasting.duration,
                                                                volume_nonzero_required),
                                                        filter_=filter_,
                                                        exclude_errors=exclude_errors,
                                                        group_by=group_by)
-    if volume_static_threshold is not None and volume_pct_threshold is not None:
-        static = conditions.static_on_volume(fire_lasting.duration,
-                                             volume_static_threshold, filter_=filter_,
-                                             exclude_errors=exclude_errors,
-                                             group_by=group_by)
-        pct = conditions.volume_sc(filter_=filter_, current_window=fire_lasting.duration,
+    if volume_static_threshold is not None and volume_relative_threshold is not None:
+        static_ = conditions.static_on_volume(fire_lasting.duration,
+                                              volume_static_threshold, filter_=filter_,
+                                              exclude_errors=exclude_errors,
+                                              group_by=group_by)
+        relative = conditions.volume_sc(filter_=filter_, current_window=fire_lasting.duration,
                                    historical_window=5 * fire_lasting.duration,
-                                   fire_threshold=volume_pct_threshold,
-                                   clear_threshold=volume_pct_threshold,
+                                   fire_threshold=volume_relative_threshold,
+                                   clear_threshold=volume_relative_threshold,
                                    exclude_errors=exclude_errors,
                                    group_by=group_by)['on']
-        on = conds['on'] and static and pct and non_empty_cond
+        on_ = static_ and relative and non_empty_cond
+        off_ = relative and non_empty_cond
     elif volume_static_threshold is not None:
-        static = conditions.static_on_volume(fire_lasting.duration,
-                                             volume_static_threshold, filter_=filter_,
-                                             exclude_errors=exclude_errors,
-                                             group_by=group_by)
-        on = conds['on'] and static and non_empty_cond
-    elif volume_pct_threshold is not None:
-        pct = conditions.volume_sc(filter_=filter_, current_window=fire_lasting.duration,
+        static_ = conditions.static_on_volume(fire_lasting.duration,
+                                              volume_static_threshold, filter_=filter_,
+                                              exclude_errors=exclude_errors,
+                                              group_by=group_by)
+        on_ = static_ and non_empty_cond
+        off_ = non_empty_cond
+    elif volume_relative_threshold is not None:
+        relative = conditions.volume_sc(filter_=filter_, current_window=fire_lasting.duration,
                                    historical_window=5 * fire_lasting.duration,
-                                   fire_threshold=volume_pct_threshold,
-                                   clear_threshold=volume_pct_threshold,
+                                   fire_threshold=volume_relative_threshold,
+                                   clear_threshold=volume_relative_threshold,
                                    exclude_errors=exclude_errors,
                                    group_by=group_by)['on']
-        on = conds['on'] and pct and non_empty_cond
+        on_ = relative and non_empty_cond
+        off_ = relative and non_empty_cond
     else:
-        on = conds['on'] and non_empty_cond
-    if clear_threshold is not None:
-        return detect(on, off=conds['off'] and non_empty_cond, annotations=conds['annotations'],
-                      event_annotations=conds['event_annotations'])
-    else:
-        return detect(on, annotations=conds['annotations'],
-                      event_annotations=conds['event_annotations'])
+        on_ = non_empty_cond
+        off_ = non_empty_cond
+    return detect(when(d > fire_threshold_stream, fire_lasting) and on_,
+                  off=when(d < clear_threshold_stream, clear_lasting) and off_,
+                  annotations=ann, event_annotations=event_ann)

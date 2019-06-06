@@ -1,4 +1,4 @@
-from signalfx.detectors.apm.errors import conditions
+from signalfx.detectors.apm.errors import streams, conditions
 
 
 def detector(current_window=duration('5m'), preceding_window=duration('1h'),
@@ -18,8 +18,8 @@ def detector(current_window=duration('5m'), preceding_window=duration('1h'),
     #                    by cluster, service, operation), default=None
     # :return: detect block that triggers when the error rate for filter_,
     #    grouped by group_by, over the last current_window is greater than 1 + fire_growth_threshold
-    #    times the error rate of the preceding preceding_window AND when at least attempt_threshold
-    #    spans FIXME ;
+    #    times the error rate of the preceding preceding_window,
+    #    and when at least attempt_threshold requests were made over the last current_window;
     # clears when the error rate is less than 1 + clear_growth_threshold times the baseline error rate
     current_window_ = duration(current_window)
     preceding_window_ = duration(preceding_window)
@@ -28,15 +28,27 @@ def detector(current_window=duration('5m'), preceding_window=duration('1h'),
         'clear_growth_threshold': clear_growth_threshold,
         'sfui_errorKeys': ['fire_growth_threshold', 'clear_growth_threshold'],
         'sfui_errorTemplate': "{{{fire_growth_threshold}}} must be greater than or equal to {{{clear_growth_threshold}}}."}
-    growth_conditions = conditions.percentage_growth(current_window=current_window_,
-                                                     preceding_window=preceding_window_,
-                                                     fire_growth_threshold=fire_growth_threshold,
-                                                     clear_growth_threshold=clear_growth_threshold,
-                                                     filter_=filter_, group_by=group_by)
+    current_error_pct = streams.error_rate(duration_=current_window_, filter_=filter_,
+                                           group_by=group_by) * 100
+    preceding_error_pct = streams.error_rate(duration_=preceding_window_, filter_=filter_,
+                                             group_by=group_by).timeshift(current_window_) * 100
+    fire_threshold = (1 + fire_growth_threshold) * preceding_error_pct
+    clear_threshold = (1 + clear_growth_threshold) * preceding_error_pct
+    ann = [annotate(current_error_pct, 'current error percentage', {'sfui_streamType': 'signal'}),
+           annotate(preceding_error_pct, 'preceding error percentage',
+                    {'sfui_config': '{"ep_above_ft": {"sfui_streamType":"signal"}}'}),
+           annotate(fire_threshold, 'fire threshold', {
+               'sfui_config': '{"ep_above_ft": {"sfui_streamType":"threshold","sfui_state":"fire","sfui_orientation":"above"}}'})]
+    event_ann = {'current_window': str(current_window_),
+                 'preceding_window': str(preceding_window_),
+                 'sfui_incidentInformation': '[{"selectedIdentifiers":["fire_threshold","current_error_pct","preceding_error_pct"], "conditionIdentifier":"ep_above_ft"}]'}
     attempt_condition = conditions.volume(duration_=current_window_, shift=duration(0),
                                           filter_=filter_, group_by=group_by, num_error_threshold=0,
                                           num_attempt_threshold=attempt_threshold)
-    return detect(growth_conditions['on'] and attempt_condition,
-                  off=growth_conditions['off'],
-                  annotations=growth_conditions['annotations'],
-                  event_annotations=growth_conditions['event_annotations'])
+    # "preceding_error_pct is not None" has no effect on the detection, but does allow for the stream
+    # preceding_error_pct to participate in event details, e.g., the alert modal
+    return detect(when(
+        current_error_pct > fire_threshold) and attempt_condition and preceding_error_pct is not None,
+                  off=when(current_error_pct < clear_threshold),
+                  annotations=ann,
+                  event_annotations=event_ann)

@@ -14,9 +14,8 @@ The `detector` function has the following parameters.
 |filter_|filter|specifies dimensional scope of the detector|None|
 |group_by|list of strings|group both errors and non-errors by these (in addition to default grouping by cluster, service, operation)|None|
 
-It returns a detect block that triggers when the error rate for `filter_`, grouped by `group_by`, over the last `current_window` is greater than `fire_rate_threshold`, and when at least `attempt_threshold` ... FIXME; and clears when the error rate is below `clear_rate_threshold`.
+It returns a detect block that triggers when the error rate for `filter_`, grouped by `group_by`, over the last `current_window` is greater than `fire_rate_threshold`, and when at least `attempt_threshold` requests were made over the last `current_window`; clears when the error rate is below `clear_rate_threshold`.
 
- 
 
 #### Example usage
 ~~~~~~~~~~~~~~~~~~~~
