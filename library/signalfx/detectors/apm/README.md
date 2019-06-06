@@ -17,3 +17,8 @@ Some of the principal differences are as follows:
 The `apm` module uses terminology consistent with the SignalFx UI ("Sudden Change" and "Historical Anomaly") at the expense of some consistency within the library itself (e.g., `against_recent` is qualitatively similar to `apm/latency/sudden_change`).
 
 The `apm` module contains functions for "Static Threshold" detectors, whereas the SignalFx UI handles these for usual "Infrastructure" detectors.
+
+
+#### Usage note
+
+By default, the filter `filter('kind', 'CONSUMER') or filter('kind', 'SERVER')` (see `KIND_FILTER` in `utils.flow`) is applied, so that only "endpoints" are monitored. Application of `KIND_FILTER` may be exposed as a toggle in the future.
