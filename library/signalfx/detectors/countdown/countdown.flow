@@ -156,6 +156,19 @@ def hours_left_stream_dewma_detector(stream, stream_threshold=0,
                                                                      alpha=alpha, beta=beta,
                                                                      damping=damping,
                                                                      use_durations=use_durations)
+    level, h_forecast = streams.hours_left_dewma_streams(stream,
+                                                         lower_threshold=duration(0),
+                                                         fire_lasting=fire_lasting,
+                                                         clear_threshold=duration('1h'),
+                                                         clear_lasting=clear_lasting,
+                                                         alpha=alpha, beta=beta,
+                                                         damping=damping,
+                                                         use_durations=use_durations)
+    _hours_left = (stream_threshold - level) / (h_forecast - level)  # beware if damping != 1.0
+    if orientation == 'to_empty':
+        hours_left = max(_hours_left, 0) if level >= h_forecast else 0
+    elif orientation == 'to_capacity':
+        hours_left = max(_hours_left, 0) if level <= h_forecast else 0
     threshold_signal_below = const(stream_threshold)
     threshold_signal_above = const(stream_threshold)
     def fire_clear_pair(orient):
@@ -174,16 +187,21 @@ def hours_left_stream_dewma_detector(stream, stream_threshold=0,
                             {'sfui_streamType': 'threshold',
                              'sfui_state': fire_clear_pair(orientation)[1],
                              'sfui_orientation': 'above',
-                             'sfui_trigger': 'outside'})]
+                             'sfui_trigger': 'outside'}),
+                   annotate(hours_left, 'hours left', {'sfui_streamType': 'signal'})]
     event_annotations = {'fire_forecast_ahead': str(lower_threshold),
                          'clear_forecast_ahead': str(clear_threshold)}
     if orientation == 'to_empty':
-        return detect(when(fire_forecast < threshold_signal_below, fire_lasting),
-                      when(clear_forecast > threshold_signal_above, clear_lasting),
+        return detect(when(fire_forecast < threshold_signal_below, fire_lasting) and (
+            hours_left >= 0 or hours_left < 0 or hours_left is None),
+                      when(clear_forecast > threshold_signal_above, clear_lasting) and (
+                          hours_left >= 0 or hours_left < 0 or hours_left is None),
                       mode='split', annotations=annotations, event_annotations=event_annotations)
     elif orientation == 'to_capacity':
-        return detect(when(fire_forecast > threshold_signal_above, fire_lasting),
-                      when(clear_forecast < threshold_signal_below, clear_lasting),
+        return detect(when(fire_forecast > threshold_signal_above, fire_lasting) and (
+            hours_left >= 0 or hours_left < 0 or hours_left is None),
+                      when(clear_forecast < threshold_signal_below, clear_lasting) and (
+                      hours_left >= 0 or hours_left < 0 or hours_left is None),
                       mode='split', annotations=annotations, event_annotations=event_annotations)
 
 
