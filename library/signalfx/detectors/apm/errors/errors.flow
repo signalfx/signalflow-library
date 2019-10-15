@@ -3,18 +3,21 @@ from signalfx.detectors.apm.errors import conditions
 
 def detector(current_window=duration('5m'), preceding_window=duration('1h'),
              fire_growth_threshold=0.5, clear_growth_threshold=0.1,
-             fire_rate_threshold=0.01, clear_rate_threshold=0.001, filter_=None, group_by=None):
+             fire_rate_threshold=0.01, clear_rate_threshold=0.001, filter_=None, group_by=None,
+             custom_filter=None):
     current_window_ = duration(current_window)
     preceding_window_ = duration(preceding_window)
     growth_conditions = conditions.percentage_growth(current_window=current_window_,
                                                      preceding_window=preceding_window_,
                                                      fire_growth_threshold=fire_growth_threshold,
                                                      clear_growth_threshold=clear_growth_threshold,
-                                                     filter_=filter_, group_by=group_by)
+                                                     filter_=filter_, group_by=group_by,
+                                                     custom_filter=custom_filter)
     static_conditions = conditions.error_rate_static(current_window=current_window_,
                                                      filter_=filter_, group_by=group_by,
                                                      fire_rate_threshold=fire_rate_threshold,
-                                                     clear_rate_threshold=clear_rate_threshold)
+                                                     clear_rate_threshold=clear_rate_threshold,
+                                                     custom_filter=custom_filter)
     return detect(growth_conditions['on'] and static_conditions['on'],
                   off=growth_conditions['off'] and static_conditions['off'])
 

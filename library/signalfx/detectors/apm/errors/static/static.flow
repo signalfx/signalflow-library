@@ -3,7 +3,7 @@ from signalfx.detectors.apm.errors import streams, conditions
 
 def detector(current_window=duration('5m'),
              fire_rate_threshold=0.01, clear_rate_threshold=0.001,
-             attempt_threshold=1, filter_=None, group_by=None):
+             attempt_threshold=1, filter_=None, group_by=None, custom_filter=None):
     # Detect when error rate exceeds a static threshold
     # :param current_window (duration): window on which error rate is calculated,
     #                                      default=duration('5m')
@@ -26,7 +26,7 @@ def detector(current_window=duration('5m'),
         'sfui_errorKeys': ['fire_rate_threshold', 'clear_rate_threshold'],
         'sfui_errorTemplate': "{{{fire_rate_threshold}}} must be greater than or equal to {{{clear_rate_threshold}}}."}
     err_pct = streams.error_rate(duration_=current_window_, filter_=filter_,
-                                 group_by=group_by) * 100
+                                 group_by=group_by, custom_filter=custom_filter) * 100
     fire_pct_threshold = fire_rate_threshold * 100
     fire_pct_threshold_stream = const(fire_pct_threshold)
     clear_pct_threshold_stream = const(clear_rate_threshold * 100)
@@ -38,7 +38,8 @@ def detector(current_window=duration('5m'),
                  'sfui_incidentInformation': '[{"selectedIdentifiers":["fire_pct_threshold_stream","err_pct"], "conditionIdentifier":"ep_above_ft"}]'}
     attempt_condition = conditions.volume(duration_=current_window_, shift=duration(0),
                                           filter_=filter_, group_by=group_by, num_error_threshold=0,
-                                          num_attempt_threshold=attempt_threshold)
+                                          num_attempt_threshold=attempt_threshold,
+                                          custom_filter=custom_filter)
     return detect(when(err_pct > fire_pct_threshold_stream) and attempt_condition,
                   off=when(err_pct <= clear_pct_threshold_stream),
                   annotations=ann,
