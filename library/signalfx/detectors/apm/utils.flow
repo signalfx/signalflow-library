@@ -1,65 +1,78 @@
 KIND_FILTER = filter('kind', 'CONSUMER') or filter('kind', 'SERVER')
+V2_KIND_FILTER = filter('sf_kind', 'CONSUMER') or filter('sf_kind',
+                                                         'SERVER')  # added for completeness
 
 EXCLUDE_CUSTOM_DIMS_FILTER = not filter('sf_dimensionalized', 'true')
 
-EXCLUDE_ERRORS_FILTER = not filter('error', 'true')
+ERROR_TRUE = filter('error', 'true')
+ERROR_FALSE = filter('error', 'false')
+
+V2_ERROR_TRUE = filter('sf_error', 'true')
+V2_ERROR_FALSE = filter('sf_error', 'false')
+
+EXCLUDE_ERRORS_FILTER = not ERROR_TRUE
+V2_EXCLUDE_ERRORS_FILTER = not V2_ERROR_TRUE
 
 DEFAULT_GROUPBY = ['cluster', 'service', 'operation']
+V2_DEFAULT_GROUPBY = ['sf_environment', 'sf_service', 'sf_operation']
 
 PCTILE_TO_METRIC = {50: 'spans.duration.ns.median',
                     90: 'spans.duration.ns.p90',
                     99: 'spans.duration.ns.p99'}
 
-def merge_filters(filter_, exclude_errors, use_kind_filter=True, custom_filter=None):
+
+def merge_filters(filter_, exclude_errors, use_kind_filter=True, custom_filter=None,
+                  kind_filter=KIND_FILTER, exclude_errors_filter=EXCLUDE_ERRORS_FILTER):
     if custom_filter is None:
         if filter_ is not None:
             if exclude_errors is True:
                 if use_kind_filter is True:
-                    return filter_ and EXCLUDE_ERRORS_FILTER and KIND_FILTER and EXCLUDE_CUSTOM_DIMS_FILTER
+                    return filter_ and exclude_errors_filter and kind_filter and EXCLUDE_CUSTOM_DIMS_FILTER
                 else:
-                    return filter_ and EXCLUDE_ERRORS_FILTER and EXCLUDE_CUSTOM_DIMS_FILTER
+                    return filter_ and exclude_errors_filter and EXCLUDE_CUSTOM_DIMS_FILTER
             else:
                 if use_kind_filter is True:
-                    return filter_ and KIND_FILTER and EXCLUDE_CUSTOM_DIMS_FILTER
+                    return filter_ and kind_filter and EXCLUDE_CUSTOM_DIMS_FILTER
                 else:
                     return filter_ and EXCLUDE_CUSTOM_DIMS_FILTER
         else:
             if exclude_errors is True:
                 if use_kind_filter is True:
-                    return EXCLUDE_ERRORS_FILTER and KIND_FILTER and EXCLUDE_CUSTOM_DIMS_FILTER
+                    return exclude_errors_filter and kind_filter and EXCLUDE_CUSTOM_DIMS_FILTER
                 else:
-                    return EXCLUDE_ERRORS_FILTER and EXCLUDE_CUSTOM_DIMS_FILTER
+                    return exclude_errors_filter and EXCLUDE_CUSTOM_DIMS_FILTER
             else:
                 if use_kind_filter is True:
-                    return KIND_FILTER and EXCLUDE_CUSTOM_DIMS_FILTER
+                    return kind_filter and EXCLUDE_CUSTOM_DIMS_FILTER
                 else:
                     return EXCLUDE_CUSTOM_DIMS_FILTER
     else:
         if filter_ is not None:
             if exclude_errors is True:
                 if use_kind_filter is True:
-                    return filter_ and EXCLUDE_ERRORS_FILTER and KIND_FILTER and custom_filter
+                    return filter_ and exclude_errors_filter and kind_filter and custom_filter
                 else:
-                    return filter_ and EXCLUDE_ERRORS_FILTER and custom_filter
+                    return filter_ and exclude_errors_filter and custom_filter
             else:
                 if use_kind_filter is True:
-                    return filter_ and KIND_FILTER and custom_filter
+                    return filter_ and kind_filter and custom_filter
                 else:
                     return filter_ and custom_filter
         else:
             if exclude_errors is True:
                 if use_kind_filter is True:
-                    return EXCLUDE_ERRORS_FILTER and KIND_FILTER and custom_filter
+                    return exclude_errors_filter and kind_filter and custom_filter
                 else:
-                    return EXCLUDE_ERRORS_FILTER and custom_filter
+                    return exclude_errors_filter and custom_filter
             else:
                 if use_kind_filter is True:
-                    return KIND_FILTER and custom_filter
+                    return kind_filter and custom_filter
                 else:
                     return custom_filter
 
-def merge_group_by_with_default(group_by):
+
+def merge_group_by_with_default(group_by, default=DEFAULT_GROUPBY):
     if group_by is None:
-        return DEFAULT_GROUPBY
+        return default
     else:
-        return DEFAULT_GROUPBY + group_by
+        return default + group_by

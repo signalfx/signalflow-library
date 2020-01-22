@@ -1,28 +1,35 @@
 from signalfx.detectors.apm import utils
 
-def span_errors(filter_=None, custom_filter=None):
+
+def span_errors(filter_=None, custom_filter=None, use_kind_filter=True,
+                kind_filter=utils.KIND_FILTER,
+                error_true=utils.ERROR_TRUE, error_false=utils.ERROR_FALSE, r_up='delta'):
     #
-    #Filters spans.count metric and builds an outer join schema
+    # Filters spans.count metric and builds an outer join schema
     #:param filter_: (filter object), applied to span.count metric, default=None
     #:return: dictionary with two entries
     #            'errors' -> error stream, filtered (by filter_)
     #            'non_errors' -> non error stream, filtered (by filter_)
-    if custom_filter is None:
-        if filter_ is None:
-            error_filter = filter('error', 'true') and utils.KIND_FILTER and utils.EXCLUDE_CUSTOM_DIMS_FILTER
-            non_error_filter = filter('error', 'false') and utils.KIND_FILTER and utils.EXCLUDE_CUSTOM_DIMS_FILTER
-        else:
-            error_filter = filter_ and filter('error', 'true') and utils.KIND_FILTER and utils.EXCLUDE_CUSTOM_DIMS_FILTER
-            non_error_filter = filter_ and filter('error', 'false') and utils.KIND_FILTER and utils.EXCLUDE_CUSTOM_DIMS_FILTER
-    else:
-        if filter_ is None:
-            error_filter = filter('error', 'true') and utils.KIND_FILTER and custom_filter
-            non_error_filter = filter('error', 'false') and utils.KIND_FILTER and custom_filter
-        else:
-            error_filter = filter_ and filter('error', 'true') and utils.KIND_FILTER and custom_filter
-            non_error_filter = filter_ and filter('error', 'false') and utils.KIND_FILTER and custom_filter
-    error_stream = data('spans.count', error_filter, rollup='delta').fill(0)
-    non_error_stream = data('spans.count', non_error_filter, rollup='delta').fill(0)
+    base_filter = utils.merge_filters(filter_, False, use_kind_filter=use_kind_filter,
+                                      custom_filter=custom_filter, kind_filter=kind_filter)
+    error_filter = error_true and base_filter
+    non_error_filter = error_false and base_filter
+    # if custom_filter is None:
+    #     if filter_ is None:
+    #         error_filter = filter('error', 'true') and utils.KIND_FILTER and utils.EXCLUDE_CUSTOM_DIMS_FILTER
+    #         non_error_filter = filter('error', 'false') and utils.KIND_FILTER and utils.EXCLUDE_CUSTOM_DIMS_FILTER
+    #     else:
+    #         error_filter = filter_ and filter('error', 'true') and utils.KIND_FILTER and utils.EXCLUDE_CUSTOM_DIMS_FILTER
+    #         non_error_filter = filter_ and filter('error', 'false') and utils.KIND_FILTER and utils.EXCLUDE_CUSTOM_DIMS_FILTER
+    # else:
+    #     if filter_ is None:
+    #         error_filter = filter('error', 'true') and utils.KIND_FILTER and custom_filter
+    #         non_error_filter = filter('error', 'false') and utils.KIND_FILTER and custom_filter
+    #     else:
+    #         error_filter = filter_ and filter('error', 'true') and utils.KIND_FILTER and custom_filter
+    #         non_error_filter = filter_ and filter('error', 'false') and utils.KIND_FILTER and custom_filter
+    error_stream = data('spans.count', error_filter, rollup=r_up).fill(0)
+    non_error_stream = data('spans.count', non_error_filter, rollup=r_up).fill(0)
     zero_non_error_schema = min(non_error_stream, const(0))
     zero_error_schema = min(error_stream, const(0))
     e = union(error_stream, zero_non_error_schema)
@@ -30,8 +37,11 @@ def span_errors(filter_=None, custom_filter=None):
     return {'errors': e, 'non_errors': n_e}
 
 
-def grouped_span_errors(filter_=None, group_by=None, custom_filter=None):
-    #
+def grouped_span_errors(filter_=None, custom_filter=None, use_kind_filter=True,
+                        kind_filter=utils.KIND_FILTER,
+                        error_true=utils.ERROR_TRUE, error_false=utils.ERROR_FALSE,
+                        group_by=None, default_group_by=utils.DEFAULT_GROUPBY,
+                        r_up='delta'):
     # Filters and groups spans.count metric
     #:param filter_: (filter object), applied to spans.count metric, default=None
     # :param group_by (list of strings): group errors and non-errors by these (in addition to default grouping
@@ -41,15 +51,20 @@ def grouped_span_errors(filter_=None, group_by=None, custom_filter=None):
     #                         and 'operation', 'service)
     #            'non_errors' -> non error count, first filtered (by filter_), then summed
     #                        (by group_by and 'operation', 'service)
-    gp_by = utils.merge_group_by_with_default(group_by)
-    e_streams = span_errors(filter_=filter_, custom_filter=custom_filter)
+    gp_by = utils.merge_group_by_with_default(group_by, default=default_group_by)
+    e_streams = span_errors(filter_=filter_, custom_filter=custom_filter,
+                            use_kind_filter=use_kind_filter, kind_filter=kind_filter,
+                            error_true=error_true, error_false=error_false, r_up=r_up)
     err_stream, non_err_stream = e_streams['errors'], e_streams['non_errors']
     e = err_stream.sum(by=gp_by)
     n_e = non_err_stream.sum(by=gp_by)
     return {'errors': e, 'non_errors': n_e}
 
 
-def error_rate(duration_=duration('1m'), filter_=None, group_by=None, custom_filter=None):
+def error_rate(duration_=duration('1m'), filter_=None, custom_filter=None, use_kind_filter=True,
+               kind_filter=utils.KIND_FILTER,
+               error_true=utils.ERROR_TRUE, error_false=utils.ERROR_FALSE,
+               group_by=None, default_group_by=utils.DEFAULT_GROUPBY, r_up='delta'):
     #
     # Calculates error rate over a duration using a filtered and grouped error input
     # :param duration_: (duration) specifies window over which to calculate error rate,
@@ -59,8 +74,12 @@ def error_rate(duration_=duration('1m'), filter_=None, group_by=None, custom_fil
     #                    by cluster, service, operation), default=None
     # :return: error rate as a stream
     duration__ = duration(duration_)
-    gped_e_streams = grouped_span_errors(filter_=filter_, group_by=group_by,
-                                         custom_filter=custom_filter)
+    gped_e_streams = grouped_span_errors(filter_=filter_, custom_filter=custom_filter,
+                                         use_kind_filter=use_kind_filter,
+                                         kind_filter=kind_filter,
+                                         error_true=error_true, error_false=error_false,
+                                         group_by=group_by, default_group_by=default_group_by,
+                                         r_up=r_up)
     e = gped_e_streams['errors'].sum(over=duration__)
     n_e = gped_e_streams['non_errors'].sum(over=duration__)
     attempts = e + n_e
