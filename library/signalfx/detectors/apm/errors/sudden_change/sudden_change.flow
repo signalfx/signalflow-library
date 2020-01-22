@@ -1,9 +1,13 @@
 from signalfx.detectors.apm.errors import streams, conditions
+from signalfx.detectors.apm import utils
 
 
 def detector(current_window=duration('5m'), preceding_window=duration('1h'),
              fire_growth_threshold=0.5, clear_growth_threshold=0.1,
-             attempt_threshold=1, filter_=None, group_by=None, custom_filter=None):
+             attempt_threshold=1, filter_=None, group_by=None, custom_filter=None,
+             use_kind_filter=True, kind_filter=utils.KIND_FILTER,
+             error_true=utils.ERROR_TRUE, error_false=utils.ERROR_FALSE,
+             default_group_by=utils.DEFAULT_GROUPBY, r_up='delta'):
     # Detect when error rate grows by a specified percentage
     # :param current_window (duration): window whose error rate is evaluated for being too high,
     #                                      default=duration('5m')
@@ -29,10 +33,20 @@ def detector(current_window=duration('5m'), preceding_window=duration('1h'),
         'sfui_errorKeys': ['fire_growth_threshold', 'clear_growth_threshold'],
         'sfui_errorTemplate': "{{{fire_growth_threshold}}} must be greater than or equal to {{{clear_growth_threshold}}}."}
     current_error_pct = streams.error_rate(duration_=current_window_, filter_=filter_,
-                                           group_by=group_by, custom_filter=custom_filter) * 100
+                                           group_by=group_by, custom_filter=custom_filter,
+                                           use_kind_filter=use_kind_filter,
+                                           kind_filter=kind_filter,
+                                           error_true=error_true, error_false=error_false,
+                                           default_group_by=default_group_by,
+                                           r_up=r_up) * 100
     preceding_error_pct = streams.error_rate(duration_=preceding_window_, filter_=filter_,
                                              group_by=group_by,
-                                             custom_filter=custom_filter).timeshift(current_window_) * 100
+                                             custom_filter=custom_filter,
+                                             use_kind_filter=use_kind_filter,
+                                             kind_filter=kind_filter,
+                                             error_true=error_true, error_false=error_false,
+                                             default_group_by=default_group_by,
+                                             r_up=r_up).timeshift(current_window_) * 100
     fire_threshold = (1 + fire_growth_threshold) * preceding_error_pct
     clear_threshold = (1 + clear_growth_threshold) * preceding_error_pct
     ann = [annotate(current_error_pct, 'current error percentage', {'sfui_streamType': 'signal'}),
@@ -45,7 +59,12 @@ def detector(current_window=duration('5m'), preceding_window=duration('1h'),
                  'sfui_incidentInformation': '[{"selectedIdentifiers":["fire_threshold","current_error_pct","preceding_error_pct"], "conditionIdentifier":"ep_above_ft"}]'}
     attempt_condition = conditions.volume(duration_=current_window_, shift=duration(0),
                                           filter_=filter_, group_by=group_by, num_error_threshold=0,
-                                          num_attempt_threshold=attempt_threshold, custom_filter=custom_filter)
+                                          num_attempt_threshold=attempt_threshold,
+                                          custom_filter=custom_filter,
+                                          use_kind_filter=use_kind_filter,
+                                          kind_filter=kind_filter,
+                                          error_true=error_true, error_false=error_false,
+                                          default_group_by=default_group_by, r_up=r_up)
     # "preceding_error_pct is not None" has no effect on the detection, but does allow for the stream
     # preceding_error_pct to participate in event details, e.g., the alert modal
     return detect(when(

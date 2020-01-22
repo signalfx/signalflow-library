@@ -1,10 +1,14 @@
 from signalfx.detectors.apm.latency import streams, conditions
+from signalfx.detectors.apm import utils
 
 
 def detector(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear_lasting=None,
              pctile=90, filter_=None, exclude_errors=True, group_by=None,
              volume_static_threshold=None, volume_relative_threshold=None,
-             volume_nonzero_required=0.1, use_ms=True, custom_filter=None):
+             volume_nonzero_required=0.1, use_ms=True, custom_filter=None,
+             use_kind_filter=True, kind_filter=utils.KIND_FILTER,
+             exclude_errors_filter=utils.EXCLUDE_ERRORS_FILTER,
+             default_group_by=utils.DEFAULT_GROUPBY):
     # Detect when latency exceeds a specified static threshold for a specified percent of duration
     # :param fire_threshold (number): latency threshold required to trigger, expressed in
     #                   nanoseconds or milliseconds (see use_ms)
@@ -40,7 +44,10 @@ def detector(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear
         'sfui_errorTemplate': "{{{pctile}}} must be one of 50, 90, 99."}
     d = streams.pctile_over_window(pctile=pctile, filter_=filter_, window=None,
                                    exclude_errors=exclude_errors, group_by=group_by, use_ms=use_ms,
-                                   custom_filter=custom_filter)
+                                   custom_filter=custom_filter, use_kind_filter=use_kind_filter,
+                                   kind_filter=kind_filter,
+                                   exclude_errors_filter=exclude_errors_filter,
+                                   default_group_by=default_group_by)
     fire_threshold_stream = const(fire_threshold)
     clear_threshold_stream = const(clear_threshold)
     ann = [annotate(d, 'latency', {'sfui_streamType': 'signal'}),
@@ -54,34 +61,54 @@ def detector(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear
                                                                volume_nonzero_required),
                                                        filter_=filter_,
                                                        exclude_errors=exclude_errors,
-                                                       group_by=group_by, custom_filter=custom_filter)
+                                                       group_by=group_by, custom_filter=custom_filter,
+                                                       use_kind_filter=use_kind_filter,
+                                                       kind_filter=kind_filter,
+                                                       exclude_errors_filter=exclude_errors_filter,
+                                                       default_group_by=default_group_by)
     if volume_static_threshold is not None and volume_relative_threshold is not None:
         static_ = conditions.static_on_volume(fire_lasting.duration,
                                               volume_static_threshold, filter_=filter_,
                                               exclude_errors=exclude_errors,
-                                              group_by=group_by, custom_filter=custom_filter)
+                                              group_by=group_by, custom_filter=custom_filter,
+                                              use_kind_filter=use_kind_filter,
+                                              kind_filter=kind_filter,
+                                              exclude_errors_filter=exclude_errors_filter,
+                                              default_group_by=default_group_by)
         relative = conditions.volume_sc(filter_=filter_, current_window=fire_lasting.duration,
                                         historical_window=5 * fire_lasting.duration,
                                         fire_threshold=volume_relative_threshold,
                                         clear_threshold=volume_relative_threshold,
                                         exclude_errors=exclude_errors,
-                                        group_by=group_by, custom_filter=custom_filter)['on']
+                                        group_by=group_by, custom_filter=custom_filter,
+                                        use_kind_filter=use_kind_filter,
+                                        kind_filter=kind_filter,
+                                        exclude_errors_filter=exclude_errors_filter,
+                                        default_group_by=default_group_by)['on']
         on_ = static_ and relative and non_empty_cond
         off_ = relative and non_empty_cond
     elif volume_static_threshold is not None:
         static_ = conditions.static_on_volume(fire_lasting.duration,
                                               volume_static_threshold, filter_=filter_,
                                               exclude_errors=exclude_errors,
-                                              group_by=group_by, custom_filter=custom_filter)
+                                              group_by=group_by, custom_filter=custom_filter,
+                                              use_kind_filter=use_kind_filter,
+                                              kind_filter=kind_filter,
+                                              exclude_errors_filter=exclude_errors_filter,
+                                              default_group_by=default_group_by)
         on_ = static_ and non_empty_cond
         off_ = non_empty_cond
     elif volume_relative_threshold is not None:
         relative = conditions.volume_sc(filter_=filter_, current_window=fire_lasting.duration,
-                                   historical_window=5 * fire_lasting.duration,
-                                   fire_threshold=volume_relative_threshold,
-                                   clear_threshold=volume_relative_threshold,
-                                   exclude_errors=exclude_errors,
-                                   group_by=group_by, custom_filter=custom_filter)['on']
+                                        historical_window=5 * fire_lasting.duration,
+                                        fire_threshold=volume_relative_threshold,
+                                        clear_threshold=volume_relative_threshold,
+                                        exclude_errors=exclude_errors,
+                                        group_by=group_by, custom_filter=custom_filter,
+                                        use_kind_filter=use_kind_filter,
+                                        kind_filter=kind_filter,
+                                        exclude_errors_filter=exclude_errors_filter,
+                                        default_group_by=default_group_by)['on']
         on_ = relative and non_empty_cond
         off_ = relative and non_empty_cond
     else:

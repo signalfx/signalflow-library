@@ -1,9 +1,14 @@
 from signalfx.detectors.apm.errors import streams, conditions
+from signalfx.detectors.apm import utils
 
 
 def detector(current_window=duration('5m'),
              fire_rate_threshold=0.01, clear_rate_threshold=0.001,
-             attempt_threshold=1, filter_=None, group_by=None, custom_filter=None):
+             attempt_threshold=1, filter_=None, group_by=None, custom_filter=None,
+             use_kind_filter=True,
+             kind_filter=utils.KIND_FILTER,
+             error_true=utils.ERROR_TRUE, error_false=utils.ERROR_FALSE,
+             default_group_by=utils.DEFAULT_GROUPBY, r_up='delta'):
     # Detect when error rate exceeds a static threshold
     # :param current_window (duration): window on which error rate is calculated,
     #                                      default=duration('5m')
@@ -26,7 +31,11 @@ def detector(current_window=duration('5m'),
         'sfui_errorKeys': ['fire_rate_threshold', 'clear_rate_threshold'],
         'sfui_errorTemplate': "{{{fire_rate_threshold}}} must be greater than or equal to {{{clear_rate_threshold}}}."}
     err_pct = streams.error_rate(duration_=current_window_, filter_=filter_,
-                                 group_by=group_by, custom_filter=custom_filter) * 100
+                                 group_by=group_by, custom_filter=custom_filter,
+                                 use_kind_filter=use_kind_filter,
+                                 kind_filter=kind_filter,
+                                 error_true=error_true, error_false=error_false,
+                                 default_group_by=default_group_by, r_up=r_up) * 100
     fire_pct_threshold = fire_rate_threshold * 100
     fire_pct_threshold_stream = const(fire_pct_threshold)
     clear_pct_threshold_stream = const(clear_rate_threshold * 100)
@@ -39,7 +48,11 @@ def detector(current_window=duration('5m'),
     attempt_condition = conditions.volume(duration_=current_window_, shift=duration(0),
                                           filter_=filter_, group_by=group_by, num_error_threshold=0,
                                           num_attempt_threshold=attempt_threshold,
-                                          custom_filter=custom_filter)
+                                          custom_filter=custom_filter,
+                                          use_kind_filter=use_kind_filter,
+                                          kind_filter=kind_filter,
+                                          error_true=error_true, error_false=error_false,
+                                          default_group_by=default_group_by, r_up=r_up)
     return detect(when(err_pct > fire_pct_threshold_stream) and attempt_condition,
                   off=when(err_pct <= clear_pct_threshold_stream),
                   annotations=ann,
