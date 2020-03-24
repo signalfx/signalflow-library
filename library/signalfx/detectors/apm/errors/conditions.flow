@@ -7,7 +7,8 @@ def percentage_growth(current_window=duration('5m'), preceding_window=duration('
                       filter_=None, group_by=None, custom_filter=None, use_kind_filter=True,
                       kind_filter=utils.KIND_FILTER,
                       error_true=utils.ERROR_TRUE, error_false=utils.ERROR_FALSE,
-                      default_group_by=utils.DEFAULT_GROUPBY, r_up='delta'):
+                      default_group_by=utils.DEFAULT_GROUPBY,
+                      default_allow_missing=utils.DEFAULT_ALLOW_MISSING, r_up='delta'):
     #
     # Compares current error rate to multiple of preceding error rate.
     #:param current_window:
@@ -27,6 +28,7 @@ def percentage_growth(current_window=duration('5m'), preceding_window=duration('
                                             kind_filter=kind_filter,
                                             error_true=error_true, error_false=error_false,
                                             default_group_by=default_group_by,
+                                            default_allow_missing=default_allow_missing,
                                             r_up=r_up)
     preceding_error_rate = streams.error_rate(duration_=preceding_window_, filter_=filter_,
                                               group_by=group_by,
@@ -35,6 +37,7 @@ def percentage_growth(current_window=duration('5m'), preceding_window=duration('
                                               kind_filter=kind_filter,
                                               error_true=error_true, error_false=error_false,
                                               default_group_by=default_group_by,
+                                              default_allow_missing=default_allow_missing,
                                               r_up=r_up).timeshift(current_window_)
     ann = [annotate(current_error_rate, 'current error rate', {'sfui_streamType': 'signal'}),
            annotate(preceding_error_rate, 'preceding error rate', {'sfui_streamType': 'signal'})]
@@ -53,7 +56,8 @@ def volume(duration_=duration('5m'), shift=duration(0), filter_=None, group_by=N
            num_attempt_threshold=1, custom_filter=None, use_kind_filter=True,
            kind_filter=utils.KIND_FILTER,
            error_true=utils.ERROR_TRUE, error_false=utils.ERROR_FALSE,
-           default_group_by=utils.DEFAULT_GROUPBY, r_up='delta'):
+           default_group_by=utils.DEFAULT_GROUPBY,
+           default_allow_missing=utils.DEFAULT_ALLOW_MISSING, r_up='delta'):
     #
     #:param duration_:
     #:param filter_:
@@ -71,7 +75,9 @@ def volume(duration_=duration('5m'), shift=duration(0), filter_=None, group_by=N
                                                  use_kind_filter=use_kind_filter,
                                                  kind_filter=kind_filter,
                                                  error_true=error_true, error_false=error_false,
-                                                 default_group_by=default_group_by, r_up=r_up)
+                                                 default_group_by=default_group_by,
+                                                 default_allow_missing=default_allow_missing,
+                                                 r_up=r_up)
     e = gped_e_streams['errors'].sum(over=duration__).timeshift(shift_)
     n_e = gped_e_streams['non_errors'].sum(over=duration__).timeshift(shift_)
     return when(e > num_error_threshold and e + n_e > num_attempt_threshold)
@@ -81,7 +87,8 @@ def error_rate_static(current_window=duration('5m'), filter_=None, group_by=None
                       fire_rate_threshold=0.01, clear_rate_threshold=0.001, custom_filter=None,
                       use_kind_filter=True, kind_filter=utils.KIND_FILTER,
                       error_true=utils.ERROR_TRUE, error_false=utils.ERROR_FALSE,
-                      default_group_by=utils.DEFAULT_GROUPBY, r_up='delta'):
+                      default_group_by=utils.DEFAULT_GROUPBY,
+                      default_allow_missing=utils.DEFAULT_ALLOW_MISSING, r_up='delta'):
     #
     #:param current_window:
     #:param filter_:
@@ -95,7 +102,8 @@ def error_rate_static(current_window=duration('5m'), filter_=None, group_by=None
                                   custom_filter=custom_filter, use_kind_filter=use_kind_filter,
                                   kind_filter=kind_filter,
                                   error_true=error_true, error_false=error_false,
-                                  default_group_by=default_group_by, r_up=r_up)
+                                  default_group_by=default_group_by,
+                                  default_allow_missing=default_allow_missing, r_up=r_up)
     ann = [annotate(err_rate, 'error rate', {'sfui_streamType': 'signal'})]
     event_ann = {'current_window': str(current_window_),
                  'fire_rate_threshold': str(fire_rate_threshold),

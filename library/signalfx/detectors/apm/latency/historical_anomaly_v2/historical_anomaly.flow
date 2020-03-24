@@ -20,7 +20,8 @@ def growth_rate(pctile=90, filter_=None, current_window=duration('5m'),
                                           custom_filter=custom_filter,
                                           use_kind_filter=False, kind_filter=utils.V2_KIND_FILTER,
                                           exclude_errors_filter=utils.V2_EXCLUDE_ERRORS_FILTER,
-                                          default_group_by=utils.V2_DEFAULT_GROUPBY)
+                                          default_group_by=utils.V2_DEFAULT_GROUPBY,
+                                          default_allow_missing=utils.V2_DEFAULT_ALLOW_MISSING)
 
 
 def deviations_from_norm(filter_=None, current_window=duration('5m'),
@@ -44,4 +45,5 @@ def deviations_from_norm(filter_=None, current_window=duration('5m'),
                                                    use_kind_filter=False,
                                                    kind_filter=utils.V2_KIND_FILTER,
                                                    exclude_errors_filter=utils.V2_EXCLUDE_ERRORS_FILTER,
-                                                   default_group_by=utils.V2_DEFAULT_GROUPBY)
+                                                   default_group_by=utils.V2_DEFAULT_GROUPBY,
+                                                   default_allow_missing=utils.V2_DEFAULT_ALLOW_MISSING)
