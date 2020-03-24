@@ -16,8 +16,8 @@ V2_EXCLUDE_ERRORS_FILTER = not V2_ERROR_TRUE
 DEFAULT_GROUPBY = ['cluster', 'service', 'operation', 'httpMethod', 'kind']
 V2_DEFAULT_GROUPBY = ['sf_environment', 'sf_service', 'sf_operation', 'sf_httpMethod', 'sf_kind']
 
-DEFAULT_ALLOW_MISSING = ['httpMethod', 'kind']
-V2_DEFAULT_ALLOW_MISSING = ['sf_httpMethod', 'sf_kind']
+DEFAULT_ALLOW_MISSING = ['cluster', 'service', 'operation', 'httpMethod', 'kind']
+V2_DEFAULT_ALLOW_MISSING = ['sf_environment', 'sf_service', 'sf_operation', 'sf_httpMethod', 'sf_kind']
 
 PCTILE_TO_METRIC = {50: 'spans.duration.ns.median',
                     90: 'spans.duration.ns.p90',
