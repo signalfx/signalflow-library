@@ -14,4 +14,5 @@ def detector(current_window=duration('5m'),
                            kind_filter=utils.V2_KIND_FILTER,
                            error_true=utils.V2_ERROR_TRUE, error_false=utils.V2_ERROR_FALSE,
                            default_group_by=utils.V2_DEFAULT_GROUPBY,
+                           default_allow_missing=utils.V2_DEFAULT_ALLOW_MISSING,
                            r_up='sum')

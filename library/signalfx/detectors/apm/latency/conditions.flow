@@ -6,14 +6,16 @@ def static(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear_l
            pctile=90, filter_=None, exclude_errors=True, group_by=None, use_ms=True,
            custom_filter=None, use_kind_filter=True,
            kind_filter=utils.KIND_FILTER, exclude_errors_filter=utils.EXCLUDE_ERRORS_FILTER,
-           default_group_by=utils.DEFAULT_GROUPBY):
+           default_group_by=utils.DEFAULT_GROUPBY,
+           default_allow_missing=utils.DEFAULT_ALLOW_MISSING):
     assert pctile == 50 or pctile == 90 or pctile == 99
     d = streams.pctile_over_window(pctile=pctile, filter_=filter_, window=None,
                                    exclude_errors=exclude_errors, group_by=group_by, use_ms=use_ms,
                                    custom_filter=custom_filter, use_kind_filter=use_kind_filter,
                                    kind_filter=kind_filter,
                                    exclude_errors_filter=exclude_errors_filter,
-                                   default_group_by=default_group_by)
+                                   default_group_by=default_group_by,
+                                   default_allow_missing=default_allow_missing)
     ann = [annotate(d, 'latency', {'sfui_streamType': 'signal'})]
     event_ann = {
         'fire_threshold': str(fire_threshold),
@@ -33,24 +35,28 @@ def static_on_volume(duration_, threshold, filter_=None, exclude_errors=True, gr
                      custom_filter=None, use_kind_filter=True,
                      kind_filter=utils.KIND_FILTER,
                      exclude_errors_filter=utils.EXCLUDE_ERRORS_FILTER,
-                     default_group_by=utils.DEFAULT_GROUPBY):
+                     default_group_by=utils.DEFAULT_GROUPBY,
+                     default_allow_missing=utils.DEFAULT_ALLOW_MISSING):
     return when(streams.volume(filter_=filter_, window=duration(duration_),
                                exclude_errors=exclude_errors, group_by=group_by,
                                custom_filter=custom_filter, use_kind_filter=use_kind_filter,
                                kind_filter=kind_filter, exclude_errors_filter=exclude_errors_filter,
-                               default_group_by=default_group_by) > threshold)
+                               default_group_by=default_group_by,
+                               default_allow_missing=default_allow_missing) > threshold)
 
 
 def static_volume_nonempty(lasting_, filter_=None, exclude_errors=True, group_by=None,
                            custom_filter=None, use_kind_filter=True,
                            kind_filter=utils.KIND_FILTER,
                            exclude_errors_filter=utils.EXCLUDE_ERRORS_FILTER,
-                           default_group_by=utils.DEFAULT_GROUPBY):
+                           default_group_by=utils.DEFAULT_GROUPBY,
+                           default_allow_missing=utils.DEFAULT_ALLOW_MISSING):
     return when(streams.volume(filter_=filter_, window=None, exclude_errors=exclude_errors,
                                group_by=group_by, custom_filter=custom_filter,
                                use_kind_filter=use_kind_filter,
                                kind_filter=kind_filter, exclude_errors_filter=exclude_errors_filter,
-                               default_group_by=default_group_by) > 0, lasting_)
+                               default_group_by=default_group_by,
+                               default_allow_missing=default_allow_missing) > 0, lasting_)
 
 
 def growth_rate_sc(pctile=90, filter_=None, current_window=duration('5m'),
@@ -59,7 +65,8 @@ def growth_rate_sc(pctile=90, filter_=None, current_window=duration('5m'),
                    exclude_errors=True, group_by=None, custom_filter=None, use_kind_filter=True,
                    kind_filter=utils.KIND_FILTER,
                    exclude_errors_filter=utils.EXCLUDE_ERRORS_FILTER,
-                   default_group_by=utils.DEFAULT_GROUPBY):
+                   default_group_by=utils.DEFAULT_GROUPBY,
+                   default_allow_missing=utils.DEFAULT_ALLOW_MISSING):
     current_window_ = duration(current_window)
     historical_window_ = duration(historical_window)
     assert pctile == 50 or pctile == 90 or pctile == 99
@@ -70,7 +77,8 @@ def growth_rate_sc(pctile=90, filter_=None, current_window=duration('5m'),
                                       use_kind_filter=use_kind_filter,
                                       kind_filter=kind_filter,
                                       exclude_errors_filter=exclude_errors_filter,
-                                      default_group_by=default_group_by)
+                                      default_group_by=default_group_by,
+                                      default_allow_missing=default_allow_missing)
     t = streams.growth_rate_thresholds_sc(pctile=pctile, filter_=filter_,
                                           current_window=current_window_,
                                           historical_window=historical_window_,
@@ -81,7 +89,8 @@ def growth_rate_sc(pctile=90, filter_=None, current_window=duration('5m'),
                                           use_kind_filter=use_kind_filter,
                                           kind_filter=kind_filter,
                                           exclude_errors_filter=exclude_errors_filter,
-                                          default_group_by=default_group_by)
+                                          default_group_by=default_group_by,
+                                          default_allow_missing=default_allow_missing)
     f_t, c_t = t['fire_threshold'], t['clear_threshold']
     ann = [annotate(curr, 'current window', {'sfui_streamType': 'signal'}),
            annotate(f_t, 'fire threshold', {'sfui_streamType': 'threshold',
@@ -109,7 +118,8 @@ def growth_rate_ha(pctile=90, filter_=None, current_window=duration('5m'),
                    exclude_errors=True, group_by=None, custom_filter=None, use_kind_filter=True,
                    kind_filter=utils.KIND_FILTER,
                    exclude_errors_filter=utils.EXCLUDE_ERRORS_FILTER,
-                   default_group_by=utils.DEFAULT_GROUPBY):
+                   default_group_by=utils.DEFAULT_GROUPBY,
+                   default_allow_missing=utils.DEFAULT_ALLOW_MISSING):
     current_window_ = duration(current_window)
     historical_window_ = duration(historical_window)
     cycle_length_ = duration(cycle_length)
@@ -123,7 +133,8 @@ def growth_rate_ha(pctile=90, filter_=None, current_window=duration('5m'),
                                       use_kind_filter=use_kind_filter,
                                       kind_filter=kind_filter,
                                       exclude_errors_filter=exclude_errors_filter,
-                                      default_group_by=default_group_by)
+                                      default_group_by=default_group_by,
+                                      default_allow_missing=default_allow_missing)
     t = streams.growth_rate_thresholds_ha(pctile=pctile, filter_=filter_,
                                           historical_window=historical_window_,
                                           cycle_length=cycle_length_,
@@ -135,7 +146,8 @@ def growth_rate_ha(pctile=90, filter_=None, current_window=duration('5m'),
                                           use_kind_filter=use_kind_filter,
                                           kind_filter=kind_filter,
                                           exclude_errors_filter=exclude_errors_filter,
-                                          default_group_by=default_group_by)
+                                          default_group_by=default_group_by,
+                                          default_allow_missing=default_allow_missing)
     f_t, c_t = t['fire_threshold'], t['clear_threshold']
     ann = [annotate(curr, 'current window', {'sfui_streamType': 'signal'}),
            annotate(f_t, 'fire threshold', {'sfui_streamType': 'threshold',
@@ -163,7 +175,8 @@ def deviations_from_norm_sc(filter_=None, current_window=duration('5m'),
                             custom_filter=None, use_kind_filter=True,
                             kind_filter=utils.KIND_FILTER,
                             exclude_errors_filter=utils.EXCLUDE_ERRORS_FILTER,
-                            default_group_by=utils.DEFAULT_GROUPBY):
+                            default_group_by=utils.DEFAULT_GROUPBY,
+                            default_allow_missing=utils.DEFAULT_ALLOW_MISSING):
     current_window_ = duration(current_window)
     historical_window_ = duration(historical_window)
     assert fire_num_dev_threshold >= clear_num_dev_threshold
@@ -174,7 +187,8 @@ def deviations_from_norm_sc(filter_=None, current_window=duration('5m'),
                                             use_kind_filter=use_kind_filter,
                                             kind_filter=kind_filter,
                                             exclude_errors_filter=exclude_errors_filter,
-                                            default_group_by=default_group_by)
+                                            default_group_by=default_group_by,
+                                            default_allow_missing=default_allow_missing)
     ann = [annotate(score, 'score')]
     event_ann = {'current_window': str(current_window_),
                  'historical_window': str(historical_window_),
@@ -194,7 +208,8 @@ def deviations_from_norm_ha(filter_=None, current_window=duration('5m'),
                             custom_filter=None, use_kind_filter=True,
                             kind_filter=utils.KIND_FILTER,
                             exclude_errors_filter=utils.EXCLUDE_ERRORS_FILTER,
-                            default_group_by=utils.DEFAULT_GROUPBY):
+                            default_group_by=utils.DEFAULT_GROUPBY,
+                            default_allow_missing=utils.DEFAULT_ALLOW_MISSING):
     current_window_ = duration(current_window)
     historical_window_ = duration(historical_window)
     cycle_length_ = duration(cycle_length)
@@ -210,7 +225,8 @@ def deviations_from_norm_ha(filter_=None, current_window=duration('5m'),
                                             use_kind_filter=use_kind_filter,
                                             kind_filter=kind_filter,
                                             exclude_errors_filter=exclude_errors_filter,
-                                            default_group_by=default_group_by)
+                                            default_group_by=default_group_by,
+                                            default_allow_missing=default_allow_missing)
     ann = [annotate(score, 'score')]
     event_ann = {'current_window': str(current_window_),
                  'historical_window': str(historical_window_),
@@ -229,7 +245,8 @@ def volume_sc(filter_=None, current_window=duration('5m'), historical_window=dur
               pctile=95, group_by=None, custom_filter=None, use_kind_filter=True,
               kind_filter=utils.KIND_FILTER,
               exclude_errors_filter=utils.EXCLUDE_ERRORS_FILTER,
-              default_group_by=utils.DEFAULT_GROUPBY):
+              default_group_by=utils.DEFAULT_GROUPBY,
+              default_allow_missing=utils.DEFAULT_ALLOW_MISSING):
     v = streams.volumes_sc(filter_=filter_, current_window=duration(current_window),
                            historical_window=duration(historical_window),
                            exclude_errors=exclude_errors, use_trimmed_mean=use_trimmed_mean,
@@ -237,7 +254,8 @@ def volume_sc(filter_=None, current_window=duration('5m'), historical_window=dur
                            use_kind_filter=use_kind_filter,
                            kind_filter=kind_filter,
                            exclude_errors_filter=exclude_errors_filter,
-                           default_group_by=default_group_by)
+                           default_group_by=default_group_by,
+                           default_allow_missing=default_allow_missing)
     c, h = v['current'], v['historical']
     return {'on': when(c > fire_threshold * h),
             'off': when(c > clear_threshold * h)}
@@ -248,7 +266,8 @@ def volume_sc_nonempty(filter_=None, current_window=duration('5m'),
                        group_by=None, custom_filter=None, use_kind_filter=True,
                        kind_filter=utils.KIND_FILTER,
                        exclude_errors_filter=utils.EXCLUDE_ERRORS_FILTER,
-                       default_group_by=utils.DEFAULT_GROUPBY):
+                       default_group_by=utils.DEFAULT_GROUPBY,
+                       default_allow_missing=utils.DEFAULT_ALLOW_MISSING):
     v = streams.volumes_sc(filter_=filter_, current_window=duration(current_window),
                            historical_window=duration(historical_window),
                            exclude_errors=exclude_errors, use_trimmed_mean=False,
@@ -256,7 +275,8 @@ def volume_sc_nonempty(filter_=None, current_window=duration('5m'),
                            use_kind_filter=use_kind_filter,
                            kind_filter=kind_filter,
                            exclude_errors_filter=exclude_errors_filter,
-                           default_group_by=default_group_by)
+                           default_group_by=default_group_by,
+                           default_allow_missing=default_allow_missing)
     h = v['historical']
     return when(h > 0)
 
@@ -267,7 +287,8 @@ def volume_ha(filter_=None, current_window=duration('5m'), historical_window=dur
               group_by=None, custom_filter=None, use_kind_filter=True,
               kind_filter=utils.KIND_FILTER,
               exclude_errors_filter=utils.EXCLUDE_ERRORS_FILTER,
-              default_group_by=utils.DEFAULT_GROUPBY):
+              default_group_by=utils.DEFAULT_GROUPBY,
+              default_allow_missing=utils.DEFAULT_ALLOW_MISSING):
     v = streams.volumes_ha(filter_=filter_, current_window=duration(current_window),
                            historical_window=duration(historical_window),
                            cycle_length=duration(cycle_length), num_cycles=num_cycles,
@@ -276,7 +297,8 @@ def volume_ha(filter_=None, current_window=duration('5m'), historical_window=dur
                            use_kind_filter=use_kind_filter,
                            kind_filter=kind_filter,
                            exclude_errors_filter=exclude_errors_filter,
-                           default_group_by=default_group_by)
+                           default_group_by=default_group_by,
+                           default_allow_missing=default_allow_missing)
     c, h = v['current'], v['historical']
     return {'on': when(c > fire_threshold * h),
             'off': when(c > clear_threshold * h)}
@@ -288,7 +310,8 @@ def volume_ha_nonempty(filter_=None, current_window=duration('5m'),
                        group_by=None, custom_filter=None, use_kind_filter=True,
                        kind_filter=utils.KIND_FILTER,
                        exclude_errors_filter=utils.EXCLUDE_ERRORS_FILTER,
-                       default_group_by=utils.DEFAULT_GROUPBY):
+                       default_group_by=utils.DEFAULT_GROUPBY,
+                       default_allow_missing=utils.DEFAULT_ALLOW_MISSING):
     v = streams.volumes_ha(filter_=filter_, current_window=duration(current_window),
                            historical_window=duration(historical_window),
                            cycle_length=duration(cycle_length), num_cycles=num_cycles,
@@ -297,6 +320,7 @@ def volume_ha_nonempty(filter_=None, current_window=duration('5m'),
                            use_kind_filter=use_kind_filter,
                            kind_filter=kind_filter,
                            exclude_errors_filter=exclude_errors_filter,
-                           default_group_by=default_group_by)
+                           default_group_by=default_group_by,
+                           default_allow_missing=default_allow_missing)
     h = v['historical']
     return when(h > 0)

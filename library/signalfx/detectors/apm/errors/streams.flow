@@ -41,6 +41,7 @@ def grouped_span_errors(filter_=None, custom_filter=None, use_kind_filter=True,
                         kind_filter=utils.KIND_FILTER,
                         error_true=utils.ERROR_TRUE, error_false=utils.ERROR_FALSE,
                         group_by=None, default_group_by=utils.DEFAULT_GROUPBY,
+                        default_allow_missing=utils.DEFAULT_ALLOW_MISSING,
                         r_up='delta'):
     # Filters and groups spans.count metric
     #:param filter_: (filter object), applied to spans.count metric, default=None
@@ -56,15 +57,16 @@ def grouped_span_errors(filter_=None, custom_filter=None, use_kind_filter=True,
                             use_kind_filter=use_kind_filter, kind_filter=kind_filter,
                             error_true=error_true, error_false=error_false, r_up=r_up)
     err_stream, non_err_stream = e_streams['errors'], e_streams['non_errors']
-    e = err_stream.sum(by=gp_by)
-    n_e = non_err_stream.sum(by=gp_by)
+    e = err_stream.sum(by=gp_by, allow_missing=default_allow_missing)
+    n_e = non_err_stream.sum(by=gp_by, allow_missing=default_allow_missing)
     return {'errors': e, 'non_errors': n_e}
 
 
 def error_rate(duration_=duration('1m'), filter_=None, custom_filter=None, use_kind_filter=True,
                kind_filter=utils.KIND_FILTER,
                error_true=utils.ERROR_TRUE, error_false=utils.ERROR_FALSE,
-               group_by=None, default_group_by=utils.DEFAULT_GROUPBY, r_up='delta'):
+               group_by=None, default_group_by=utils.DEFAULT_GROUPBY,
+               default_allow_missing=utils.DEFAULT_ALLOW_MISSING, r_up='delta'):
     #
     # Calculates error rate over a duration using a filtered and grouped error input
     # :param duration_: (duration) specifies window over which to calculate error rate,
@@ -79,6 +81,7 @@ def error_rate(duration_=duration('1m'), filter_=None, custom_filter=None, use_k
                                          kind_filter=kind_filter,
                                          error_true=error_true, error_false=error_false,
                                          group_by=group_by, default_group_by=default_group_by,
+                                         default_allow_missing=default_allow_missing,
                                          r_up=r_up)
     e = gped_e_streams['errors'].sum(over=duration__)
     n_e = gped_e_streams['non_errors'].sum(over=duration__)
