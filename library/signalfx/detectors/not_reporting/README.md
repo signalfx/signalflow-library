@@ -27,7 +27,7 @@ from signalfx.detectors.not_reporting import conditions
 s = data('memory.utilization')
 
 mem_stopped_reporting = conditions.condition(s)
-mem_too_high = when(s > 90, '12m')
+mem_too_high = when(s.fill() > 90, '12m')
 
 detect(mem_stopped_reporting or mem_too_high).publish()
 ~~~~~~~~~~~~~~~~~~~~
