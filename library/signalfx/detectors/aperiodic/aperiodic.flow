@@ -1,7 +1,7 @@
 # These functions create detectors which are insensitive to missing values and irregular arrival
-# patterns. The key insight is that, since percentile calculations do not involve nulls,
-# "A > 7 for 80% of 10 minutes" is equivalent to
-# "the 10-minute 20th percentile of A is greater than 7."
+# patterns. The main idea is to explicitly exclude null values from the condition being evaluated,
+# and compute the ratio of how many times the condition holds (in some window) to how many times
+# the condition could be evaluated (in the same window).
 #
 # @author joe
 
@@ -10,200 +10,294 @@ from signalfx.detectors.aperiodic import streams
 from signalfx.detectors.aperiodic import conditions
 
 def generic_detector(stream, threshold_1, threshold_2, orientation, observed_lasting,
-                            expected_lasting=None, annotations=None, event_annotations=None):
+                     expected_lasting=None, annotations=None, event_annotations=None,
+                     strict_1=True, strict_2=True):
     # Args:
     #       stream (stream): data stream
-    #       threshold_1 (number or data stream):
-    #       threshold_2
+    #       threshold_1 (number or data stream): lower threshold of range
+    #       threshold_2 (number or data stream): upper threshold of range
     #       orientation (string): one of 'above', 'below', 'within_range', 'out_of_band'
-    #       observed_lasting (lasting):
-    #       expected_lasting (lasting): (optional, default=None)
-    #       annotations (dict): (optional, default=None)
+    #       observed_lasting (lasting): percentage of duration required (excluding nulls)
+    #       expected_lasting (lasting): if specified, percentage of duration required
+    #               (including nulls) (optional, default=None)
+    #       annotations (list of annotate objects): (optional, default=None)
     #       event_annotations (dict): (optional, default=None)
+    #       strict_1 (boolean): whether inequalities involving threshold_1 should
+    #               be strict (optional, default=True)
+    #       strict_2 (boolean): whether inequalities involving threshold_2 should
+    #               be strict (optional, default=True)
     # Returns:
-    #       detect block
+    #       detect block for the condition specified by the inputs
     if expected_lasting is None:
         return detect(conditions.generic_condition(stream, threshold_1, threshold_2, orientation, observed_lasting,
-                                        denominator_mode='observed'), annotations=annotations,
-                                        event_annotations=event_annotations)
+                                        denominator_mode='observed', strict_1=strict_1,
+                                                   strict_2=strict_2), annotations=annotations,
+                      event_annotations=event_annotations)
     else:
-        return detect(conditions.generic_condition(stream, threshold_1, threshold_2, orientation, observed_lasting,
-                                        denominator_mode='observed') and conditions.generic_condition(stream, threshold_1, threshold_2,
-                                                                               orientation, expected_lasting,
-                                                                               denominator_mode='expected'),
+        return detect(conditions.generic_condition(stream, threshold_1, threshold_2, orientation,
+                                                   observed_lasting,
+                                                   denominator_mode='observed', strict_1=strict_1,
+                                                   strict_2=strict_2) and conditions.generic_condition(
+            stream, threshold_1, threshold_2,
+            orientation, expected_lasting,
+            denominator_mode='expected', strict_1=strict_1,
+            strict_2=strict_2),
                       annotations=annotations, event_annotations=event_annotations)
 
 
 def above_or_below_detector(stream, threshold, orientation, observed_lasting,
-                            expected_lasting=None, annotations=None, event_annotations=None):
+                            expected_lasting=None, annotations=None, event_annotations=None,
+                            strict=True):
     # fires when (stream > (or <) threshold is true in observed_lasting.duration) / (observed data points in
     #    observed.duration) is larger than observed_lasting.at_least, and (stream > (or <) threshold is
     #    true in expected_lasting.duration) / (expected data points in expected_lasting.duration)
-    #    is larger than expected_lasting.at_least
+    #    is larger than expected_lasting.at_least; non-strict inequalities are also available
     # Args:
     #       stream (stream): data stream
-    #       threshold (number or data stream):
+    #       threshold (number or data stream): threshold against which stream is compared
     #       orientation (string): one of 'above', 'below'
-    #       observed_lasting (lasting):
+    #       observed_lasting (lasting): percentage of duration required (excluding nulls)
     #       expected_lasting (lasting): (optional, default=None)
-    #       annotations (dict): (optional, default=None)
+    #       annotations (list of annotate objects): (optional, default=None)
     #       event_annotations (dict): (optional, default=None)
+    #       strict (boolean): whether inequality should be strict (optional, default=True)
     # Returns:
-    #       detect block
+    #       detect block for the condition specified by the inputs
     return generic_detector(stream, threshold, threshold, orientation, observed_lasting,
-                            expected_lasting=expected_lasting, annotations=annotations, event_annotations=event_annotations)
+                            expected_lasting=expected_lasting, annotations=annotations,
+                            event_annotations=event_annotations, strict_1=strict, strict_2=strict)
 
 
 def range_detector(stream, lower_threshold, upper_threshold, orientation, observed_lasting,
-                            expected_lasting=None, annotations=None, event_annotations=None):
+                   expected_lasting=None, annotations=None, event_annotations=None,
+                   lower_strict=True, upper_strict=True):
     # fires when (range condition is true in observed_lasting.duration) / (observed data points in
     #    observed.duration) is larger than observed_lasting.at_least, and (range condition is
     #    true in expected_lasting.duration) / (expected data points in expected_lasting.duration)
     #    is larger than expected_lasting.at_least
+    # Args:
     #       stream (stream): data stream
-    #       lower_threshold (number or data stream):
-    #       upper_threshold (number or data stream):
+    #       lower_threshold (number or data stream): lower threshold of range
+    #       upper_threshold (number or data stream): upper threshold of range
     #       orientation (string): one of 'within_range', 'out_of_band'
-    #       observed_lasting (lasting):
+    #       observed_lasting (lasting): percentage of duration required (excluding nulls)
     #       expected_lasting (lasting): (optional, default=None)
-    #       annotations (dict): (optional, default=None)
+    #       annotations (list of annotate objects): (optional, default=None)
     #       event_annotations (dict): (optional, default=None)
+    #       lower_strict (boolean): whether inequality involving lower_threshold should
+    #               be strict (optional, default=True)
+    #       upper_strict (boolean): whether inequality involving upper_threshold should
+    #               be strict (optional, default=True)
     # Returns:
-    #       detect block
+    #       detect block for the condition specified by the inputs
     return generic_detector(stream, lower_threshold, upper_threshold, orientation, observed_lasting,
-                            expected_lasting=expected_lasting, annotations=annotations, event_annotations=event_annotations)
+                            expected_lasting=expected_lasting, annotations=annotations,
+                            event_annotations=event_annotations, strict_1=lower_strict,
+                            strict_2=upper_strict)
 
 
 def generic_detector_with_clear(stream, fire_threshold_1, fire_threshold_2, fire_orientation,
                                 fire_observed_lasting, clear_threshold_1, clear_threshold_2, clear_orientation,
                                 clear_observed_lasting, fire_expected_lasting=None, clear_expected_lasting=None,
-                                mode='paired', annotations=None, event_annotations=None):
+                                mode='paired', annotations=None, event_annotations=None,
+                                fire_strict_1=True, fire_strict_2=True,
+                                clear_strict_1=True, clear_strict_2=True):
     # Args:
     #       stream (stream): data stream
-    #       fire_threshold_1 (number or data stream):
-    #       fire_threshold_2
+    #       fire_threshold_1 (number or data stream): lower threshold of fire range
+    #       fire_threshold_2 (number or data stream): upper threshold of fire range
     #       fire_orientation (string): one of 'above', 'below', 'within_range', 'out_of_band'
-    #       fire_observed_lasting (lasting):
-    #       clear_threshold_1 (number or data stream):
-    #       clear_threshold_2
+    #       fire_observed_lasting (lasting): percentage of duration required to fire (excl. nulls)
+    #       clear_threshold_1 (number or data stream): lower threshold of clear range
+    #       clear_threshold_2 (number or data stream): upper threshold of clear range
     #       clear_orientation (string): one of 'above', 'below', 'within_range', 'out_of_band'
-    #       clear_observed_lasting (lasting):
-    #       fire_expected_lasting (lasting): (optional, default=None)
-    #       clear_expected_lasting (lasting): (optional, default=None)
-    #       mode (string): one of 'split', 'paired'
-    #       annotations (dict): (optional, default=None)
+    #       clear_observed_lasting (lasting): percentage of duration required to clear (excl. nulls)
+    #       fire_expected_lasting (lasting): if specified, percentage of
+    #               duration required to fire (including nulls) (optional, default=None)
+    #       clear_expected_lasting (lasting): if specified, percentage of
+    #               duration required to clear (including nulls) (optional, default=None)
+    #       mode (string): one of 'split', 'paired' (optional, default='paired')
+    #       annotations (list of annotate objects): (optional, default=None)
     #       event_annotations (dict): (optional, default=None)
+    #       fire_strict_1 (boolean): whether inequalities involving fire_threshold_1 should
+    #               be strict (optional, default=True)
+    #       fire_strict_2 (boolean): whether inequalities involving fire_threshold_2 should
+    #               be strict (optional, default=True)
+    #       clear_strict_1 (boolean): whether inequalities involving clear_threshold_1 should
+    #               be strict (optional, default=True)
+    #       clear_strict_2 (boolean): whether inequalities involving clear_threshold_2 should
+    #               be strict (optional, default=True)
     # Returns:
-    #       detect block
+    #       detect block for the fire and clear conditions specified by the inputs so prefixed
     if fire_expected_lasting is None:
-        fire_condition = conditions.generic_condition(stream, fire_threshold_1, fire_threshold_2, fire_orientation,
-                                           fire_observed_lasting, denominator_mode='observed')
+        fire_condition = conditions.generic_condition(stream, fire_threshold_1, fire_threshold_2,
+                                                      fire_orientation,
+                                                      fire_observed_lasting,
+                                                      denominator_mode='observed',
+                                                      strict_1=fire_strict_1, strict_2=fire_strict_2)
     else:
         fire_condition = conditions.generic_condition(stream, fire_threshold_1, fire_threshold_2, fire_orientation,
-                                           fire_observed_lasting, denominator_mode='observed') and conditions.generic_condition(stream, fire_threshold_1, fire_threshold_2, fire_orientation,
-                                           fire_expected_lasting, denominator_mode='expected')
+                                                      fire_observed_lasting,
+                                                      denominator_mode='observed',
+                                                      strict_1=fire_strict_1,
+                                                      strict_2=fire_strict_2) and conditions.generic_condition(
+            stream, fire_threshold_1, fire_threshold_2, fire_orientation,
+            fire_expected_lasting, denominator_mode='expected', strict_1=fire_strict_1, strict_2=fire_strict_2)
     if clear_expected_lasting is None:
-        clear_condition = conditions.generic_condition(stream, clear_threshold_1, clear_threshold_2, clear_orientation,
-                                           clear_observed_lasting, denominator_mode='observed')
+        clear_condition = conditions.generic_condition(stream, clear_threshold_1, clear_threshold_2,
+                                                       clear_orientation,
+                                                       clear_observed_lasting,
+                                                       denominator_mode='observed',
+                                                       strict_1=clear_strict_1, strict_2=clear_strict_2)
     else:
         clear_condition = conditions.generic_condition(stream, clear_threshold_1, clear_threshold_2, clear_orientation,
-                                           clear_observed_lasting, denominator_mode='observed') and conditions.generic_condition(stream, clear_threshold_1, clear_threshold_2, clear_orientation,
-                                           clear_expected_lasting, denominator_mode='expected')
+                                                       clear_observed_lasting,
+                                                       denominator_mode='observed',
+                                                       strict_1=clear_strict_1,
+                                                       strict_2=clear_strict_2) and conditions.generic_condition(
+            stream, clear_threshold_1, clear_threshold_2, clear_orientation,
+            clear_expected_lasting, denominator_mode='expected', strict_1=clear_strict_1,
+            strict_2=clear_strict_2)
     return detect(fire_condition, off=clear_condition, mode=mode, annotations=annotations, event_annotations=event_annotations)
 
 
 def above_or_below_detector_with_clear(stream, fire_threshold, fire_observed_lasting,
-                                        clear_threshold, clear_observed_lasting, orientation,
-                                        fire_expected_lasting=None, clear_expected_lasting=None, mode='paired',
-                                        annotations=None, event_annotations=None):
+                                       clear_threshold, clear_observed_lasting, orientation,
+                                       fire_expected_lasting=None, clear_expected_lasting=None,
+                                       mode='paired', annotations=None, event_annotations=None,
+                                       fire_strict=True, clear_strict=True):
     # Args:
     #       stream (stream): data stream
-    #       fire_threshold (number or data stream):
-    #       fire_observed_lasting (lasting):
-    #       clear_threshold (number or data stream):
-    #       clear_observed_lasting (lasting):
+    #       fire_threshold (number or data stream): fire threshold against which stream is compared
+    #       fire_observed_lasting (lasting): percentage of duration required to fire (excl. nulls)
+    #       clear_threshold (number or data stream): clear threshold against which stream is compared
+    #       clear_observed_lasting (lasting): percentage of duration required to clear (excl. nulls)
     #       orientation (string): one of 'above', 'below'
-    #       fire_expected_lasting (lasting): (optional, default=None)
-    #       clear_expected_lasting (lasting): (optional, default=None)
+    #       fire_expected_lasting (lasting): if specified, percentage of
+    #               duration required to fire (including nulls) (optional, default=None)
+    #       clear_expected_lasting (lasting): if specified, percentage of
+    #               duration required to clear (including nulls) (optional, default=None)
     #       mode (string): one of 'split', 'paired' (optional, default='paired')
-    #       annotations (dict): (optional, default=None)
+    #       annotations (list of annotate objects): (optional, default=None)
     #       event_annotations (dict): (optional, default=None)
+    #       fire_strict (boolean): whether inequality involving fire_threshold should
+    #               be strict (optional, default=True)
+    #       clear_strict (boolean): whether inequality involving clear_threshold should
+    #               be strict (optional, default=True)
     # Returns:
-    #       detect block
+    #       detect block for the fire and clear conditions specified by the inputs so prefixed
     return generic_detector_with_clear(stream, fire_threshold, fire_threshold, orientation, fire_observed_lasting,
-                                        clear_threshold, clear_threshold, utils.opposite_orientation(orientation),
-                                        clear_observed_lasting, fire_expected_lasting=fire_expected_lasting,
-                                        clear_expected_lasting=clear_expected_lasting, mode=mode,
-                                        annotations=annotations, event_annotations=event_annotations)
+                                       clear_threshold, clear_threshold,
+                                       utils.opposite_orientation(orientation),
+                                       clear_observed_lasting,
+                                       fire_expected_lasting=fire_expected_lasting,
+                                       clear_expected_lasting=clear_expected_lasting, mode=mode,
+                                       annotations=annotations, event_annotations=event_annotations,
+                                       fire_strict_1=fire_strict, fire_strict_2=fire_strict,
+                                       clear_strict_1=clear_strict, clear_strict_2=clear_strict)
 
 
-def range_detector_with_clear(stream, fire_lower_threshold, fire_upper_threshold, fire_observed_lasting,
-                                clear_lower_threshold, clear_upper_threshold, clear_observed_lasting,
-                                orientation, fire_expected_lasting=None, clear_expected_lasting=None,
-                                mode='paired', annotations=None, event_annotations=None):
+def range_detector_with_clear(stream, fire_lower_threshold, fire_upper_threshold,
+                              fire_observed_lasting,
+                              clear_lower_threshold, clear_upper_threshold, clear_observed_lasting,
+                              orientation, fire_expected_lasting=None, clear_expected_lasting=None,
+                              mode='paired', annotations=None, event_annotations=None,
+                              fire_lower_strict=True, fire_upper_strict=True,
+                              clear_lower_strict=True, clear_upper_strict=True):
     # Args:
     #       stream (stream): data stream
-    #       fire_lower_threshold (number or data stream):
-    #       fire_upper_threshold (number or data stream):
-    #       fire_observed_lasting (lasting):
-    #       clear_lower_threshold (number or data stream):
-    #       clear_upper_threshold (number or data stream):
-    #       clear_observed_lasting (lasting):
+    #       fire_lower_threshold (number or data stream): lower threshold of fire range
+    #       fire_upper_threshold (number or data stream): upper threshold of fire range
+    #       fire_observed_lasting (lasting): percentage of duration required to fire (excl. nulls)
+    #       clear_lower_threshold (number or data stream): lower threshold of clear range
+    #       clear_upper_threshold (number or data stream): upper threshold of clear range
+    #       clear_observed_lasting (lasting): percentage of duration required to clear (excl. nulls)
     #       orientation (string): one of 'within_range', 'out_of_band'
-    #       fire_expected_lasting (lasting): (optional, default=None)
-    #       clear_expected_lasting (lasting): (optional, default=None)
+    #       fire_expected_lasting (lasting): if specified, percentage of
+    #               duration required to fire (including nulls) (optional, default=None)
+    #       clear_expected_lasting (lasting): if specified, percentage of
+    #               duration required to clear (including nulls) (optional, default=None)
     #       mode (string): one of 'split', 'paired' (optional, default='paired')
-    #       annotations (dict): (optional, default=None)
+    #       annotations (list of annotate objects): (optional, default=None)
     #       event_annotations (dict): (optional, default=None)
+    #       fire_lower_strict (boolean): whether inequality involving fire_lower_threshold should
+    #               be strict (optional, default=True)
+    #       fire_upper_strict (boolean): whether inequality involving fire_upper_threshold should
+    #               be strict (optional, default=True)
+    #       clear_lower_strict (boolean): whether inequality involving clear_lower_threshold should
+    #               be strict (optional, default=True)
+    #       clear_upper_strict (boolean): whether inequality involving clear_upper_threshold should
+    #               be strict (optional, default=True)
+    # Returns:
+    #       detect block for the fire and clear conditions specified by the inputs so prefixed
+
     # Returns:
     #       detect block
-    return generic_detector_with_clear(stream, fire_lower_threshold, fire_upper_threshold, orientation,
-                                       fire_observed_lasting, clear_lower_threshold, clear_upper_threshold,
-                                       utils.opposite_orientation(orientation), clear_observed_lasting,
+    return generic_detector_with_clear(stream, fire_lower_threshold, fire_upper_threshold,
+                                       orientation,
+                                       fire_observed_lasting, clear_lower_threshold,
+                                       clear_upper_threshold,
+                                       utils.opposite_orientation(orientation),
+                                       clear_observed_lasting,
                                        fire_expected_lasting=fire_expected_lasting,
                                        clear_expected_lasting=clear_expected_lasting,
-                                       mode=mode, annotations=annotations, event_annotations=event_annotations)
+                                       mode=mode, annotations=annotations,
+                                       event_annotations=event_annotations,
+                                       fire_strict_1=fire_lower_strict,
+                                       fire_strict_2=fire_upper_strict,
+                                       clear_strict_1=clear_lower_strict,
+                                       clear_strict_2=clear_upper_strict)
 
 
-def one_sided_detector(stream1, stream2, lasting):
-    # detects when "stream1 > stream2 for lasting", ignoring missing values
-    return generic_detector(stream1, None, stream2, 'above', lasting)
+def one_sided_detector(stream1, stream2, lasting, strict=True):
+    # detects when "stream1 >(=) stream2 for lasting", ignoring missing values
+    return generic_detector(stream1, None, stream2, 'above', lasting, strict_2=strict)
 
 
 def one_sided_detector_with_clear(stream, fire_threshold, fire_lasting, clear_threshold,
-                                  clear_lasting):
-    # fires when "stream > fire_threshold for fire_lasting",
-    # clears when "stream < clear_threshold for clear_lasting",
+                                  clear_lasting, fire_strict=True, clear_strict=True):
+    # fires when "stream >(=) fire_threshold for fire_lasting",
+    # clears when "stream <(=) clear_threshold for clear_lasting",
     # both ignoring missing values
     return generic_detector_with_clear(stream, None, fire_threshold, 'above', fire_lasting, clear_threshold, 
-                                       None, 'below', clear_lasting)
+                                       None, 'below', clear_lasting, fire_strict_2=fire_strict,
+                                       clear_strict_1=clear_strict)
 
 
-def two_sided_detector(stream, upper_stream, lower_stream, lasting):
-    # detects when "stream > upper_stream OR stream < lower_stream for lasting",
+def two_sided_detector(stream, upper_stream, lower_stream, lasting, upper_strict=True,
+                       lower_strict=True):
+    # detects when "stream >(=) upper_stream OR stream <(=) lower_stream for lasting",
     # ignoring missing values
-    return generic_detector(stream, lower_stream, upper_stream, 'out_of_band', lasting)
+    return generic_detector(stream, lower_stream, upper_stream, 'out_of_band', lasting,
+                            strict_1=lower_strict, strict_2=upper_strict)
 
 
 def two_sided_detector_with_clear(stream, fire_upper_stream, fire_lower_stream, fire_lasting,
-                                  clear_upper_stream, clear_lower_stream, clear_lasting):
-    # detects when "stream > fire_upper_stream OR stream < fire_lower_stream for fire_lasting",
-    # clears when "stream < clear_upper_stream AND stream > clear_lower_stream for clear_lasting",
+                                  clear_upper_stream, clear_lower_stream, clear_lasting,
+                                  fire_upper_strict=True, fire_lower_strict=True,
+                                  clear_upper_strict=True, clear_lower_strict=True):
+    # detects when "stream >(=) fire_upper_stream OR stream <(=) fire_lower_stream for fire_lasting",
+    # clears when "stream <(=) clear_upper_stream AND stream >(=) clear_lower_stream for clear_lasting",
     # ignoring missing values
     return generic_detector_with_clear(stream, fire_lower_stream, fire_upper_stream, 'out_of_band', 
                                        fire_lasting, clear_lower_stream, clear_upper_stream, 'within_range', 
-                                       clear_lasting)
+                                       clear_lasting, fire_strict_1=fire_lower_strict,
+                                       fire_strict_2=fire_upper_strict, clear_strict_1=clear_lower_strict,
+                                       clear_strict_2=clear_upper_strict)
 
 
 def generic_one_sided_detector_with_clear(fire_stream1, fire_stream2, fire_lasting, clear_stream1,
-                                          clear_stream2, clear_lasting):
-    # detects when "fire_stream1 > fire_stream2 for fire_lasting",
-    # clears when "clear_stream1 > clear_stream2 for clear_lasting",
+                                          clear_stream2, clear_lasting, fire_strict=True,
+                                          clear_strict=True):
+    # detects when "fire_stream1 >(=) fire_stream2 for fire_lasting",
+    # clears when "clear_stream1 >(=) clear_stream2 for clear_lasting",
     # both ignoring missing values
     fire_condition = conditions.generic_condition(fire_stream1, None, fire_stream2, 'above',
-                                           fire_lasting, denominator_mode='observed')
+                                                  fire_lasting, denominator_mode='observed',
+                                                  strict_2=fire_strict)
     clear_condition = conditions.generic_condition(clear_stream1, None, clear_stream2, 'above',
-                                           clear_lasting, denominator_mode='observed')
+                                                   clear_lasting, denominator_mode='observed',
+                                                   strict_2=clear_strict)
     return detect(fire_condition, off=clear_condition)
 
 
