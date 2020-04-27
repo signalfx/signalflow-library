@@ -1,25 +1,54 @@
-def numerator_stream(stream, threshold_1, threshold_2, orientation):
+def numerator_stream(stream, threshold_1, threshold_2, orientation, strict_1=True, strict_2=True):
     # Args:
     #       stream (stream): data stream
-    #       threshold_1 (number or data stream): lower threshold (i.e. condition is stream < threshold_1)
-    #       threshold_2 (number or data stream): upper threshold (i.e. condition is stream > threshold_2)
+    #       threshold_1 (number or data stream): lower threshold of range
+    #       threshold_2 (number or data stream): upper threshold of range
     #       orientation (string): one of 'above', 'below', 'within_range', 'out_of_band'
+    #       strict_1 (boolean): whether inequalities involving threshold_1 should
+    #               be strict (optional, default=True)
+    #       strict_2 (boolean): whether inequalities involving threshold_2 should
+    #               be strict (optional, default=True)
+    # Returns:
+    #       stream which is 1 when the specified condition is true and None otherwise
     if orientation == 'above':
-        return (1 if stream > threshold_2 else None)
+        if strict_2 is True:
+            return (1 if stream > threshold_2 else None)
+        elif strict_2 is False:
+            return (1 if stream >= threshold_2 else None)
     elif orientation == 'below':
-        return (1 if stream < threshold_1 else None)
+        if strict_1 is True:
+            return (1 if stream < threshold_1 else None)
+        elif strict_1 is False:
+            return (1 if stream <= threshold_1 else None)
     elif orientation == 'within_range':
-        return (1 if stream > threshold_1 and stream < threshold_2 else None)
+        if strict_1 is True and strict_2 is True:
+            return (1 if stream > threshold_1 and stream < threshold_2 else None)
+        elif strict_1 is True and strict_2 is False:
+            return (1 if stream > threshold_1 and stream <= threshold_2 else None)
+        elif strict_1 is False and strict_2 is True:
+            return (1 if stream >= threshold_1 and stream < threshold_2 else None)
+        elif strict_1 is False and strict_2 is False:
+            return (1 if stream >= threshold_1 and stream <= threshold_2 else None)
     elif orientation == 'out_of_band':
-        return (1 if stream < threshold_1 or stream > threshold_2 else None)
+        if strict_1 is True and strict_2 is True:
+            return (1 if stream < threshold_1 or stream > threshold_2 else None)
+        elif strict_1 is True and strict_2 is False:
+            return (1 if stream < threshold_1 or stream >= threshold_2 else None)
+        elif strict_1 is False and strict_2 is True:
+            return (1 if stream <= threshold_1 or stream > threshold_2 else None)
+        elif strict_1 is False and strict_2 is False:
+            return (1 if stream <= threshold_1 or stream >= threshold_2 else None)
 
 
 def denominator_stream(stream, threshold_1, threshold_2, orientation):
     # Args:
     #       stream (stream): data stream
-    #       threshold_1 (number or data stream): lower threshold (i.e. condition is stream < threshold_1)
-    #       threshold_2 (number or data stream): upper threshold (i.e. condition is stream > threshold_2)
+    #       threshold_1 (number or data stream): lower threshold of range
+    #       threshold_2 (number or data stream): upper threshold of range
     #       orientation (string): one of 'above', 'below', 'within_range', 'out_of_band'
+    # Returns:
+    #       stream which is 1 when the quantities compared in the specified condition are not None
+    #               and None otherwise
     if orientation == 'above':
         return (1 if stream is not None and threshold_2 is not None else None)
     elif orientation == 'below':

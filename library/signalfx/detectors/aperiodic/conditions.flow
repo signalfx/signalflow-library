@@ -1,14 +1,23 @@
 from signalfx.detectors.aperiodic import streams
 
-def generic_condition(stream, threshold_1, threshold_2, orientation, lasting, denominator_mode):
+def generic_condition(stream, threshold_1, threshold_2, orientation, lasting, denominator_mode,
+                      strict_1=True, strict_2=True):
     # Args:
     #       stream (stream): data stream
-    #       threshold_1 (number or data stream):
-    #       threshold_2 (number or data stream):
+    #       threshold_1 (number or data stream): lower threshold of range
+    #       threshold_2 (number or data stream): upper threshold of range
     #       orientation (string): one of 'above', 'below', 'within_range', 'out_of_band'
-    #       lasting (lasting):
+    #       lasting (lasting): percentage of duration required for condition to hold
     #       denominator_mode (string): one of 'observed', 'expected'
-    true_count = streams.numerator_stream(stream, threshold_1, threshold_2, orientation).count(over=lasting.duration)
+    #       strict_1 (boolean): whether inequalities involving threshold_1 should
+    #               be strict (optional, default=True)
+    #       strict_2 (boolean): whether inequalities involving threshold_2 should
+    #               be strict (optional, default=True)
+    # Returns:
+    #       boolean stream which is True when the specified condition has held for the specified
+    #               percentage of duration (and False otherwise)
+    true_count = streams.numerator_stream(stream, threshold_1, threshold_2, orientation,
+                                          strict_1=strict_1, strict_2=strict_2).count(over=lasting.duration)
     denominator = streams.denominator_stream(stream, threshold_1, threshold_2, orientation)
     if denominator_mode == 'observed':
         total_count = denominator.count(over=lasting.duration)
