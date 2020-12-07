@@ -1,0 +1,75 @@
+def quantile(metric_name, target_quantile, bin_edges, bin_edges_as_str=None,
+             roll_up='delta', dimension_key='upper_bound', filter_=None, group_by=None,
+             window=None, minimum_value=None):
+    # Estimates a specified quantile using a collection of (cumulative) counters which track
+    #   the number of items less than (or equal to) some thresholds (bin_edges)
+    # :param metric_name (string): name of metric of which a quantile is desired
+    # :param target_quantile (number): desired quantile (between 0 and 1, inclusive)
+    # :param bin_edges (list of numbers): histogram bin edges, in ascending order
+    # :param bin_edges_as_str (list of strings): string version of bin_edges, exposed to handle
+    #   possible discrepancy between dimension values (for dimension_key) and the result of
+    #   applying str() to items in bin_edges (e.g., 0.01 represented as '0.010000')
+    #   (optional, default=None will apply the str() function to the elements of bin_edges)
+    # :param roll_up (string): a valid rollup string, should be one of 'delta', 'sum';
+    #   use 'delta' for cumulative counter, 'sum' for counter data (optional, default='delta')
+    # :param dimension_key (string): name of dimension used to identify the metric as tracking
+    #   count of observations below a threshold; typically something like 'upper_bound' or 'leq'
+    #   (optional, default='upper_bound')
+    # :param filter_ (filter): additional filters to apply (optional, default=None does no
+    #   additional filtering)
+    # :param group_by (string or list of strings): additional dimensions/properties by which
+    #   to group the calculation (optional, default=None does no grouping)
+    # :param window (duration or string): window over which to calculate (optional, default=None
+    #   will calculate one timestamp at a time)
+    # :param minimum_value (number): value to use for interpolation with the first bin edge, in case
+    #   the desired quantile is smaller than the first bin edge (optional, default=None does no
+    #   interpolation and will use the smallest (i.e., first) element of bin_edges)
+    # :return:
+    #    stream object computing the desired quantile
+    assert (0 <= target_quantile and target_quantile <= 1)
+    len_bin_edges = len(bin_edges)
+    if bin_edges_as_str is None:
+        filters = [filter(dimension_key, str(bin_edge)) for bin_edge in bin_edges]
+    else:
+        assert len_bin_edges == len(bin_edges_as_str)
+        filters = [filter(dimension_key, str(bin_edge)) for bin_edge in bin_edges_as_str]
+    def _merge(s):
+        if filter_ is None:
+            return s
+        else:
+            return s and filter_
+    # unnormalized empirical distribution
+    __edf = [data(metric_name, rollup=roll_up, extrapolation='zero', filter=_merge(f)) for f in
+             filters]
+    if group_by is not None:
+        _edf = [__e.sum(by=group_by, allow_missing=group_by) for __e in __edf]
+    else:
+        _edf = __edf
+    if window is not None:
+        edf = [_e.sum(over=duration(window)) for _e in _edf]
+    else:
+        edf = _edf
+    target_count = edf[len_bin_edges - 1] * target_quantile
+    above_ = [(target_count - edf[i]) / (edf[i + 1] - edf[i]) * (
+                bin_edges[i + 1] - bin_edges[i]) +
+               bin_edges[i] if target_count >= edf[i] and target_count < edf[i + 1] else 0 for i in
+               range(len_bin_edges - 1)]
+    usual_interpolation = sum(*[x.fill(0) for x in above_])
+    some_data = edf[len_bin_edges - 1] > 0
+    use_max = target_count >= edf[len_bin_edges - 1]
+    use_min = target_count < edf[0] # implies edf[0] > 0
+    if minimum_value is None:
+        _min_val = bin_edges[0]
+    else:
+        _min_val = minimum_value
+    min_interp = (target_count / edf[0]) * (bin_edges[0] - _min_val) + _min_val
+    return None if not some_data else bin_edges[
+        len_bin_edges - 1] if use_max else usual_interpolation if not use_min else min_interp
+
+
+def percentile(metric_name, target_percentile, bin_edges, bin_edges_as_str=None,
+               roll_up='delta', dimension_key='upper_bound', filter_=None, group_by=None,
+               window=None, minimum_value=None):
+    return quantile(metric_name, target_percentile / 100.0, bin_edges, bin_edges_as_str=bin_edges_as_str,
+                    roll_up=roll_up, dimension_key=dimension_key, filter_=filter_,
+                    group_by=group_by, window=window, minimum_value=minimum_value)
