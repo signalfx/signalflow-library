@@ -19,9 +19,15 @@ V2_DEFAULT_GROUPBY = ['sf_environment', 'sf_service', 'sf_operation', 'sf_httpMe
 DEFAULT_ALLOW_MISSING = ['cluster', 'service', 'operation', 'httpMethod', 'kind']
 V2_DEFAULT_ALLOW_MISSING = ['sf_environment', 'sf_service', 'sf_operation', 'sf_httpMethod', 'sf_kind']
 
-PCTILE_TO_METRIC = {50: 'spans.duration.ns.median',
+PCTILE_TO_METRIC = {'count': 'spans.count',
+                    50: 'spans.duration.ns.median',
                     90: 'spans.duration.ns.p90',
                     99: 'spans.duration.ns.p99'}
+
+RESOURCE_TYPE_MAPPING = {
+    'service_operation': {'metric_names': PCTILE_TO_METRIC, 'group_by': V2_DEFAULT_GROUPBY,
+                          'allow_missing': V2_DEFAULT_ALLOW_MISSING,
+                          'error': {'true': V2_ERROR_TRUE, 'false': V2_ERROR_FALSE}}}
 
 
 def merge_filters(filter_, exclude_errors, use_kind_filter=True, custom_filter=None,

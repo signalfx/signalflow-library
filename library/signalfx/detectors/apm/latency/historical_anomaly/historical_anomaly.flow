@@ -10,7 +10,8 @@ def growth_rate(pctile=90, filter_=None, current_window=duration('5m'),
                 use_kind_filter=True, kind_filter=utils.KIND_FILTER,
                 exclude_errors_filter=utils.EXCLUDE_ERRORS_FILTER,
                 default_group_by=utils.DEFAULT_GROUPBY,
-                default_allow_missing=utils.DEFAULT_ALLOW_MISSING):
+                default_allow_missing=utils.DEFAULT_ALLOW_MISSING,
+                metric_names=utils.PCTILE_TO_METRIC):
     # Detect when latency grows by a specified amount relative to its historical baseline
     # :param pctile (number): percentile to monitor, one of 50, 90, 99, default=90
     # :param filter_ (filter): specifies dimensional scope of the detector, default=None
@@ -68,7 +69,8 @@ def growth_rate(pctile=90, filter_=None, current_window=duration('5m'),
                                       kind_filter=kind_filter,
                                       exclude_errors_filter=exclude_errors_filter,
                                       default_group_by=default_group_by,
-                                      default_allow_missing=default_allow_missing)
+                                      default_allow_missing=default_allow_missing,
+                                      metric_names=metric_names)
     hist = median(*[
         streams.pctile_over_window(pctile=pctile, filter_=filter_, window=historical_window_,
                                    exclude_errors=exclude_errors, group_by=group_by,
@@ -76,7 +78,8 @@ def growth_rate(pctile=90, filter_=None, current_window=duration('5m'),
                                    kind_filter=kind_filter,
                                    exclude_errors_filter=exclude_errors_filter,
                                    default_group_by=default_group_by,
-                                   default_allow_missing=default_allow_missing).timeshift(
+                                   default_allow_missing=default_allow_missing,
+                                   metric_names=metric_names).timeshift(
             cycle_length_ * i) for i in range(1, num_cycles + 1)])
     fire_threshold = hist * (1 + fire_growth_rate_threshold)
     clear_threshold = hist * (1 + clear_growth_rate_threshold)
@@ -104,7 +107,8 @@ def growth_rate(pctile=90, filter_=None, current_window=duration('5m'),
                                                    kind_filter=kind_filter,
                                                    exclude_errors_filter=exclude_errors_filter,
                                                    default_group_by=default_group_by,
-                                                   default_allow_missing=default_allow_missing)
+                                                   default_allow_missing=default_allow_missing,
+                                                   metric_names=metric_names)
     if volume_static_threshold is not None and volume_relative_threshold is not None:
         static = conditions.static_on_volume(current_window_,
                                              volume_static_threshold,
@@ -115,7 +119,8 @@ def growth_rate(pctile=90, filter_=None, current_window=duration('5m'),
                                              kind_filter=kind_filter,
                                              exclude_errors_filter=exclude_errors_filter,
                                              default_group_by=default_group_by,
-                                             default_allow_missing=default_allow_missing)
+                                             default_allow_missing=default_allow_missing,
+                                             metric_names=metric_names)
         relative = conditions.volume_ha(filter_=filter_, current_window=current_window_,
                                         historical_window=historical_window_,
                                         cycle_length=cycle_length_, num_cycles=num_cycles,
@@ -127,7 +132,8 @@ def growth_rate(pctile=90, filter_=None, current_window=duration('5m'),
                                         kind_filter=kind_filter,
                                         exclude_errors_filter=exclude_errors_filter,
                                         default_group_by=default_group_by,
-                                        default_allow_missing=default_allow_missing)
+                                        default_allow_missing=default_allow_missing,
+                                        metric_names=metric_names)
         on_ = static and relative['on'] and non_empty_cond
         off_ = relative['off'] and non_empty_cond
     elif volume_static_threshold is not None:
@@ -140,7 +146,8 @@ def growth_rate(pctile=90, filter_=None, current_window=duration('5m'),
                                              kind_filter=kind_filter,
                                              exclude_errors_filter=exclude_errors_filter,
                                              default_group_by=default_group_by,
-                                             default_allow_missing=default_allow_missing)
+                                             default_allow_missing=default_allow_missing,
+                                             metric_names=metric_names)
         on_ = static and non_empty_cond
         off_ = non_empty_cond
     elif volume_relative_threshold is not None:
@@ -155,7 +162,8 @@ def growth_rate(pctile=90, filter_=None, current_window=duration('5m'),
                                         kind_filter=kind_filter,
                                         exclude_errors_filter=exclude_errors_filter,
                                         default_group_by=default_group_by,
-                                        default_allow_missing=default_allow_missing)
+                                        default_allow_missing=default_allow_missing,
+                                        metric_names=metric_names)
         on_ = relative['on'] and non_empty_cond
         off_ = relative['off'] and non_empty_cond
     else:
@@ -179,7 +187,8 @@ def deviations_from_norm(filter_=None, current_window=duration('5m'),
                          use_kind_filter=True, kind_filter=utils.KIND_FILTER,
                          exclude_errors_filter=utils.EXCLUDE_ERRORS_FILTER,
                          default_group_by=utils.DEFAULT_GROUPBY,
-                         default_allow_missing=utils.DEFAULT_ALLOW_MISSING):
+                         default_allow_missing=utils.DEFAULT_ALLOW_MISSING,
+                         metric_names=utils.PCTILE_TO_METRIC):
     # Detect when latency is too many deviations from its historical norm
     # :param filter_ (filter): specifies dimensional scope of the detector, default=None
     # :param current_window (duration): window whose latency is evaluated for being too high,
@@ -233,7 +242,8 @@ def deviations_from_norm(filter_=None, current_window=duration('5m'),
                                              kind_filter=kind_filter,
                                              exclude_errors_filter=exclude_errors_filter,
                                              default_group_by=default_group_by,
-                                             default_allow_missing=default_allow_missing)
+                                             default_allow_missing=default_allow_missing,
+                                             metric_names=metric_names)
     historical_p50 = median(
         *[streams.pctile_over_window(pctile=50, filter_=filter_, window=historical_window_,
                                      exclude_errors=exclude_errors, group_by=group_by,
@@ -241,7 +251,8 @@ def deviations_from_norm(filter_=None, current_window=duration('5m'),
                                      kind_filter=kind_filter,
                                      exclude_errors_filter=exclude_errors_filter,
                                      default_group_by=default_group_by,
-                                     default_allow_missing=default_allow_missing).timeshift(
+                                     default_allow_missing=default_allow_missing,
+                                     metric_names=metric_names).timeshift(
             cycle_length_ * i) for i in range(1, num_cycles + 1)])
     historical_p90 = median(
         *[streams.pctile_over_window(pctile=90, filter_=filter_, window=historical_window_,
@@ -250,7 +261,8 @@ def deviations_from_norm(filter_=None, current_window=duration('5m'),
                                      kind_filter=kind_filter,
                                      exclude_errors_filter=exclude_errors_filter,
                                      default_group_by=default_group_by,
-                                     default_allow_missing=default_allow_missing).timeshift(
+                                     default_allow_missing=default_allow_missing,
+                                     metric_names=metric_names).timeshift(
             cycle_length_ * i) for i in range(1, num_cycles + 1)])
     hist_spread = historical_p90 - historical_p50
     fire_threshold = historical_p50 + fire_num_dev_threshold * hist_spread
@@ -278,7 +290,8 @@ def deviations_from_norm(filter_=None, current_window=duration('5m'),
                                                    kind_filter=kind_filter,
                                                    exclude_errors_filter=exclude_errors_filter,
                                                    default_group_by=default_group_by,
-                                                   default_allow_missing=default_allow_missing)
+                                                   default_allow_missing=default_allow_missing,
+                                                   metric_names=metric_names)
     if volume_static_threshold is not None and volume_relative_threshold is not None:
         static = conditions.static_on_volume(current_window_,
                                              volume_static_threshold,
@@ -289,7 +302,8 @@ def deviations_from_norm(filter_=None, current_window=duration('5m'),
                                              kind_filter=kind_filter,
                                              exclude_errors_filter=exclude_errors_filter,
                                              default_group_by=default_group_by,
-                                             default_allow_missing=default_allow_missing)
+                                             default_allow_missing=default_allow_missing,
+                                             metric_names=metric_names)
         relative = conditions.volume_ha(filter_=filter_, current_window=current_window_,
                                         historical_window=historical_window_,
                                         cycle_length=cycle_length_, num_cycles=num_cycles,
@@ -301,7 +315,8 @@ def deviations_from_norm(filter_=None, current_window=duration('5m'),
                                         kind_filter=kind_filter,
                                         exclude_errors_filter=exclude_errors_filter,
                                         default_group_by=default_group_by,
-                                        default_allow_missing=default_allow_missing)
+                                        default_allow_missing=default_allow_missing,
+                                        metric_names=metric_names)
         on_ = static and relative['on'] and non_empty_cond
         off_ = relative['off'] and non_empty_cond
     elif volume_static_threshold is not None:
@@ -314,7 +329,8 @@ def deviations_from_norm(filter_=None, current_window=duration('5m'),
                                              kind_filter=kind_filter,
                                              exclude_errors_filter=exclude_errors_filter,
                                              default_group_by=default_group_by,
-                                             default_allow_missing=default_allow_missing)
+                                             default_allow_missing=default_allow_missing,
+                                             metric_names=metric_names)
         on_ = static and non_empty_cond
         off_ = non_empty_cond
     elif volume_relative_threshold is not None:
@@ -329,7 +345,8 @@ def deviations_from_norm(filter_=None, current_window=duration('5m'),
                                         kind_filter=kind_filter,
                                         exclude_errors_filter=exclude_errors_filter,
                                         default_group_by=default_group_by,
-                                        default_allow_missing=default_allow_missing)
+                                        default_allow_missing=default_allow_missing,
+                                        metric_names=metric_names)
         on_ = relative['on'] and non_empty_cond
         off_ = relative['off'] and non_empty_cond
     else:

@@ -9,7 +9,8 @@ def detector(current_window=duration('5m'),
              kind_filter=utils.KIND_FILTER,
              error_true=utils.ERROR_TRUE, error_false=utils.ERROR_FALSE,
              default_group_by=utils.DEFAULT_GROUPBY,
-             default_allow_missing=utils.DEFAULT_ALLOW_MISSING, r_up='delta'):
+             default_allow_missing=utils.DEFAULT_ALLOW_MISSING, r_up='delta',
+             metric_names=utils.PCTILE_TO_METRIC):
     # Detect when error rate exceeds a static threshold
     # :param current_window (duration): window on which error rate is calculated,
     #                                      default=duration('5m')
@@ -37,7 +38,8 @@ def detector(current_window=duration('5m'),
                                  kind_filter=kind_filter,
                                  error_true=error_true, error_false=error_false,
                                  default_group_by=default_group_by,
-                                 default_allow_missing=default_allow_missing, r_up=r_up) * 100
+                                 default_allow_missing=default_allow_missing, r_up=r_up,
+                                 metric_names=metric_names) * 100
     fire_pct_threshold = fire_rate_threshold * 100
     fire_pct_threshold_stream = const(fire_pct_threshold)
     clear_pct_threshold_stream = const(clear_rate_threshold * 100)
@@ -55,7 +57,8 @@ def detector(current_window=duration('5m'),
                                           kind_filter=kind_filter,
                                           error_true=error_true, error_false=error_false,
                                           default_group_by=default_group_by,
-                                          default_allow_missing=default_allow_missing, r_up=r_up)
+                                          default_allow_missing=default_allow_missing, r_up=r_up,
+                                          metric_names=metric_names)
     return detect(when(err_pct > fire_pct_threshold_stream) and attempt_condition,
                   off=when(err_pct <= clear_pct_threshold_stream),
                   annotations=ann,

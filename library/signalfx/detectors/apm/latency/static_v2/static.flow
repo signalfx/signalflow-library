@@ -5,7 +5,8 @@ from signalfx.detectors.apm import utils
 def detector(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear_lasting=None,
              pctile=90, filter_=None, exclude_errors=True, group_by=None,
              volume_static_threshold=None, volume_relative_threshold=None,
-             volume_nonzero_required=0.1, use_ms=True, custom_filter=None):
+             volume_nonzero_required=0.1, use_ms=True, custom_filter=None,
+             resource_type='service_operation'):
      return static.detector(fire_threshold=fire_threshold, fire_lasting=fire_lasting,
                             clear_threshold=clear_threshold, clear_lasting=clear_lasting,
                             pctile=pctile, filter_=filter_, exclude_errors=exclude_errors,
@@ -15,6 +16,7 @@ def detector(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear
                             volume_nonzero_required=volume_nonzero_required, use_ms=use_ms,
                             custom_filter=custom_filter,
                             use_kind_filter=False, kind_filter=utils.V2_KIND_FILTER,
-                            exclude_errors_filter=utils.V2_EXCLUDE_ERRORS_FILTER,
-                            default_group_by=utils.V2_DEFAULT_GROUPBY,
-                            default_allow_missing=utils.V2_DEFAULT_ALLOW_MISSING)
+                            exclude_errors_filter=not utils.RESOURCE_TYPE_MAPPING[resource_type]['error']['true'],
+                            default_group_by=utils.RESOURCE_TYPE_MAPPING[resource_type]['group_by'],
+                            default_allow_missing=utils.RESOURCE_TYPE_MAPPING[resource_type]['allow_missing'],
+                            metric_names=utils.RESOURCE_TYPE_MAPPING[resource_type]['metric_names'])
