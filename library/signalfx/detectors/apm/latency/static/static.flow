@@ -9,7 +9,8 @@ def detector(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear
              use_kind_filter=True, kind_filter=utils.KIND_FILTER,
              exclude_errors_filter=utils.EXCLUDE_ERRORS_FILTER,
              default_group_by=utils.DEFAULT_GROUPBY,
-             default_allow_missing=utils.DEFAULT_ALLOW_MISSING):
+             default_allow_missing=utils.DEFAULT_ALLOW_MISSING,
+             metric_names=utils.PCTILE_TO_METRIC):
     # Detect when latency exceeds a specified static threshold for a specified percent of duration
     # :param fire_threshold (number): latency threshold required to trigger, expressed in
     #                   nanoseconds or milliseconds (see use_ms)
@@ -49,7 +50,8 @@ def detector(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear
                                    kind_filter=kind_filter,
                                    exclude_errors_filter=exclude_errors_filter,
                                    default_group_by=default_group_by,
-                                   default_allow_missing=default_allow_missing)
+                                   default_allow_missing=default_allow_missing,
+                                   metric_names=metric_names)
     fire_threshold_stream = const(fire_threshold)
     clear_threshold_stream = const(clear_threshold)
     ann = [annotate(d, 'latency', {'sfui_streamType': 'signal'}),
@@ -68,7 +70,8 @@ def detector(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear
                                                        kind_filter=kind_filter,
                                                        exclude_errors_filter=exclude_errors_filter,
                                                        default_group_by=default_group_by,
-                                                       default_allow_missing=default_allow_missing)
+                                                       default_allow_missing=default_allow_missing,
+                                                       metric_names=metric_names)
     if volume_static_threshold is not None and volume_relative_threshold is not None:
         static_ = conditions.static_on_volume(fire_lasting.duration,
                                               volume_static_threshold, filter_=filter_,
@@ -78,7 +81,8 @@ def detector(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear
                                               kind_filter=kind_filter,
                                               exclude_errors_filter=exclude_errors_filter,
                                               default_group_by=default_group_by,
-                                              default_allow_missing=default_allow_missing)
+                                              default_allow_missing=default_allow_missing,
+                                              metric_names=metric_names)
         relative = conditions.volume_sc(filter_=filter_, current_window=fire_lasting.duration,
                                         historical_window=5 * fire_lasting.duration,
                                         fire_threshold=volume_relative_threshold,
@@ -89,7 +93,8 @@ def detector(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear
                                         kind_filter=kind_filter,
                                         exclude_errors_filter=exclude_errors_filter,
                                         default_group_by=default_group_by,
-                                        default_allow_missing=default_allow_missing)['on']
+                                        default_allow_missing=default_allow_missing,
+                                        metric_names=metric_names)['on']
         on_ = static_ and relative and non_empty_cond
         off_ = relative and non_empty_cond
     elif volume_static_threshold is not None:
@@ -101,7 +106,8 @@ def detector(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear
                                               kind_filter=kind_filter,
                                               exclude_errors_filter=exclude_errors_filter,
                                               default_group_by=default_group_by,
-                                              default_allow_missing=default_allow_missing)
+                                              default_allow_missing=default_allow_missing,
+                                              metric_names=metric_names)
         on_ = static_ and non_empty_cond
         off_ = non_empty_cond
     elif volume_relative_threshold is not None:
@@ -115,7 +121,8 @@ def detector(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear
                                         kind_filter=kind_filter,
                                         exclude_errors_filter=exclude_errors_filter,
                                         default_group_by=default_group_by,
-                                        default_allow_missing=default_allow_missing)['on']
+                                        default_allow_missing=default_allow_missing,
+                                        metric_names=metric_names)['on']
         on_ = relative and non_empty_cond
         off_ = relative and non_empty_cond
     else:

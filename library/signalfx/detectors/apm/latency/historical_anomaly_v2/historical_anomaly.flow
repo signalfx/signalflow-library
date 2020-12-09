@@ -6,7 +6,8 @@ def growth_rate(pctile=90, filter_=None, current_window=duration('5m'),
                 historical_window=duration('1h'), cycle_length=duration('1w'), num_cycles=4,
                 fire_growth_rate_threshold=0.2, clear_growth_rate_threshold=0.1,
                 exclude_errors=True, group_by=None, volume_static_threshold=None,
-                volume_relative_threshold=None, vol_pctile_req_pos=95, custom_filter=None):
+                volume_relative_threshold=None, vol_pctile_req_pos=95, custom_filter=None,
+                resource_type='service_operation'):
     return historical_anomaly.growth_rate(pctile=pctile, filter_=filter_,
                                           current_window=current_window,
                                           historical_window=historical_window,
@@ -19,9 +20,16 @@ def growth_rate(pctile=90, filter_=None, current_window=duration('5m'),
                                           vol_pctile_req_pos=vol_pctile_req_pos,
                                           custom_filter=custom_filter,
                                           use_kind_filter=False, kind_filter=utils.V2_KIND_FILTER,
-                                          exclude_errors_filter=utils.V2_EXCLUDE_ERRORS_FILTER,
-                                          default_group_by=utils.V2_DEFAULT_GROUPBY,
-                                          default_allow_missing=utils.V2_DEFAULT_ALLOW_MISSING)
+                                          exclude_errors_filter=not
+                                          utils.RESOURCE_TYPE_MAPPING[resource_type]['error'][
+                                              'true'],
+                                          default_group_by=
+                                          utils.RESOURCE_TYPE_MAPPING[resource_type]['group_by'],
+                                          default_allow_missing=
+                                          utils.RESOURCE_TYPE_MAPPING[resource_type][
+                                              'allow_missing'],
+                                          metric_names=utils.RESOURCE_TYPE_MAPPING[resource_type][
+                                              'metric_names'])
 
 
 def deviations_from_norm(filter_=None, current_window=duration('5m'),
@@ -30,7 +38,7 @@ def deviations_from_norm(filter_=None, current_window=duration('5m'),
                          group_by=None,
                          fire_num_dev_threshold=3.5, clear_num_dev_threshold=3,
                          volume_static_threshold=None, volume_relative_threshold=None,
-                         vol_pctile_req_pos=95, custom_filter=None):
+                         vol_pctile_req_pos=95, custom_filter=None, resource_type='service_operation'):
     return historical_anomaly.deviations_from_norm(filter_=filter_, current_window=current_window,
                                                    historical_window=historical_window,
                                                    cycle_length=cycle_length, num_cycles=num_cycles,
@@ -44,6 +52,16 @@ def deviations_from_norm(filter_=None, current_window=duration('5m'),
                                                    custom_filter=custom_filter,
                                                    use_kind_filter=False,
                                                    kind_filter=utils.V2_KIND_FILTER,
-                                                   exclude_errors_filter=utils.V2_EXCLUDE_ERRORS_FILTER,
-                                                   default_group_by=utils.V2_DEFAULT_GROUPBY,
-                                                   default_allow_missing=utils.V2_DEFAULT_ALLOW_MISSING)
+                                                   exclude_errors_filter=not
+                                                   utils.RESOURCE_TYPE_MAPPING[resource_type][
+                                                       'error'][
+                                                       'true'],
+                                                   default_group_by=
+                                                   utils.RESOURCE_TYPE_MAPPING[resource_type][
+                                                       'group_by'],
+                                                   default_allow_missing=
+                                                   utils.RESOURCE_TYPE_MAPPING[resource_type][
+                                                       'allow_missing'],
+                                                   metric_names=
+                                                   utils.RESOURCE_TYPE_MAPPING[resource_type][
+                                                       'metric_names'])

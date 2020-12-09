@@ -7,7 +7,8 @@ def pctile_over_window(pctile=90, filter_=None, window=duration('5m'), exclude_e
                        kind_filter=utils.KIND_FILTER,
                        exclude_errors_filter=utils.EXCLUDE_ERRORS_FILTER,
                        default_group_by=utils.DEFAULT_GROUPBY,
-                       default_allow_missing=utils.DEFAULT_ALLOW_MISSING):
+                       default_allow_missing=utils.DEFAULT_ALLOW_MISSING,
+                       metric_names=utils.PCTILE_TO_METRIC):
     #
     #:param filter_:
     #:param pctile:
@@ -19,7 +20,7 @@ def pctile_over_window(pctile=90, filter_=None, window=duration('5m'), exclude_e
                                    custom_filter=custom_filter, kind_filter=kind_filter,
                                    exclude_errors_filter=exclude_errors_filter)
     gp_by = utils.merge_group_by_with_default(group_by, default=default_group_by)
-    metric_name = utils.PCTILE_TO_METRIC[pctile]
+    metric_name = metric_names[pctile]
     if use_ms is True:
         scale_by = 0.000001
     else:
@@ -41,13 +42,15 @@ def growth_rate_thresholds_sc(pctile=90, filter_=None, current_window=duration('
                               use_kind_filter=True, kind_filter=utils.KIND_FILTER,
                               exclude_errors_filter=utils.EXCLUDE_ERRORS_FILTER,
                               default_group_by=utils.DEFAULT_GROUPBY,
-                              default_allow_missing=utils.DEFAULT_ALLOW_MISSING):
+                              default_allow_missing=utils.DEFAULT_ALLOW_MISSING,
+                              metric_names=utils.PCTILE_TO_METRIC):
     hist = pctile_over_window(pctile=pctile, filter_=filter_, window=duration(historical_window),
                               exclude_errors=exclude_errors, group_by=group_by,
                               custom_filter=custom_filter, use_kind_filter=use_kind_filter,
                               kind_filter=kind_filter, exclude_errors_filter=exclude_errors_filter,
                               default_group_by=default_group_by,
-                              default_allow_missing=default_allow_missing).timeshift(duration(current_window))
+                              default_allow_missing=default_allow_missing,
+                              metric_names=metric_names).timeshift(duration(current_window))
     return {'fire_threshold': hist * (1 + fire_growth_rate_threshold),
             'clear_threshold': hist * (1 + clear_growth_rate_threshold)}
 
@@ -60,14 +63,16 @@ def growth_rate_thresholds_ha(pctile=90, filter_=None,
                               use_kind_filter=True, kind_filter=utils.KIND_FILTER,
                               exclude_errors_filter=utils.EXCLUDE_ERRORS_FILTER,
                               default_group_by=utils.DEFAULT_GROUPBY,
-                              default_allow_missing=utils.DEFAULT_ALLOW_MISSING):
+                              default_allow_missing=utils.DEFAULT_ALLOW_MISSING,
+                              metric_names=utils.PCTILE_TO_METRIC):
     hist = median(*[pctile_over_window(pctile=pctile, filter_=filter_, window=duration(
         historical_window), exclude_errors=exclude_errors, group_by=group_by,
                                        custom_filter=custom_filter, use_kind_filter=use_kind_filter,
                                        kind_filter=kind_filter,
                                        exclude_errors_filter=exclude_errors_filter,
                                        default_group_by=default_group_by,
-                                       default_allow_missing=default_allow_missing).timeshift(
+                                       default_allow_missing=default_allow_missing,
+                                       metric_names=metric_names).timeshift(
         duration(cycle_length) * i) for i in range(1, num_cycles + 1)])
     return {'fire_threshold': hist * (1 + fire_growth_rate_threshold),
             'clear_threshold': hist * (1 + clear_growth_rate_threshold)}
@@ -79,14 +84,16 @@ def deviations_from_norm_sc(filter_=None, current_window=duration('5m'),
                             use_kind_filter=True, kind_filter=utils.KIND_FILTER,
                             exclude_errors_filter=utils.EXCLUDE_ERRORS_FILTER,
                             default_group_by=utils.DEFAULT_GROUPBY,
-                            default_allow_missing=utils.DEFAULT_ALLOW_MISSING):
+                            default_allow_missing=utils.DEFAULT_ALLOW_MISSING,
+                            metric_names=utils.PCTILE_TO_METRIC):
     current_p50 = pctile_over_window(pctile=50, filter_=filter_, window=duration(current_window),
                                      exclude_errors=exclude_errors, group_by=group_by,
                                      custom_filter=custom_filter, use_kind_filter=use_kind_filter,
                                      kind_filter=kind_filter,
                                      exclude_errors_filter=exclude_errors_filter,
                                      default_group_by=default_group_by,
-                                     default_allow_missing=default_allow_missing)
+                                     default_allow_missing=default_allow_missing,
+                                     metric_names=metric_names)
     historical_p50 = pctile_over_window(pctile=50, filter_=filter_,
                                         window=duration(historical_window),
                                         exclude_errors=exclude_errors, group_by=group_by,
@@ -95,7 +102,8 @@ def deviations_from_norm_sc(filter_=None, current_window=duration('5m'),
                                         kind_filter=kind_filter,
                                         exclude_errors_filter=exclude_errors_filter,
                                         default_group_by=default_group_by,
-                                        default_allow_missing=default_allow_missing).timeshift(
+                                        default_allow_missing=default_allow_missing,
+                                        metric_names=metric_names).timeshift(
         duration(current_window))
     historical_p90 = pctile_over_window(pctile=90, filter_=filter_,
                                         window=duration(historical_window),
@@ -105,7 +113,8 @@ def deviations_from_norm_sc(filter_=None, current_window=duration('5m'),
                                         kind_filter=kind_filter,
                                         exclude_errors_filter=exclude_errors_filter,
                                         default_group_by=default_group_by,
-                                        default_allow_missing=default_allow_missing).timeshift(
+                                        default_allow_missing=default_allow_missing,
+                                        metric_names=metric_names).timeshift(
         duration(current_window))
     hist_spread = historical_p90 - historical_p50
     return (current_p50 - historical_p50) / hist_spread
@@ -119,14 +128,16 @@ def deviations_from_norm_ha(filter_, current_window=duration('5m'),
                             use_kind_filter=True, kind_filter=utils.KIND_FILTER,
                             exclude_errors_filter=utils.EXCLUDE_ERRORS_FILTER,
                             default_group_by=utils.DEFAULT_GROUPBY,
-                            default_allow_missing=utils.DEFAULT_ALLOW_MISSING):
+                            default_allow_missing=utils.DEFAULT_ALLOW_MISSING,
+                            metric_names=utils.PCTILE_TO_METRIC):
     current_p50 = pctile_over_window(pctile=50, filter_=filter_, window=duration(current_window),
                                      exclude_errors=exclude_errors, group_by=group_by,
                                      custom_filter=custom_filter, use_kind_filter=use_kind_filter,
                                      kind_filter=kind_filter,
                                      exclude_errors_filter=exclude_errors_filter,
                                      default_group_by=default_group_by,
-                                     default_allow_missing=default_allow_missing)
+                                     default_allow_missing=default_allow_missing,
+                                     metric_names=metric_names)
     historical_p50 = median(
         *[pctile_over_window(pctile=50, filter_=filter_, window=duration(historical_window),
                              exclude_errors=exclude_errors, group_by=group_by,
@@ -134,7 +145,8 @@ def deviations_from_norm_ha(filter_, current_window=duration('5m'),
                              kind_filter=kind_filter,
                              exclude_errors_filter=exclude_errors_filter,
                              default_group_by=default_group_by,
-                             default_allow_missing=default_allow_missing).timeshift(
+                             default_allow_missing=default_allow_missing,
+                             metric_names=metric_names).timeshift(
             duration(cycle_length) * i) for i in range(1, num_cycles + 1)])
     historical_p90 = median(
         *[pctile_over_window(pctile=90, filter_=filter_, window=duration(historical_window),
@@ -143,7 +155,8 @@ def deviations_from_norm_ha(filter_, current_window=duration('5m'),
                              kind_filter=kind_filter,
                              exclude_errors_filter=exclude_errors_filter,
                              default_group_by=default_group_by,
-                             default_allow_missing=default_allow_missing).timeshift(
+                             default_allow_missing=default_allow_missing,
+                             metric_names=metric_names).timeshift(
             duration(cycle_length) * i) for i in range(1, num_cycles + 1)])
     hist_spread = historical_p90 - historical_p50
     return (current_p50 - historical_p50) / hist_spread
@@ -154,7 +167,8 @@ def volume(filter_=None, window=duration('5m'), exclude_errors=True, use_trimmed
            group_by=None, custom_filter=None, use_kind_filter=True, kind_filter=utils.KIND_FILTER,
            exclude_errors_filter=utils.EXCLUDE_ERRORS_FILTER,
            default_group_by=utils.DEFAULT_GROUPBY,
-           default_allow_missing=utils.DEFAULT_ALLOW_MISSING):
+           default_allow_missing=utils.DEFAULT_ALLOW_MISSING,
+           metric_names=utils.PCTILE_TO_METRIC):
     #
     # :param filter_:
     # :param window:
@@ -167,7 +181,7 @@ def volume(filter_=None, window=duration('5m'), exclude_errors=True, use_trimmed
                                    custom_filter=custom_filter, kind_filter=kind_filter,
                                    exclude_errors_filter=exclude_errors_filter)
     gp_by = utils.merge_group_by_with_default(group_by, default=default_group_by)
-    vol = data('spans.count', filter=filter__, rollup='rate').sum(by=gp_by,
+    vol = data(metric_names['count'], filter=filter__, rollup='rate').sum(by=gp_by,
                                                                   allow_missing=default_allow_missing)
     if window is None:
         return vol
@@ -185,7 +199,8 @@ def volumes_sc(filter_=None, current_window=duration('5m'), historical_window=du
                use_kind_filter=True, kind_filter=utils.KIND_FILTER,
                exclude_errors_filter=utils.EXCLUDE_ERRORS_FILTER,
                default_group_by=utils.DEFAULT_GROUPBY,
-               default_allow_missing=utils.DEFAULT_ALLOW_MISSING):
+               default_allow_missing=utils.DEFAULT_ALLOW_MISSING,
+               metric_names=utils.PCTILE_TO_METRIC):
     return {'current': volume(filter_=filter_, window=duration(current_window),
                               exclude_errors=exclude_errors, use_trimmed_mean=use_trimmed_mean,
                               pctile=pctile, group_by=group_by, custom_filter=custom_filter,
@@ -193,7 +208,8 @@ def volumes_sc(filter_=None, current_window=duration('5m'), historical_window=du
                               kind_filter=kind_filter,
                               exclude_errors_filter=exclude_errors_filter,
                               default_group_by=default_group_by,
-                              default_allow_missing=default_allow_missing),
+                              default_allow_missing=default_allow_missing,
+                              metric_names=metric_names),
             'historical': volume(filter_=filter_, window=duration(historical_window),
                                  exclude_errors=exclude_errors, use_trimmed_mean=use_trimmed_mean,
                                  pctile=pctile, group_by=group_by,
@@ -202,7 +218,8 @@ def volumes_sc(filter_=None, current_window=duration('5m'), historical_window=du
                                  kind_filter=kind_filter,
                                  exclude_errors_filter=exclude_errors_filter,
                                  default_group_by=default_group_by,
-                                 default_allow_missing=default_allow_missing).timeshift(
+                                 default_allow_missing=default_allow_missing,
+                                 metric_names=metric_names).timeshift(
                 duration(current_window))}
 
 
@@ -212,7 +229,8 @@ def volumes_ha(filter_=None, current_window=duration('5m'), historical_window=du
                use_kind_filter=True, kind_filter=utils.KIND_FILTER,
                exclude_errors_filter=utils.EXCLUDE_ERRORS_FILTER,
                default_group_by=utils.DEFAULT_GROUPBY,
-               default_allow_missing=utils.DEFAULT_ALLOW_MISSING):
+               default_allow_missing=utils.DEFAULT_ALLOW_MISSING,
+               metric_names=utils.PCTILE_TO_METRIC):
     h = median(*[
         volume(filter_=filter_, window=duration(historical_window),
                exclude_errors=exclude_errors, use_trimmed_mean=use_trimmed_mean,
@@ -221,7 +239,8 @@ def volumes_ha(filter_=None, current_window=duration('5m'), historical_window=du
                kind_filter=kind_filter,
                exclude_errors_filter=exclude_errors_filter,
                default_group_by=default_group_by,
-               default_allow_missing=default_allow_missing).timeshift(
+               default_allow_missing=default_allow_missing,
+               metric_names=metric_names).timeshift(
             duration(cycle_length) * i) for i in range(1, num_cycles + 1)])
     return {'current': volume(filter_=filter_, window=duration(current_window),
                               exclude_errors=exclude_errors, use_trimmed_mean=use_trimmed_mean,
@@ -230,5 +249,6 @@ def volumes_ha(filter_=None, current_window=duration('5m'), historical_window=du
                               kind_filter=kind_filter,
                               exclude_errors_filter=exclude_errors_filter,
                               default_group_by=default_group_by,
-                              default_allow_missing=default_allow_missing),
+                              default_allow_missing=default_allow_missing,
+                              metric_names=metric_names),
             'historical': h}
