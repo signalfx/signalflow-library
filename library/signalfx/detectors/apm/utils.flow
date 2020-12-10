@@ -25,9 +25,27 @@ PCTILE_TO_METRIC = {'count': 'spans.count',
                     99: 'spans.duration.ns.p99'}
 
 RESOURCE_TYPE_MAPPING = {
-    'service_operation': {'metric_names': PCTILE_TO_METRIC, 'group_by': V2_DEFAULT_GROUPBY,
+    'service_operation': {'metric_names': PCTILE_TO_METRIC,
+                          'group_by': V2_DEFAULT_GROUPBY,
                           'allow_missing': V2_DEFAULT_ALLOW_MISSING,
-                          'error': {'true': V2_ERROR_TRUE, 'false': V2_ERROR_FALSE}}}
+                          'error': {'true': V2_ERROR_TRUE,
+                                    'false': V2_ERROR_FALSE}},
+    'service': {'metric_names': {'count': 'service.request.count',
+                                 50: 'service.request.duration.ns.median',
+                                 90: 'service.request.duration.ns.p90',
+                                 99: 'service.request.duration.ns.p99'},
+                'group_by': ['sf_environment', 'sf_service'],
+                'allow_missing': ['sf_environment', 'sf_service'],
+                'error': {'true': V2_ERROR_TRUE,
+                          'false': V2_ERROR_FALSE}},
+    'workflow': {'metric_names': {'count': 'workflows.count',
+                                  50: 'workflows.duration.ns.median',
+                                  90: 'workflows.duration.ns.p90',
+                                  99: 'workflows.duration.ns.p99'},
+                 'group_by': ['sf_environment', 'sf_workflow'],
+                 'allow_missing': ['sf_environment', 'sf_workflow'],
+                 'error': {'true': V2_ERROR_TRUE,
+                           'false': V2_ERROR_FALSE}}}
 
 
 def merge_filters(filter_, exclude_errors, use_kind_filter=True, custom_filter=None,
