@@ -1,0 +1,15 @@
+from signalfx.detectors.apm.latency.static_v2 import static
+
+
+def detector(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear_lasting=None,
+             pctile=90, filter_=None, exclude_errors=True, group_by=None,
+             volume_static_threshold=None, volume_relative_threshold=None,
+             volume_nonzero_required=0.1, use_ms=True, custom_filter=None):
+    return static.detector(fire_threshold=fire_threshold, fire_lasting=fire_lasting,
+                           clear_threshold=clear_threshold, clear_lasting=clear_lasting,
+                           pctile=pctile, filter_=filter_, exclude_errors=exclude_errors,
+                           group_by=group_by,
+                           volume_static_threshold=volume_static_threshold,
+                           volume_relative_threshold=volume_relative_threshold,
+                           volume_nonzero_required=volume_nonzero_required, use_ms=use_ms,
+                           custom_filter=custom_filter, resource_type='workflow')

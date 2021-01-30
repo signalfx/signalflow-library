@@ -1,0 +1,41 @@
+from signalfx.detectors.apm.latency.historical_anomaly_v2 import historical_anomaly
+
+
+def growth_rate(pctile=90, filter_=None, current_window=duration('5m'),
+                historical_window=duration('1h'), cycle_length=duration('1w'), num_cycles=4,
+                fire_growth_rate_threshold=0.2, clear_growth_rate_threshold=0.1,
+                exclude_errors=True, group_by=None, volume_static_threshold=None,
+                volume_relative_threshold=None, vol_pctile_req_pos=95, custom_filter=None):
+    return historical_anomaly.growth_rate(pctile=pctile, filter_=filter_,
+                                          current_window=current_window,
+                                          historical_window=historical_window,
+                                          cycle_length=cycle_length, num_cycles=num_cycles,
+                                          fire_growth_rate_threshold=fire_growth_rate_threshold,
+                                          clear_growth_rate_threshold=clear_growth_rate_threshold,
+                                          exclude_errors=exclude_errors, group_by=group_by,
+                                          volume_static_threshold=volume_static_threshold,
+                                          volume_relative_threshold=volume_relative_threshold,
+                                          vol_pctile_req_pos=vol_pctile_req_pos,
+                                          custom_filter=custom_filter,
+                                          resource_type='workflow')
+
+
+def deviations_from_norm(filter_=None, current_window=duration('5m'),
+                         historical_window=duration('1h'),
+                         cycle_length=duration('1w'), num_cycles=4, exclude_errors=True,
+                         group_by=None,
+                         fire_num_dev_threshold=3.5, clear_num_dev_threshold=3,
+                         volume_static_threshold=None, volume_relative_threshold=None,
+                         vol_pctile_req_pos=95, custom_filter=None):
+    return historical_anomaly.deviations_from_norm(filter_=filter_, current_window=current_window,
+                                                   historical_window=historical_window,
+                                                   cycle_length=cycle_length, num_cycles=num_cycles,
+                                                   exclude_errors=exclude_errors,
+                                                   group_by=group_by,
+                                                   fire_num_dev_threshold=fire_num_dev_threshold,
+                                                   clear_num_dev_threshold=clear_num_dev_threshold,
+                                                   volume_static_threshold=volume_static_threshold,
+                                                   volume_relative_threshold=volume_relative_threshold,
+                                                   vol_pctile_req_pos=vol_pctile_req_pos,
+                                                   custom_filter=custom_filter,
+                                                   resource_type='workflow')
