@@ -6,7 +6,7 @@ def detector(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear
              pctile=90, filter_=None, exclude_errors=True, group_by=None,
              volume_static_threshold=None, volume_relative_threshold=None,
              volume_nonzero_required=0.1, use_ms=True, custom_filter=None,
-             resource_type='service_operation'):
+             resource_type='service_operation', auto_resolve_after=None):
      return static.detector(fire_threshold=fire_threshold, fire_lasting=fire_lasting,
                             clear_threshold=clear_threshold, clear_lasting=clear_lasting,
                             pctile=pctile, filter_=filter_, exclude_errors=exclude_errors,
@@ -19,4 +19,5 @@ def detector(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear
                             exclude_errors_filter=not utils.RESOURCE_TYPE_MAPPING[resource_type]['error']['true'],
                             default_group_by=utils.RESOURCE_TYPE_MAPPING[resource_type]['group_by'],
                             default_allow_missing=utils.RESOURCE_TYPE_MAPPING[resource_type]['allow_missing'],
-                            metric_names=utils.RESOURCE_TYPE_MAPPING[resource_type]['metric_names'])
+                            metric_names=utils.RESOURCE_TYPE_MAPPING[resource_type]['metric_names'],
+                            auto_resolve_after=auto_resolve_after)

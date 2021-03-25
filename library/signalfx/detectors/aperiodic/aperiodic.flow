@@ -11,7 +11,7 @@ from signalfx.detectors.aperiodic import conditions
 
 def generic_detector(stream, threshold_1, threshold_2, orientation, observed_lasting,
                      expected_lasting=None, annotations=None, event_annotations=None,
-                     strict_1=True, strict_2=True):
+                     strict_1=True, strict_2=True, auto_resolve_after=None):
     # Args:
     #       stream (stream): data stream
     #       threshold_1 (number or data stream): lower threshold of range
@@ -32,7 +32,7 @@ def generic_detector(stream, threshold_1, threshold_2, orientation, observed_las
         return detect(conditions.generic_condition(stream, threshold_1, threshold_2, orientation, observed_lasting,
                                         denominator_mode='observed', strict_1=strict_1,
                                                    strict_2=strict_2), annotations=annotations,
-                      event_annotations=event_annotations)
+                      event_annotations=event_annotations, auto_resolve_after=auto_resolve_after)
     else:
         return detect(conditions.generic_condition(stream, threshold_1, threshold_2, orientation,
                                                    observed_lasting,
@@ -42,12 +42,12 @@ def generic_detector(stream, threshold_1, threshold_2, orientation, observed_las
             orientation, expected_lasting,
             denominator_mode='expected', strict_1=strict_1,
             strict_2=strict_2),
-                      annotations=annotations, event_annotations=event_annotations)
+                      annotations=annotations, event_annotations=event_annotations, auto_resolve_after=auto_resolve_after)
 
 
 def above_or_below_detector(stream, threshold, orientation, observed_lasting,
                             expected_lasting=None, annotations=None, event_annotations=None,
-                            strict=True):
+                            strict=True, auto_resolve_after=None):
     # fires when (stream > (or <) threshold is true in observed_lasting.duration) / (observed data points in
     #    observed.duration) is larger than observed_lasting.at_least, and (stream > (or <) threshold is
     #    true in expected_lasting.duration) / (expected data points in expected_lasting.duration)
@@ -65,12 +65,12 @@ def above_or_below_detector(stream, threshold, orientation, observed_lasting,
     #       detect block for the condition specified by the inputs
     return generic_detector(stream, threshold, threshold, orientation, observed_lasting,
                             expected_lasting=expected_lasting, annotations=annotations,
-                            event_annotations=event_annotations, strict_1=strict, strict_2=strict)
+                            event_annotations=event_annotations, strict_1=strict, strict_2=strict, auto_resolve_after=auto_resolve_after)
 
 
 def range_detector(stream, lower_threshold, upper_threshold, orientation, observed_lasting,
                    expected_lasting=None, annotations=None, event_annotations=None,
-                   lower_strict=True, upper_strict=True):
+                   lower_strict=True, upper_strict=True, auto_resolve_after=None):
     # fires when (range condition is true in observed_lasting.duration) / (observed data points in
     #    observed.duration) is larger than observed_lasting.at_least, and (range condition is
     #    true in expected_lasting.duration) / (expected data points in expected_lasting.duration)
@@ -93,7 +93,7 @@ def range_detector(stream, lower_threshold, upper_threshold, orientation, observ
     return generic_detector(stream, lower_threshold, upper_threshold, orientation, observed_lasting,
                             expected_lasting=expected_lasting, annotations=annotations,
                             event_annotations=event_annotations, strict_1=lower_strict,
-                            strict_2=upper_strict)
+                            strict_2=upper_strict, auto_resolve_after=auto_resolve_after)
 
 
 def generic_detector_with_clear(stream, fire_threshold_1, fire_threshold_2, fire_orientation,
@@ -101,7 +101,8 @@ def generic_detector_with_clear(stream, fire_threshold_1, fire_threshold_2, fire
                                 clear_observed_lasting, fire_expected_lasting=None, clear_expected_lasting=None,
                                 mode='paired', annotations=None, event_annotations=None,
                                 fire_strict_1=True, fire_strict_2=True,
-                                clear_strict_1=True, clear_strict_2=True):
+                                clear_strict_1=True, clear_strict_2=True,
+                                auto_resolve_after=None):
     # Args:
     #       stream (stream): data stream
     #       fire_threshold_1 (number or data stream): lower threshold of fire range
@@ -158,14 +159,14 @@ def generic_detector_with_clear(stream, fire_threshold_1, fire_threshold_2, fire
             stream, clear_threshold_1, clear_threshold_2, clear_orientation,
             clear_expected_lasting, denominator_mode='expected', strict_1=clear_strict_1,
             strict_2=clear_strict_2)
-    return detect(fire_condition, off=clear_condition, mode=mode, annotations=annotations, event_annotations=event_annotations)
+    return detect(fire_condition, off=clear_condition, mode=mode, annotations=annotations, event_annotations=event_annotations, auto_resolve_after=auto_resolve_after)
 
 
 def above_or_below_detector_with_clear(stream, fire_threshold, fire_observed_lasting,
                                        clear_threshold, clear_observed_lasting, orientation,
                                        fire_expected_lasting=None, clear_expected_lasting=None,
                                        mode='paired', annotations=None, event_annotations=None,
-                                       fire_strict=True, clear_strict=True):
+                                       fire_strict=True, clear_strict=True, auto_resolve_after=None):
     # Args:
     #       stream (stream): data stream
     #       fire_threshold (number or data stream): fire threshold against which stream is compared
@@ -194,7 +195,8 @@ def above_or_below_detector_with_clear(stream, fire_threshold, fire_observed_las
                                        clear_expected_lasting=clear_expected_lasting, mode=mode,
                                        annotations=annotations, event_annotations=event_annotations,
                                        fire_strict_1=fire_strict, fire_strict_2=fire_strict,
-                                       clear_strict_1=clear_strict, clear_strict_2=clear_strict)
+                                       clear_strict_1=clear_strict, clear_strict_2=clear_strict,
+                                       auto_resolve_after=auto_resolve_after)
 
 
 def range_detector_with_clear(stream, fire_lower_threshold, fire_upper_threshold,
@@ -203,7 +205,8 @@ def range_detector_with_clear(stream, fire_lower_threshold, fire_upper_threshold
                               orientation, fire_expected_lasting=None, clear_expected_lasting=None,
                               mode='paired', annotations=None, event_annotations=None,
                               fire_lower_strict=True, fire_upper_strict=True,
-                              clear_lower_strict=True, clear_upper_strict=True):
+                              clear_lower_strict=True, clear_upper_strict=True,
+                              auto_resolve_after=None):
     # Args:
     #       stream (stream): data stream
     #       fire_lower_threshold (number or data stream): lower threshold of fire range
@@ -246,36 +249,39 @@ def range_detector_with_clear(stream, fire_lower_threshold, fire_upper_threshold
                                        fire_strict_1=fire_lower_strict,
                                        fire_strict_2=fire_upper_strict,
                                        clear_strict_1=clear_lower_strict,
-                                       clear_strict_2=clear_upper_strict)
+                                       clear_strict_2=clear_upper_strict,
+                                       auto_resolve_after=auto_resolve_after)
 
 
-def one_sided_detector(stream1, stream2, lasting, strict=True):
+def one_sided_detector(stream1, stream2, lasting, strict=True, auto_resolve_after=None):
     # detects when "stream1 >(=) stream2 for lasting", ignoring missing values
-    return generic_detector(stream1, None, stream2, 'above', lasting, strict_2=strict)
+    return generic_detector(stream1, None, stream2, 'above', lasting, strict_2=strict, auto_resolve_after=auto_resolve_after)
 
 
 def one_sided_detector_with_clear(stream, fire_threshold, fire_lasting, clear_threshold,
-                                  clear_lasting, fire_strict=True, clear_strict=True):
+                                  clear_lasting, fire_strict=True, clear_strict=True,
+                                  auto_resolve_after=None):
     # fires when "stream >(=) fire_threshold for fire_lasting",
     # clears when "stream <(=) clear_threshold for clear_lasting",
     # both ignoring missing values
     return generic_detector_with_clear(stream, None, fire_threshold, 'above', fire_lasting, clear_threshold, 
                                        None, 'below', clear_lasting, fire_strict_2=fire_strict,
-                                       clear_strict_1=clear_strict)
+                                       clear_strict_1=clear_strict, auto_resolve_after=auto_resolve_after)
 
 
 def two_sided_detector(stream, upper_stream, lower_stream, lasting, upper_strict=True,
-                       lower_strict=True):
+                       lower_strict=True, auto_resolve_after=None):
     # detects when "stream >(=) upper_stream OR stream <(=) lower_stream for lasting",
     # ignoring missing values
     return generic_detector(stream, lower_stream, upper_stream, 'out_of_band', lasting,
-                            strict_1=lower_strict, strict_2=upper_strict)
+                            strict_1=lower_strict, strict_2=upper_strict, auto_resolve_after=auto_resolve_after)
 
 
 def two_sided_detector_with_clear(stream, fire_upper_stream, fire_lower_stream, fire_lasting,
                                   clear_upper_stream, clear_lower_stream, clear_lasting,
                                   fire_upper_strict=True, fire_lower_strict=True,
-                                  clear_upper_strict=True, clear_lower_strict=True):
+                                  clear_upper_strict=True, clear_lower_strict=True,
+                                  auto_resolve_after=None):
     # detects when "stream >(=) fire_upper_stream OR stream <(=) fire_lower_stream for fire_lasting",
     # clears when "stream <(=) clear_upper_stream AND stream >(=) clear_lower_stream for clear_lasting",
     # ignoring missing values
@@ -283,12 +289,12 @@ def two_sided_detector_with_clear(stream, fire_upper_stream, fire_lower_stream, 
                                        fire_lasting, clear_lower_stream, clear_upper_stream, 'within_range', 
                                        clear_lasting, fire_strict_1=fire_lower_strict,
                                        fire_strict_2=fire_upper_strict, clear_strict_1=clear_lower_strict,
-                                       clear_strict_2=clear_upper_strict)
+                                       clear_strict_2=clear_upper_strict, auto_resolve_after=auto_resolve_after)
 
 
 def generic_one_sided_detector_with_clear(fire_stream1, fire_stream2, fire_lasting, clear_stream1,
                                           clear_stream2, clear_lasting, fire_strict=True,
-                                          clear_strict=True):
+                                          clear_strict=True, auto_resolve_after=None):
     # detects when "fire_stream1 >(=) fire_stream2 for fire_lasting",
     # clears when "clear_stream1 >(=) clear_stream2 for clear_lasting",
     # both ignoring missing values
@@ -298,7 +304,7 @@ def generic_one_sided_detector_with_clear(fire_stream1, fire_stream2, fire_lasti
     clear_condition = conditions.generic_condition(clear_stream1, None, clear_stream2, 'above',
                                                    clear_lasting, denominator_mode='observed',
                                                    strict_2=clear_strict)
-    return detect(fire_condition, off=clear_condition)
+    return detect(fire_condition, off=clear_condition, auto_resolve_after=auto_resolve_after)
 
 
 

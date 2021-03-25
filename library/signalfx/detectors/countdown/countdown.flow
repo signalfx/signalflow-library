@@ -10,7 +10,8 @@ from signalfx.detectors.countdown import streams
 def hours_left_stream_detector(stream, minimum_value=0, lower_threshold=24,
                                fire_lasting=lasting('10m', 1.0),
                                clear_threshold=36, clear_lasting=lasting('10m', 1.0),
-                               use_double_ewma=False, damping=1.0, increment_size=duration('1m')):
+                               use_double_ewma=False, damping=1.0, increment_size=duration('1m'),
+                               auto_resolve_after=None):
     # Args:
     #     stream: data stream, assumed to be decreasing
     #     minimum_value (number): value at which stream is considered empty (optional, default=0)
@@ -43,7 +44,7 @@ def hours_left_stream_detector(stream, minimum_value=0, lower_threshold=24,
                                                 clear_threshold=clear_threshold * duration('1h'),
                                                 clear_lasting=clear_lasting,
                                                 damping=damping,
-                                                use_durations=True)
+                                                use_durations=True, auto_resolve_after=auto_resolve_after)
     else:
         diff = stream - minimum_value
         hours_left = streams.hours_left_stream(diff, increment_size=increment_size,
@@ -66,7 +67,7 @@ def hours_left_stream_detector(stream, minimum_value=0, lower_threshold=24,
         return detect(when(hours_left < lower_threshold_signal, fire_lasting),
                       when(hours_left > clear_threshold_signal, clear_lasting),
                       mode='split',
-                      annotations=annotations)
+                      annotations=annotations, auto_resolve_after=auto_resolve_after)
 
 
 def hours_left_stream_incr_detector(stream, maximum_capacity, lower_threshold=24,
@@ -74,7 +75,7 @@ def hours_left_stream_incr_detector(stream, maximum_capacity, lower_threshold=24
                                     clear_threshold=36, clear_lasting=lasting('10m', 1.0),
                                     use_double_ewma=False,
                                     damping=1.0,
-                                    increment_size=duration('1m')):
+                                    increment_size=duration('1m'), auto_resolve_after=None):
     # Args:
     #     stream: data stream, assumed to be increasing
     #     maximum_capacity (number): value at which stream is exhausted,
@@ -103,7 +104,7 @@ def hours_left_stream_incr_detector(stream, maximum_capacity, lower_threshold=24
                                                 clear_threshold=clear_threshold * duration('1h'),
                                                 clear_lasting=clear_lasting,
                                                 damping=damping,
-                                                use_durations=True)
+                                                use_durations=True, auto_resolve_after=auto_resolve_after)
     else:
         diff = maximum_capacity - stream
         return hours_left_stream_detector(diff,
@@ -111,7 +112,8 @@ def hours_left_stream_incr_detector(stream, maximum_capacity, lower_threshold=24
                                           fire_lasting=fire_lasting,
                                           clear_threshold=clear_threshold,
                                           clear_lasting=clear_lasting,
-                                          increment_size=increment_size)
+                                          increment_size=increment_size,
+                                          auto_resolve_after=auto_resolve_after)
 
 
 def hours_left_stream_dewma_detector(stream, stream_threshold=0,
@@ -121,7 +123,7 @@ def hours_left_stream_dewma_detector(stream, stream_threshold=0,
                                      clear_threshold=duration('36h'),
                                      clear_lasting=lasting('10m', 1.0),
                                      alpha=0.1, beta=0.1, damping=1.0,
-                                     use_durations=False):
+                                     use_durations=False, auto_resolve_after=None):
     # Args:
     #     stream: data stream, assumed to be decreasing
     #     stream_threshold (number): value at which stream is considered empty or full (optional, default=0)
@@ -196,13 +198,15 @@ def hours_left_stream_dewma_detector(stream, stream_threshold=0,
             hours_left >= 0 or hours_left < 0 or hours_left is None),
                       when(clear_forecast > threshold_signal_above, clear_lasting) and (
                           hours_left >= 0 or hours_left < 0 or hours_left is None),
-                      mode='split', annotations=annotations, event_annotations=event_annotations)
+                      mode='split', annotations=annotations, event_annotations=event_annotations,
+                      auto_resolve_after=auto_resolve_after)
     elif orientation == 'to_capacity':
         return detect(when(fire_forecast > threshold_signal_above, fire_lasting) and (
             hours_left >= 0 or hours_left < 0 or hours_left is None),
                       when(clear_forecast < threshold_signal_below, clear_lasting) and (
                       hours_left >= 0 or hours_left < 0 or hours_left is None),
-                      mode='split', annotations=annotations, event_annotations=event_annotations)
+                      mode='split', annotations=annotations, event_annotations=event_annotations,
+                      auto_resolve_after=auto_resolve_after)
 
 
 hours_left_stream = streams.hours_left_stream

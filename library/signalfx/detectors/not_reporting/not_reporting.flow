@@ -9,7 +9,7 @@
 # @author joe
 
 
-def detector(stream, resource_identifier=None, duration=duration('15m')):
+def detector(stream, resource_identifier=None, duration=duration('15m'), auto_resolve_after=None):
     # Args:
     #     stream: data stream to monitor for non-reporting
     #     resource_identifier (String): a field that identifies the unit to monitor
@@ -30,4 +30,4 @@ def detector(stream, resource_identifier=None, duration=duration('15m')):
                                                                   'sfui_state':'fire',
                                                                   'sfui_orientation':'below',
                                                                   'sfui_trigger':'outside'})]
-    return detect(when(binary < lower_threshold_signal, lasting(duration, 1.0)), annotations=annotations)
+    return detect(when(binary < lower_threshold_signal, lasting(duration, 1.0)), annotations=annotations, auto_resolve_after=auto_resolve_after)

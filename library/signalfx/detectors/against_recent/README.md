@@ -14,6 +14,7 @@ The `detector_mean_std` function has the following parameters. Parameters with n
 |clear_num_stddev|number|number of standard deviations different from historical mean required to clear, should be >= 0|2.5|
 |orientation|string|specifies whether detect fires when signal is above, below, or out-of-band (options  'above', 'below', 'out_of_band')|'above'|
 |calculation_mode|string|specifies whether to use exponentially weighted or usual moving average (options 'vanilla', 'ewma')|'vanilla'|
+|auto_resolve_after|duration|if provided, duration after which to clear when group drops from schema or has value None|None|
     
 It returns a detect block that triggers when all the values of the last `current_window` of `stream` are at least `fire_num_stddev` standard deviations away from the mean of the preceding `historical_window`, and clears when all the values of the last `current_window` of `stream` remain within `clear_num_stddev` standard deviations of the mean of the preceding `historical_window`. The value of `orientation` determines whether the `current_window` is required to be above or below (or either) the norm established by the `historical_window`. Also, the value of `calculation_mode` determines whether the mean or an exponentially weighted moving average is used. 
     
@@ -60,6 +61,7 @@ The `detector_percentile` function has the following parameters. Parameters with
 |fire_percentile_threshold|number|percentile of historical_window used as a trigger threshold, must be between 0 and 100|99|
 |clear_percentile_threshold|number|percentile of historical_window used as a clear threshold, must be between 0 and 100|95|
 |orientation|string|specifies whether detect fires when signal is above, below, or out-of-band (options  'above', 'below', 'out_of_band')|'above'|
+|auto_resolve_after|duration|if provided, duration after which to clear when group drops from schema or has value None|None|
 
 It returns a detect block that triggers when all the values of the last `current_window` of `stream` exceed (or drop below) the `fire_percentile_threshold` percentile of the preceding `historical_window`, and clears when all the values of the last `current_window` of `stream` remain below (or above) the `clear_percentile_threshold` percentile of the preceding `historical_window`. The value of `orientation` determines whether the `current_window` is required to be above or below the norm established by the `historical_window`; the value 'out_of_band' detects change in either direction.
 
@@ -110,6 +112,7 @@ The `detector_growth_rate_vanilla` function has the following parameters. Parame
 |clear_growth_rate_threshold|number|percentage different from historical mean required to clear, should be >= 0|0.1|
 |orientation|string|specifies whether detect fires when signal is above, below, or out-of-band (options  'above', 'below', 'out_of_band')|'above'|
 |calculation_mode|string|specifies whether to use exponentially weighted or usual moving average (options 'vanilla', 'ewma')|'vanilla'|
+|auto_resolve_after|duration|if provided, duration after which to clear when group drops from schema or has value None|None|
     
 It returns a detect block that triggers when all the values of the last `current_window` of `stream` are at least `100 * fire_growth_rate_threshold` % away from the mean of the preceding `historical_window`, and clears when all the values of the last `current_window` of `stream` remain within `100 * clear_growth_rate_threshold` % of the mean of the preceding `historical_window`. The value of `orientation` determines whether the `current_window` is required to be above or below (or either) the norm established by the `historical_window`. Also, the value of `calculation_mode` determines whether the mean or an exponentially weighted moving average is used. 
     
@@ -159,6 +162,7 @@ The `detector_median_iqr` function has the following parameters. Parameters with
 |fire_num_iqr|number|number of interquartile ranges away from historical median required to trigger, should be >= 0 |2.2|
 |clear_num_iqr|number|number of interquartile ranges from historical median required to clear, should be >= 0|1.8|
 |orientation|string|specifies whether detect fires when signal is above, below, or out-of-band (options  'above', 'below', 'out_of_band')|'above'|
+|auto_resolve_after|duration|if provided, duration after which to clear when group drops from schema or has value None|None|
 
 It returns a detect block that triggers when all the values of the last `current_window` of `stream` are at least `fire_num_iqr` interquartile ranges away from the median of the preceding `historical_window`, and clears when all the values of the last `current_window` of `stream` remain within `clear_num_iqr` interquartile ranges from the median of the preceding `historical_window`. The value of `orientation` determines whether the `current_window` is required to be above or below (or either) the norm established by the `historical_window`.
 

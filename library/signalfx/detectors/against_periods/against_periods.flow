@@ -25,17 +25,18 @@ RECURSION_LIMIT = 8
 
 
 def detector_helper(summary, fire_bot, clear_bot, clear_top, fire_top, orientation, annotations,
-                    event_annotations=None):
+                    event_annotations=None, auto_resolve_after=None):
     if orientation == 'above':
         return detect(when(summary > fire_top), when(summary < clear_top), annotations=annotations,
-                      event_annotations=event_annotations)
+                      event_annotations=event_annotations, auto_resolve_after=auto_resolve_after)
     elif orientation == 'below':
         return detect(when(summary < fire_bot), when(summary > clear_bot), annotations=annotations,
-                      event_annotations=event_annotations)
+                      event_annotations=event_annotations, auto_resolve_after=auto_resolve_after)
     elif orientation == 'out_of_band':
         return detect(when(summary > fire_top or summary < fire_bot),
                       when(summary < clear_top and summary > clear_bot), mode='split',
-                      annotations=annotations, event_annotations=event_annotations)
+                      annotations=annotations, event_annotations=event_annotations,
+                      auto_resolve_after=auto_resolve_after)
 
 
 h = streams.h
@@ -53,7 +54,8 @@ def detector_growth_rate(stream, window_to_compare=duration('15m'),
                          space_between_windows=duration('1w'),
                          num_windows=4, fire_growth_rate_threshold=0.2,
                          clear_growth_rate_threshold=0.1,
-                         discard_historical_outliers=True, orientation='above'):
+                         discard_historical_outliers=True, orientation='above',
+                         auto_resolve_after=None):
     window_to_compare_dur = duration(window_to_compare)
     space_between_windows_dur = duration(space_between_windows)
     assert fire_growth_rate_threshold >= clear_growth_rate_threshold, {
@@ -101,14 +103,14 @@ def detector_growth_rate(stream, window_to_compare=duration('15m'),
                              'sfui_trigger': 'outside',
                              'influencedBy': 'clear_growth_rate_threshold'})]
     event_annotations = {'current_window': str(window_to_compare_dur)}
-    return detector_helper(summary, fb, cb, ct, ft, orientation, annotations, event_annotations)
+    return detector_helper(summary, fb, cb, ct, ft, orientation, annotations, event_annotations, auto_resolve_after=auto_resolve_after)
 
 
 def detector_mean_std(stream, window_to_compare=duration('15m'),
                       space_between_windows=duration('1w'),
                       num_windows=4, fire_num_stddev=3, clear_num_stddev=2.5,
                       discard_historical_outliers=True, orientation='above',
-                      calculation_mode='across'):
+                      calculation_mode='across', auto_resolve_after=None):
     space_between_windows_dur = duration(space_between_windows)
     window_to_compare_dur = duration(window_to_compare)
     assert num_windows <= RECURSION_LIMIT, {
@@ -157,4 +159,4 @@ def detector_mean_std(stream, window_to_compare=duration('15m'),
                              'sfui_trigger': 'outside',
                              'influencedBy': 'clear_num_stddev'})]
     event_annotations = {'current_window': str(window_to_compare_dur)}
-    return detector_helper(summary, fb, cb, ct, ft, orientation, annotations, event_annotations)
+    return detector_helper(summary, fb, cb, ct, ft, orientation, annotations, event_annotations, auto_resolve_after=auto_resolve_after)

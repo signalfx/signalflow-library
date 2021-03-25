@@ -13,6 +13,7 @@ The `detector` function has the following parameters.
 |attempt_threshold|integer|threshold on number of attempts (errors + non-errors) in the window being evaluated in order to trigger|1|
 |filter_|filter|specifies dimensional scope of the detector|None|
 |group_by|list of strings|group both errors and non-errors by these (in addition to default grouping by cluster, service, operation)|None|
+|auto_resolve_after|duration|if provided, duration after which to clear when group drops from schema or has value None|None|
 
 It returns a detect block that triggers when the error rate for `filter_`, grouped by `group_by`, over the last `current_window` is greater than `fire_rate_threshold`, and when at least `attempt_threshold` requests were made over the last `current_window`; clears when the error rate is below `clear_rate_threshold`.
 

@@ -5,7 +5,8 @@ def growth_rate(pctile=90, filter_=None, current_window=duration('5m'),
                 historical_window=duration('1h'),
                 fire_growth_rate_threshold=0.2, clear_growth_rate_threshold=0.1,
                 exclude_errors=True, group_by=None, volume_static_threshold=None,
-                volume_relative_threshold=None, vol_pctile_req_pos=95, custom_filter=None):
+                volume_relative_threshold=None, vol_pctile_req_pos=95, custom_filter=None,
+                auto_resolve_after=None):
     return sudden_change.growth_rate(pctile=pctile, filter_=filter_, current_window=current_window,
                                      historical_window=historical_window,
                                      fire_growth_rate_threshold=fire_growth_rate_threshold,
@@ -15,14 +16,14 @@ def growth_rate(pctile=90, filter_=None, current_window=duration('5m'),
                                      volume_relative_threshold=volume_relative_threshold,
                                      vol_pctile_req_pos=vol_pctile_req_pos,
                                      custom_filter=custom_filter,
-                                     resource_type='workflow')
+                                     resource_type='workflow', auto_resolve_after=auto_resolve_after)
 
 
 def deviations_from_norm(filter_=None, current_window=duration('5m'),
                          historical_window=duration('1h'), exclude_errors=True, group_by=None,
                          fire_num_dev_threshold=3.5, clear_num_dev_threshold=3,
                          volume_static_threshold=None, volume_relative_threshold=None,
-                         vol_pctile_req_pos=95, custom_filter=None):
+                         vol_pctile_req_pos=95, custom_filter=None, auto_resolve_after=None):
     return sudden_change.deviations_from_norm(filter_=filter_, current_window=current_window,
                                               historical_window=historical_window,
                                               exclude_errors=exclude_errors,
@@ -33,4 +34,4 @@ def deviations_from_norm(filter_=None, current_window=duration('5m'),
                                               volume_relative_threshold=volume_relative_threshold,
                                               vol_pctile_req_pos=vol_pctile_req_pos,
                                               custom_filter=custom_filter,
-                                              resource_type='workflow')
+                                              resource_type='workflow', auto_resolve_after=auto_resolve_after)
