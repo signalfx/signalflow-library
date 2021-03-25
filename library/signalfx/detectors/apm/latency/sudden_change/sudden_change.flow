@@ -11,7 +11,7 @@ def growth_rate(pctile=90, filter_=None, current_window=duration('5m'),
                 exclude_errors_filter=utils.EXCLUDE_ERRORS_FILTER,
                 default_group_by=utils.DEFAULT_GROUPBY,
                 default_allow_missing=utils.DEFAULT_ALLOW_MISSING,
-                metric_names=utils.PCTILE_TO_METRIC):
+                metric_names=utils.PCTILE_TO_METRIC, auto_resolve_after=None):
     # Detect when latency grows by a specified amount relative to the immediately preceding window
     # :param pctile (number): percentile to monitor, one of 50, 90, 99, default=90
     # :param filter_ (filter): specifies dimensional scope of the detector, default=None
@@ -151,7 +151,7 @@ def growth_rate(pctile=90, filter_=None, current_window=duration('5m'),
     # hist to participate in event details, e.g., the alert modal
     return detect(when(curr > fire_threshold) and on_ and hist is not None,
                   off=when(curr < clear_threshold) and off_, annotations=ann,
-                  event_annotations=event_ann)
+                  event_annotations=event_ann, auto_resolve_after=auto_resolve_after)
 
 
 def deviations_from_norm(filter_=None, current_window=duration('5m'),
@@ -163,7 +163,7 @@ def deviations_from_norm(filter_=None, current_window=duration('5m'),
                          exclude_errors_filter=utils.EXCLUDE_ERRORS_FILTER,
                          default_group_by=utils.DEFAULT_GROUPBY,
                          default_allow_missing=utils.DEFAULT_ALLOW_MISSING,
-                         metric_names=utils.PCTILE_TO_METRIC):
+                         metric_names=utils.PCTILE_TO_METRIC, auto_resolve_after=None):
     # Detect when latency is too many deviations from the norm established in the immediately
     #       preceding window
     # :param filter_ (filter): specifies dimensional scope of the detector, default=None
@@ -317,4 +317,4 @@ def deviations_from_norm(filter_=None, current_window=duration('5m'),
     # historical_p50 to participate in event details, e.g., the alert modal
     return detect(when(current_p50 > fire_threshold) and on_ and historical_p50 is not None,
                   off=when(current_p50 < clear_threshold) and off_, annotations=ann,
-                  event_annotations=event_ann)
+                  event_annotations=event_ann, auto_resolve_after=auto_resolve_after)

@@ -18,6 +18,7 @@ The `growth_rate` function detects when latency grows by a specified amount rela
 |volume_static_threshold|number|threshold on request rate (per second) required for alert to trigger|None|
 |volume_relative_threshold|number|require request rate on window being evaluated to be at least this proportion of request rate on preceding window (used for trigger and clear)|None|
 |vol_pctile_req_pos|number (percentage)|percentage of historical window permitted to have request rate 0|90|
+|auto_resolve_after|duration|if provided, duration after which to clear when group drops from schema or has value None|None|
 
 It returns a detect block that triggers when the specified percentile of latency, suitably
 filtered and grouped, over the last `current_window` is greater than

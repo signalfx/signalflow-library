@@ -9,7 +9,8 @@ def detector(current_window=duration('5m'), preceding_window=duration('1h'),
              error_true=utils.ERROR_TRUE, error_false=utils.ERROR_FALSE,
              default_group_by=utils.DEFAULT_GROUPBY,
              default_allow_missing=utils.DEFAULT_ALLOW_MISSING, r_up='delta',
-             metric_names=utils.PCTILE_TO_METRIC):
+             metric_names=utils.PCTILE_TO_METRIC,
+             auto_resolve_after=None):
     # Detect when error rate grows by a specified percentage
     # :param current_window (duration): window whose error rate is evaluated for being too high,
     #                                      default=duration('5m')
@@ -77,4 +78,4 @@ def detector(current_window=duration('5m'), preceding_window=duration('1h'),
         current_error_pct > fire_threshold) and attempt_condition and preceding_error_pct is not None,
                   off=when(current_error_pct < clear_threshold),
                   annotations=ann,
-                  event_annotations=event_ann)
+                  event_annotations=event_ann, auto_resolve_after=auto_resolve_after)

@@ -10,7 +10,7 @@ def detector(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear
              exclude_errors_filter=utils.EXCLUDE_ERRORS_FILTER,
              default_group_by=utils.DEFAULT_GROUPBY,
              default_allow_missing=utils.DEFAULT_ALLOW_MISSING,
-             metric_names=utils.PCTILE_TO_METRIC):
+             metric_names=utils.PCTILE_TO_METRIC, auto_resolve_after=None):
     # Detect when latency exceeds a specified static threshold for a specified percent of duration
     # :param fire_threshold (number): latency threshold required to trigger, expressed in
     #                   nanoseconds or milliseconds (see use_ms)
@@ -130,4 +130,4 @@ def detector(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear
         off_ = non_empty_cond
     return detect(when(d > fire_threshold_stream, fire_lasting) and on_,
                   off=when(d < clear_threshold_stream, clear_lasting) and off_,
-                  annotations=ann, event_annotations=event_ann)
+                  annotations=ann, event_annotations=event_ann, auto_resolve_after=auto_resolve_after)

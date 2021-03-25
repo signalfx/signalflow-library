@@ -19,6 +19,7 @@ The `detector` function detects when latency exceeds a specified static threshol
 |volume_static_threshold|number|threshold on request rate (per second) required for alert to trigger|None|
 |volume_relative_threshold|number|require request rate on window being evaluated to be at least this proportion of request rate on preceding window (used for trigger and clear)|None|
 |volume_nonzero_required|number between 0 and 1|require request rate to be nonzero for this proportion of fire_lasting.duration (used for trigger and clear)|0.1|    
+|auto_resolve_after|duration|if provided, duration after which to clear when group drops from schema or has value None|None|
     
 It returns detect block that triggers when the specified percentile of latency,
 suitably filtered and grouped, exceeds the specified threshold for the required percent of duration;

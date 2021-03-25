@@ -10,7 +10,8 @@ def detector(current_window=duration('5m'),
              error_true=utils.ERROR_TRUE, error_false=utils.ERROR_FALSE,
              default_group_by=utils.DEFAULT_GROUPBY,
              default_allow_missing=utils.DEFAULT_ALLOW_MISSING, r_up='delta',
-             metric_names=utils.PCTILE_TO_METRIC):
+             metric_names=utils.PCTILE_TO_METRIC,
+             auto_resolve_after=None):
     # Detect when error rate exceeds a static threshold
     # :param current_window (duration): window on which error rate is calculated,
     #                                      default=duration('5m')
@@ -62,4 +63,4 @@ def detector(current_window=duration('5m'),
     return detect(when(err_pct > fire_pct_threshold_stream) and attempt_condition,
                   off=when(err_pct <= clear_pct_threshold_stream),
                   annotations=ann,
-                  event_annotations=event_ann)
+                  event_annotations=event_ann, auto_resolve_after=auto_resolve_after)

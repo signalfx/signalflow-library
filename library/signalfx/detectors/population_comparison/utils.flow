@@ -5,25 +5,25 @@ from signalfx.detectors.aperiodic import conditions as aperiodic_conditions
 
 def detector_from_streams(population_stream, fire_bot, clear_bot, clear_top, fire_top, fire_lasting,
                           clear_lasting, orientation, denominator_mode, annotations=None,
-                          event_annotations=None):
+                          event_annotations=None, auto_resolve_after=None):
     if denominator_mode == 'expected':
         if orientation == 'above':
             return detect(when(population_stream > fire_top, fire_lasting),
                           when(population_stream < clear_top, clear_lasting),
                           mode='split',
-                          annotations=annotations)
+                          annotations=annotations, auto_resolve_after=auto_resolve_after)
         elif orientation == 'below':
             return detect(when(population_stream < fire_bot, fire_lasting),
                           when(population_stream > clear_bot, clear_lasting),
                           mode='split',
-                          annotations=annotations)
+                          annotations=annotations, auto_resolve_after=auto_resolve_after)
         elif orientation == 'out_of_band':
             return detect(
                 when(population_stream > fire_top or population_stream < fire_bot, fire_lasting),
                 when(population_stream < clear_top and population_stream > clear_bot,
                      clear_lasting),
                 mode='split',
-                annotations=annotations)
+                annotations=annotations, auto_resolve_after=auto_resolve_after)
     elif denominator_mode == 'observed':
         return aperiodic.generic_detector_with_clear(population_stream, fire_bot, fire_top,
                                                      orientation,
@@ -32,7 +32,8 @@ def detector_from_streams(population_stream, fire_bot, clear_bot, clear_top, fir
                                                      clear_lasting, fire_expected_lasting=None,
                                                      clear_expected_lasting=None,
                                                      mode='split', annotations=annotations,
-                                                     event_annotations=event_annotations)
+                                                     event_annotations=event_annotations,
+                                                     auto_resolve_after=auto_resolve_after)
 
 
 def conditions_helper(population_stream, fire_bot, clear_bot, clear_top, fire_top, fire_lasting,

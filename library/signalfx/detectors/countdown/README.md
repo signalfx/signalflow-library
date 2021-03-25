@@ -16,6 +16,7 @@ The `hours_left_stream_detector` function has the following parameters. Paramete
 |clear_lasting|lasting|lasting object associated with clear threshold|lasting('10m', 1.0)|
 |use_double_ewma|boolean|whether to use double_ewma to forecast (True uses it, False uses linear extrapolation)|False|
 |damping|number|damping factor to use (only relevant if use_double_ewma=True), must be between 0 and 1|1.0|
+|auto_resolve_after|duration|if provided, duration after which to clear when group drops from schema or has value None|None|
 
 
 It returns a detect block that triggers when the estimate that `stream` is projected to reach zero within `lower threshold` hours holds for `fire_lasting`, and clears when the estimated time left remains above `clear_threshold` hours for `clear_lasting`. The `stream` is assumed to be decreasing; periods during which `stream` increases count against it for the purposes of the `fire_lasting` parameter.
@@ -32,6 +33,7 @@ The `hours_left_stream_incr_detector` function has in addition a required `maxim
 |clear_lasting|lasting|lasting object associated with clear threshold|lasting('10m', 1.0)|
 |use_double_ewma|boolean|whether to use double_ewma to forecast (True uses it, False uses linear extrapolation)|False|
 |damping|number|damping factor to use (only relevant if use_double_ewma=True), must be between 0 and 1|1.0|
+|auto_resolve_after|duration|if provided, duration after which to clear when group drops from schema or has value None|None|
 
    
 #### Example usage
@@ -60,6 +62,7 @@ The `hours_left_stream_dewma_detector` function has the following parameters; it
 |beta|number|smoothing parameter for the trend term, must be between 0 and 1|0.1|
 |damping|number|damping parameter for forecasting, must be between 0 and 1|1.0|
 |use_duration|boolean|if False, uses alpha and beta provided; if True, uses 5 * max(fire_lasting.duration, clear_lasting.duration) as double_ewma parameter|False|
+|auto_resolve_after|duration|if provided, duration after which to clear when group drops from schema or has value None|None|
 
 
 

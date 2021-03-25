@@ -7,7 +7,7 @@ def growth_rate(pctile=90, filter_=None, current_window=duration('5m'),
                 fire_growth_rate_threshold=0.2, clear_growth_rate_threshold=0.1,
                 exclude_errors=True, group_by=None, volume_static_threshold=None,
                 volume_relative_threshold=None, vol_pctile_req_pos=95, custom_filter=None,
-                resource_type='service_operation'):
+                resource_type='service_operation', auto_resolve_after=None):
     return historical_anomaly.growth_rate(pctile=pctile, filter_=filter_,
                                           current_window=current_window,
                                           historical_window=historical_window,
@@ -29,7 +29,7 @@ def growth_rate(pctile=90, filter_=None, current_window=duration('5m'),
                                           utils.RESOURCE_TYPE_MAPPING[resource_type][
                                               'allow_missing'],
                                           metric_names=utils.RESOURCE_TYPE_MAPPING[resource_type][
-                                              'metric_names'])
+                                              'metric_names'], auto_resolve_after=auto_resolve_after)
 
 
 def deviations_from_norm(filter_=None, current_window=duration('5m'),
@@ -38,7 +38,8 @@ def deviations_from_norm(filter_=None, current_window=duration('5m'),
                          group_by=None,
                          fire_num_dev_threshold=3.5, clear_num_dev_threshold=3,
                          volume_static_threshold=None, volume_relative_threshold=None,
-                         vol_pctile_req_pos=95, custom_filter=None, resource_type='service_operation'):
+                         vol_pctile_req_pos=95, custom_filter=None, resource_type='service_operation',
+                         auto_resolve_after=None):
     return historical_anomaly.deviations_from_norm(filter_=filter_, current_window=current_window,
                                                    historical_window=historical_window,
                                                    cycle_length=cycle_length, num_cycles=num_cycles,
@@ -64,4 +65,4 @@ def deviations_from_norm(filter_=None, current_window=duration('5m'),
                                                        'allow_missing'],
                                                    metric_names=
                                                    utils.RESOURCE_TYPE_MAPPING[resource_type][
-                                                       'metric_names'])
+                                                       'metric_names'], auto_resolve_after=auto_resolve_after)

@@ -25,18 +25,18 @@ from signalfx.detectors.against_recent import utils
 
 
 def detector_helper(recent_min, recent_max, f_bot, c_bot, c_top, f_top, orientation, annotations,
-                    event_annotations=None):
+                    event_annotations=None, auto_resolve_after=None):
     if orientation == 'above':
         return detect(when(recent_min > f_top), when(recent_max < c_top), annotations=annotations,
-                      event_annotations=event_annotations)
+                      event_annotations=event_annotations, auto_resolve_after=auto_resolve_after)
     elif orientation == 'below':
         return detect(when(recent_max < f_bot), when(recent_min > c_bot), annotations=annotations,
-                      event_annotations=event_annotations)
+                      event_annotations=event_annotations, auto_resolve_after=auto_resolve_after)
     elif orientation == 'out_of_band':
         return detect(when(recent_min > f_top or recent_max < f_bot),
                       when(recent_max < c_top and recent_min > c_bot),
                       mode='split',
-                      annotations=annotations, event_annotations=event_annotations)
+                      annotations=annotations, event_annotations=event_annotations, auto_resolve_after=auto_resolve_after)
 
 
 def ewma_plus_stddev(stream, duration_, num_stddev):
@@ -44,7 +44,8 @@ def ewma_plus_stddev(stream, duration_, num_stddev):
 
 
 def detector_median_iqr(stream, current_window=duration('5m'), historical_window=duration('1h'),
-                        fire_num_iqr=2.2, clear_num_iqr=1.8, orientation='above'):
+                        fire_num_iqr=2.2, clear_num_iqr=1.8, orientation='above',
+                        auto_resolve_after=None):
     # Args:
     #       stream: data stream
     #       current_window (duration) : the window whose behavior is being tested for abnormality
@@ -104,13 +105,14 @@ def detector_median_iqr(stream, current_window=duration('5m'), historical_window
                              'influencedBy': 'clear_num_iqr'})]
     event_annotations = {'current_window': str(current_window_)}
     return detector_helper(recent_min, recent_max, fb, cb, ct, ft, orientation, annotations,
-                           event_annotations=event_annotations)
+                           event_annotations=event_annotations, auto_resolve_after=auto_resolve_after)
 
 
 def detector_mean_std(stream, current_window=duration('5m'),
                       historical_window=duration('1h'),
                       fire_num_stddev=3, clear_num_stddev=2.5,
-                      orientation='above', ignore_extremes=True, calculation_mode='vanilla'):
+                      orientation='above', ignore_extremes=True, calculation_mode='vanilla',
+                      auto_resolve_after=None):
     current_window_ = duration(current_window)
     historical_window_ = duration(historical_window)
     # Args:
@@ -173,13 +175,13 @@ def detector_mean_std(stream, current_window=duration('5m'),
                              'influencedBy': 'clear_num_stddev'})]
     event_annotations = {'current_window': str(current_window_)}
     return detector_helper(recent_min, recent_max, fb, cb, ct, ft, orientation, annotations,
-                           event_annotations=event_annotations)
+                           event_annotations=event_annotations, auto_resolve_after=auto_resolve_after)
 
 
 def detector_percentile(stream, current_window=duration('5m'),
                         historical_window=duration('1h'),
                         fire_percentile_threshold=99, clear_percentile_threshold=95,
-                        orientation='above'):
+                        orientation='above', auto_resolve_after=None):
     # Args:
     #       stream: data stream
     #       current_window (duration) : the window whose behavior is being tested for abnormality
@@ -237,13 +239,13 @@ def detector_percentile(stream, current_window=duration('5m'),
                              'influencedBy': 'clear_percentile_threshold'})]
     event_annotations = {'current_window': str(current_window_)}
     return detector_helper(recent_min, recent_max, fb, cb, ct, ft, orientation, annotations,
-                           event_annotations=event_annotations)
+                           event_annotations=event_annotations, auto_resolve_after=auto_resolve_after)
 
 
 def generic_detector_growth_rate(stream, current_window=duration('5m'),
                       historical_window=duration('1h'),
                       fire_growth_rate_threshold=0.2, clear_growth_rate_threshold=0.1,
-                      orientation='above', calculation_mode='vanilla'):
+                      orientation='above', calculation_mode='vanilla', auto_resolve_after=None):
     # Args:
     #       stream: data stream
     #       current_window (duration) : the window whose behavior is being tested for abnormality
@@ -304,18 +306,20 @@ def generic_detector_growth_rate(stream, current_window=duration('5m'),
                              'influencedBy': 'clear_growth_rate_threshold'})]
     event_annotations = {'current_window': str(current_window_)}
     return detector_helper(recent_min, recent_max, fb, cb, ct, ft, orientation, annotations,
-                           event_annotations=event_annotations)
+                           event_annotations=event_annotations, auto_resolve_after=auto_resolve_after)
 
 
 def detector_growth_rate_vanilla(stream, current_window=duration('5m'),
                                  historical_window=duration('1h'),
                                  fire_growth_rate_threshold=0.2, clear_growth_rate_threshold=0.1,
-                                 orientation='above', calculation_mode='vanilla'):
+                                 orientation='above', calculation_mode='vanilla',
+                                 auto_resolve_after=None):
     return generic_detector_growth_rate(stream, current_window=current_window,
                                         historical_window=historical_window,
                                         fire_growth_rate_threshold=fire_growth_rate_threshold,
                                         clear_growth_rate_threshold=clear_growth_rate_threshold,
-                                        orientation=orientation, calculation_mode=calculation_mode)
+                                        orientation=orientation, calculation_mode=calculation_mode,
+                                        auto_resolve_after=auto_resolve_after)
 
 
 # deprecated

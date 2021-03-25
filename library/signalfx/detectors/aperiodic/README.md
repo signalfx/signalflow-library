@@ -22,6 +22,7 @@ The `above_or_below_detector` function returns a detect block that triggers when
 |annotations|list of annotate objects (optional)||None|
 |event_annotations|dictionary (optional)||None|
 |strict|boolean (optional)|if True, compare stream against threshold with strict inequality; if False, non-strict|True|
+|auto_resolve_after|duration|if provided, duration after which to clear when group drops from schema or has value None|None|
 
 
 #### Example usage
@@ -51,6 +52,7 @@ The `range_detector` function returns a detect block that triggers when `stream`
 |event_annotations|dictionary (optional)||None|
 |lower_strict|boolean (optional)|if True, compare stream against lower with strict inequality; if False, non-strict|True|
 |upper_strict|boolean (optional)|if True, compare stream against upper with strict inequality; if False, non-strict|True|
+|auto_resolve_after|duration|if provided, duration after which to clear when group drops from schema or has value None|None|
 
 
 #### Example usage
