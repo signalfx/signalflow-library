@@ -1,0 +1,34 @@
+from signalfx.stats.linear_model import utils as u
+
+
+def fit(X, y, window=duration('30m'), fit_intercept=True):
+    #:param X: list of stream objects, to be used as regressors
+    #:param y: stream object, to be used as output, so the model is y ~ beta * X
+    #:param window (duration): window over which to perform the regression, default=duration('30m')
+    #:param fit_intercept (boolean): whether to include an intercept term, default=True
+    #:return: a dictionary with results of the regression, mapping:
+    #    'coef' -> list of coefficients (with elements corresponding to elements of the list X)
+    #    'intercept' -> intercept term (coefficient of 1 if fit_intercept=True, else 0.0)
+    #    'std_err' -> the rolling out-of-sample standard error, computed over a window of the
+    #                    same length
+    _window= duration(window)
+    if fit_intercept is True:
+        R = [const(1)] + X
+    else:
+        R = X
+    assert len(R) <= 4
+    XT_y = [(x * y).sum(over=_window) for x in R]
+    XT_X = [[(x1 * x2).sum(over=_window) for x1 in R] for x2 in R]
+    det_XT_X = u.det(XT_X)
+    adj = [[u.det(u.hat_mat(XT_X, i, j)) * pow(-1, i + j) for i in range(len(XT_X))] for j in range(len(XT_X))]
+    beta = [u.dot(adj[i], XT_y) / det_XT_X for i in range(len(adj))]
+    r = y - u.dot(beta, R)
+    other_r = y - y.mean(over=_window)
+    mse = (r * r).mean(over=_window)
+    std_err = mse.sqrt()
+    mte = (other_r * other_r).mean(over=_window)
+    R_squared = 1.0 - (mse / mte)
+    if fit_intercept is True:
+        return {'coef': beta[1:], 'intercept': beta[0], 'std_err': std_err, 'R2': R_squared}
+    else:
+        return {'coef': beta, 'intercept': 0.0, 'std_err': std_err, 'R2': R_squared}
