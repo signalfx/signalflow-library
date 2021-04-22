@@ -1,0 +1,30 @@
+def hat(list_, i):
+    # given a list list_ and an index i, return a new list which is the result of removing the
+    # ith element from list_
+    assert 0 <= i and i < len(list_)
+    if i == 0:
+        return list_[1:]
+    elif i == len(list_) - 1:
+        return list_[:len(list_) - 1]
+    else:
+        return list_[:i] + list_[i + 1:]
+
+
+def hat_mat(matrix, i, j):
+    # given a matrix (represented as a list of lists), return the matrix obtained by removing the ith
+    # column and the jth row
+    return [hat(l_, i) for l_ in hat(matrix, j)]
+
+
+def det(matrix):
+    # compute the determinant of a matrix (represented as a list of lists)
+    if len(matrix) == 1 and len(matrix[0]) == 1:
+        return matrix[0][0]
+    else:
+        return sum(*[pow(-1, i) * matrix[0][i] * det([hat(tt, i) for tt in matrix[1:]]) for i in range(len(matrix[0]))])
+
+
+def dot(v, w):
+    # compute the dot product of the vectors v and w (represented as lists)
+    assert len(v) == len(w)
+    return sum(*[v[i] * w[i] for i in range(len(v))])
