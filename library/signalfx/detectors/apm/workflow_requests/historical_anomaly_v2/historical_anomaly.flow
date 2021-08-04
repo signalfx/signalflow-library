@@ -1,0 +1,71 @@
+from signalfx.detectors.apm.requests.historical_anomaly_v2 import historical_anomaly
+
+
+def detector_mean_std(filter_=None, exclude_errors=False, group_by=None, custom_filter=None,
+                      window_to_compare=duration('15m'),
+                      space_between_windows=duration('1w'),
+                      num_windows=4, fire_num_stddev=3, clear_num_stddev=2.5,
+                      discard_historical_outliers=True, orientation='above',
+                      calculation_mode='across',
+                      auto_resolve_after=None):
+    #
+    # :param filter_:
+    # :param exclude_errors:
+    # :param group_by:
+    # :param custom_filter:
+    # :param window_to_compare:
+    # :param space_between_windows:
+    # :param num_windows:
+    # :param fire_num_stddev:
+    # :param clear_num_stddev:
+    # :param discard_historical_outliers:
+    # :param orientation:
+    # :param calculation_mode:
+    # :param auto_resolve_after:
+    # :return:
+    return historical_anomaly.detector_mean_std(filter_=filter_, exclude_errors=exclude_errors,
+                                                group_by=group_by, custom_filter=custom_filter,
+                                                resource_type='workflow',
+                                                window_to_compare=window_to_compare,
+                                                space_between_windows=space_between_windows,
+                                                num_windows=num_windows,
+                                                fire_num_stddev=fire_num_stddev,
+                                                clear_num_stddev=clear_num_stddev,
+                                                discard_historical_outliers=discard_historical_outliers,
+                                                orientation=orientation,
+                                                calculation_mode=calculation_mode,
+                                                auto_resolve_after=auto_resolve_after)
+
+
+def detector_growth_rate(filter_=None, exclude_errors=False, group_by=None, custom_filter=None,
+                         window_to_compare=duration('15m'),
+                         space_between_windows=duration('1w'),
+                         num_windows=4, fire_growth_rate_threshold=0.2,
+                         clear_growth_rate_threshold=0.1,
+                         discard_historical_outliers=True, orientation='above',
+                         auto_resolve_after=None):
+    #
+    # :param filter_:
+    # :param exclude_errors:
+    # :param group_by:
+    # :param custom_filter:
+    # :param window_to_compare:
+    # :param space_between_windows:
+    # :param num_windows:
+    # :param fire_growth_rate_threshold:
+    # :param clear_growth_rate_threshold:
+    # :param discard_historical_outliers:
+    # :param orientation:
+    # :param auto_resolve_after:
+    # :return:
+    return historical_anomaly.detector_growth_rate(filter_=filter_, exclude_errors=exclude_errors,
+                                                   group_by=group_by, custom_filter=custom_filter,
+                                                   resource_type='workflow',
+                                                   window_to_compare=window_to_compare,
+                                                   space_between_windows=space_between_windows,
+                                                   num_windows=num_windows,
+                                                   fire_growth_rate_threshold=fire_growth_rate_threshold,
+                                                   clear_growth_rate_threshold=clear_growth_rate_threshold,
+                                                   discard_historical_outliers=discard_historical_outliers,
+                                                   orientation=orientation,
+                                                   auto_resolve_after=auto_resolve_after)

@@ -1,0 +1,22 @@
+from signalfx.detectors.apm import utils
+
+
+def request_rate(filter_=None, exclude_errors=False, group_by=None, custom_filter=None,
+                 resource_type='service_operation'):
+    # :param filter_ (filter): specifies dimensional scope of the detector (known dimensions), default=None
+    # :param exclude_errors (boolean): whether to exclude error spans from request rate, default=False
+    # :param group_by (list of strings): sum request rate by these (in addition to default grouping
+    #                    associated with resource_type), default=None
+    # :param custom_filter (filter): specifies dimensional scope of the detector (custom dimensions), default=None
+    # :param resource_type (string): entry in utils.RESOURCE_TYPE_MAPPING; specifies schema
+    # :return: request rate stream
+    metric_name = utils.RESOURCE_TYPE_MAPPING[resource_type]['metric_names']['count']
+    filter__ = utils.merge_filters(filter_, exclude_errors, use_kind_filter=False,
+                                   custom_filter=custom_filter, kind_filter=None,
+                                   exclude_errors_filter=not
+                                   utils.RESOURCE_TYPE_MAPPING[resource_type]['error']['true'])
+    gp_by = utils.merge_group_by_with_default(group_by,
+                                              default=utils.RESOURCE_TYPE_MAPPING[resource_type]['group_by'])
+    default_allow_missing = utils.RESOURCE_TYPE_MAPPING[resource_type]['allow_missing']
+    return data(metric_name, filter=filter__, rollup='rate').fill(0).sum(by=gp_by,
+                                                                         allow_missing=default_allow_missing)

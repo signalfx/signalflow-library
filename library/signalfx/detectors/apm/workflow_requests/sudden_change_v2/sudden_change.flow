@@ -1,0 +1,62 @@
+from signalfx.detectors.apm.requests.sudden_change_v2 import sudden_change
+
+
+def detector_mean_std(filter_=None, exclude_errors=False, group_by=None, custom_filter=None,
+                      current_window=duration('5m'),
+                      historical_window=duration('1h'),
+                      fire_num_stddev=3, clear_num_stddev=2.5,
+                      orientation='above', ignore_extremes=True, calculation_mode='ewma',
+                      auto_resolve_after=None):
+    #
+    # :param filter_:
+    # :param exclude_errors:
+    # :param group_by:
+    # :param custom_filter:
+    # :param current_window:
+    # :param historical_window:
+    # :param fire_num_stddev:
+    # :param clear_num_stddev:
+    # :param orientation:
+    # :param ignore_extremes:
+    # :param calculation_mode:
+    # :param auto_resolve_after:
+    # :return:
+    return sudden_change.detector_mean_std(filter_=filter_, exclude_errors=exclude_errors,
+                                           group_by=group_by, custom_filter=custom_filter,
+                                           resource_type='workflow', current_window=current_window,
+                                           historical_window=historical_window,
+                                           fire_num_stddev=fire_num_stddev,
+                                           clear_num_stddev=clear_num_stddev,
+                                           orientation=orientation, ignore_extremes=ignore_extremes,
+                                           calculation_mode=calculation_mode,
+                                           auto_resolve_after=auto_resolve_after)
+
+
+def detector_growth_rate(filter_=None, exclude_errors=False, group_by=None, custom_filter=None,
+                         current_window=duration('5m'),
+                         historical_window=duration('1h'),
+                         fire_growth_rate_threshold=0.2, clear_growth_rate_threshold=0.1,
+                         orientation='above', calculation_mode='ewma', auto_resolve_after=None):
+    #
+    # :param filter_:
+    # :param exclude_errors:
+    # :param group_by:
+    # :param custom_filter:
+    # :param current_window:
+    # :param historical_window:
+    # :param fire_growth_rate_threshold:
+    # :param clear_growth_rate_threshold:
+    # :param orientation:
+    # :param calculation_mode:
+    # :param auto_resolve_after:
+    # :return:
+    return sudden_change.detector_growth_rate(filter_=filter_, exclude_errors=exclude_errors,
+                                              group_by=group_by, custom_filter=custom_filter,
+                                              resource_type='workflow',
+                                              current_window=current_window,
+                                              historical_window=historical_window,
+                                              fire_growth_rate_threshold=fire_growth_rate_threshold,
+                                              clear_growth_rate_threshold=clear_growth_rate_threshold,
+                                              orientation=orientation,
+                                              calculation_mode=calculation_mode,
+                                              auto_resolve_after=auto_resolve_after)

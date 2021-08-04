@@ -1,0 +1,54 @@
+from signalfx.detectors.apm.requests import streams
+
+
+def detector(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear_lasting=None,
+             orientation='above', filter_=None, exclude_errors=False, group_by=None,
+             custom_filter=None, resource_type='service_operation', auto_resolve_after=None):
+    #
+    # :param fire_threshold:
+    # :param fire_lasting:
+    # :param clear_threshold:
+    # :param clear_lasting:
+    # :param orientation:
+    # :param filter_:
+    # :param exclude_errors:
+    # :param group_by:
+    # :param custom_filter:
+    # :param resource_type:
+    # :param auto_resolve_after:
+    # :return:
+    d = streams.request_rate(filter_=filter_, exclude_errors=exclude_errors, group_by=group_by,
+                             custom_filter=custom_filter, resource_type=resource_type)
+
+    fire_threshold_stream = const(fire_threshold)
+    clear_threshold_stream = const(clear_threshold)
+
+    ann = [annotate(d, 'request_rate', {'sfui_streamType': 'signal'}),
+           annotate(fire_threshold_stream, 'fire_threshold', {
+               'sfui_config': '{"d_above_ft": {"sfui_streamType":"threshold","sfui_state":"fire","sfui_orientation":"above"}}'})]
+    event_ann = {
+        'fire_threshold': str(fire_threshold),
+        'clear_threshold': str(clear_threshold),
+        'sfui_incidentInformation': '[{"selectedIdentifiers":["fire_threshold_stream","d"], "conditionIdentifier":"d_above_ft"}]'}
+
+    if orientation == 'above':
+        assert fire_threshold >= clear_threshold, {
+            'fire_threshold': fire_threshold, 'clear_threshold': clear_threshold,
+            'sfui_errorKeys': ['fire_threshold', 'clear_threshold'],
+            'sfui_errorTemplate': "{{{fire_threshold}}} must be greater than or equal to {{{clear_threshold}}}."}
+        return detect(when(d > fire_threshold_stream, fire_lasting),
+                      when(d < clear_threshold_stream, clear_lasting), annotations=ann,
+                      event_annotations=event_ann, auto_resolve_after=auto_resolve_after)
+
+    elif orientation == 'below':
+        assert fire_threshold <= clear_threshold, {
+            'fire_threshold': fire_threshold, 'clear_threshold': clear_threshold,
+            'sfui_errorKeys': ['fire_threshold', 'clear_threshold'],
+            'sfui_errorTemplate': "{{{fire_threshold}}} must be less than or equal to {{{clear_threshold}}}."}
+        return detect(when(d < fire_threshold_stream, fire_lasting),
+                      when(d > clear_threshold_stream, clear_lasting), annotations=ann,
+                      event_annotations=event_ann, auto_resolve_after=auto_resolve_after)
+
+    elif orientation == 'out_of_band':
+        # not implemented yet
+        return None
