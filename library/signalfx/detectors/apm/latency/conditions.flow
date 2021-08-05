@@ -59,7 +59,7 @@ def static_volume_nonempty(lasting_, filter_=None, exclude_errors=True, group_by
                                group_by=group_by, custom_filter=custom_filter,
                                use_kind_filter=use_kind_filter,
                                kind_filter=kind_filter, exclude_errors_filter=exclude_errors_filter,
-                               default}}}}_group_by=default_group_by,
+                               default_group_by=default_group_by,
                                default_allow_missing=default_allow_missing,
                                metric_names=metric_names) > 0, lasting_)
 
