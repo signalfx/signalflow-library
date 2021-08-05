@@ -1,0 +1,79 @@
+ERROR_TRUE_FILTER = filter('sf_error', 'true')
+ERROR_FALSE_FILTER = filter('sf_error', 'false')
+
+NODE_GROUP_BY = ['sf_node_type',
+                 'sf_node_name']
+
+GROUP_BY = ['app',
+            'sf_ua_browsername',
+            'sf_ua_osname',
+            'sf_environment',
+            'sf_operation',
+            'http.method',
+            'http.status_code']
+
+
+def metric_names(s, use_node_name=True, count_present=True, time_present=True):
+    if use_node_name is True:
+        n = 'node.'
+    else:
+        n = ''
+    if count_present is True:
+        count_value = 'rum.' + n + s + '.count'
+    else:
+        count_value = None
+    if time_present is True:
+        p75_value = 'rum.' + n + s + '.time.ns.p75'
+    else:
+        p75_value = None
+    return {'count': count_value, 75: p75_value}
+
+
+def resource_type_value(s, use_node_name=True, count_present=True, time_present=True,
+                        error_present=True):
+    if use_node_name is True:
+        gp_by = GROUP_BY + NODE_GROUP_BY
+        allow_missing = GROUP_BY + NODE_GROUP_BY
+    else:
+        gp_by = GROUP_BY
+        allow_missing = GROUP_BY
+    if error_present is True:
+        e_true = ERROR_TRUE_FILTER
+        e_false = ERROR_FALSE_FILTER
+    else:
+        e_true = None
+        e_false = None
+    return {'metric_names': metric_names(s, use_node_name=use_node_name,
+                                         count_present=count_present, time_present=time_present),
+            'group_by': gp_by,
+            'allow_missing': allow_missing,
+            'error': {'true': e_true,
+                      'false': e_false}},
+
+
+def make_key(resource_type_str, use_node_name=True):
+    if use_node_name is True:
+        return resource_type_str + '_node'
+    else:
+        return resource_type_str
+
+
+def make_entry(resource_type_str, use_node_name=True, count_present=True, time_present=True,
+               error_present=True):
+    return make_key(resource_type_str, use_node_name=use_node_name), resource_type_value(
+        resource_type_str,
+        use_node_name=use_node_name,
+        count_present=count_present,
+        time_present=time_present,
+        error_present=error_present)
+
+
+RESOURCE_REQUEST_KEY = 'resource_request'
+RESOURCE_REQUEST_VALUE = resource_type_value(RESOURCE_REQUEST_KEY, use_node_name=False)
+RESOURCE_REQUEST_NODE_KEY, RESOURCE_REQUEST_NODE_VALUE = make_entry(RESOURCE_REQUEST_KEY,
+                                                                    use_node_name=True)
+
+LONG_TASK_KEY = 'long_task'
+LONG_TASK_VALUE = resource_type_value(LONG_TASK_KEY, use_node_name=False, error_present=False)
+LONG_TASK_NODE_KEY, LONG_TASK_NODE_VALUE = make_entry(LONG_TASK_KEY, use_node_name=True,
+                                                      error_present=False)
