@@ -48,7 +48,7 @@ def resource_type_value(s, use_node_name=True, count_present=True, time_present=
             'group_by': gp_by,
             'allow_missing': allow_missing,
             'error': {'true': e_true,
-                      'false': e_false}},
+                      'false': e_false}}
 
 
 def make_key(resource_type_str, use_node_name=True):
