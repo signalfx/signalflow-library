@@ -1,3 +1,5 @@
+from signalfx.detectors.rum import utils as rum_utils
+
 KIND_FILTER = filter('kind', 'CONSUMER') or filter('kind', 'SERVER')
 V2_KIND_FILTER = filter('sf_kind', 'CONSUMER') or filter('sf_kind',
                                                          'SERVER')  # added for completeness
@@ -17,7 +19,8 @@ DEFAULT_GROUPBY = ['cluster', 'service', 'operation', 'httpMethod', 'kind']
 V2_DEFAULT_GROUPBY = ['sf_environment', 'sf_service', 'sf_operation', 'sf_httpMethod', 'sf_kind']
 
 DEFAULT_ALLOW_MISSING = ['cluster', 'service', 'operation', 'httpMethod', 'kind']
-V2_DEFAULT_ALLOW_MISSING = ['sf_environment', 'sf_service', 'sf_operation', 'sf_httpMethod', 'sf_kind']
+V2_DEFAULT_ALLOW_MISSING = ['sf_environment', 'sf_service', 'sf_operation', 'sf_httpMethod',
+                            'sf_kind']
 
 PCTILE_TO_METRIC = {'count': 'spans.count',
                     50: 'spans.duration.ns.median',
@@ -45,7 +48,10 @@ RESOURCE_TYPE_MAPPING = {
                  'group_by': ['sf_environment', 'sf_workflow'],
                  'allow_missing': ['sf_environment', 'sf_workflow'],
                  'error': {'true': V2_ERROR_TRUE,
-                           'false': V2_ERROR_FALSE}}}
+                           'false': V2_ERROR_FALSE}},
+    rum_utils.RESOURCE_REQUEST_NODE_KEY: rum_utils.RESOURCE_REQUEST_NODE_VALUE,
+    rum_utils.LONG_TASK_NODE_KEY: rum_utils.LONG_TASK_NODE_VALUE
+}
 
 
 def merge_filters(filter_, exclude_errors, use_kind_filter=True, custom_filter=None,

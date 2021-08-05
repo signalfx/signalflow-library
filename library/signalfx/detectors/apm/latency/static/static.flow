@@ -40,10 +40,11 @@ def detector(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear
         'fire_threshold': fire_threshold, 'clear_threshold': clear_threshold,
         'sfui_errorKeys': ['fire_threshold', 'clear_threshold'],
         'sfui_errorTemplate': "{{{fire_threshold}}} must be greater than or equal to {{{clear_threshold}}}."}
-    assert pctile == 50 or pctile == 90 or pctile == 99, {
+    ## can we move this check to streams??
+    assert pctile == 50 or pctile == 75 or pctile == 90 or pctile == 99, {
         'pctile': pctile,
         'sfui_errorKeys': ['pctile'],
-        'sfui_errorTemplate': "{{{pctile}}} must be one of 50, 90, 99."}
+        'sfui_errorTemplate': "{{{pctile}}} must be one of 50, 75, 90, 99."}
     d = streams.pctile_over_window(pctile=pctile, filter_=filter_, window=None,
                                    exclude_errors=exclude_errors, group_by=group_by, use_ms=use_ms,
                                    custom_filter=custom_filter, use_kind_filter=use_kind_filter,
@@ -65,7 +66,8 @@ def detector(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear
                                                                volume_nonzero_required),
                                                        filter_=filter_,
                                                        exclude_errors=exclude_errors,
-                                                       group_by=group_by, custom_filter=custom_filter,
+                                                       group_by=group_by,
+                                                       custom_filter=custom_filter,
                                                        use_kind_filter=use_kind_filter,
                                                        kind_filter=kind_filter,
                                                        exclude_errors_filter=exclude_errors_filter,
@@ -130,4 +132,5 @@ def detector(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear
         off_ = non_empty_cond
     return detect(when(d > fire_threshold_stream, fire_lasting) and on_,
                   off=when(d < clear_threshold_stream, clear_lasting) and off_,
-                  annotations=ann, event_annotations=event_ann, auto_resolve_after=auto_resolve_after)
+                  annotations=ann, event_annotations=event_ann,
+                  auto_resolve_after=auto_resolve_after)

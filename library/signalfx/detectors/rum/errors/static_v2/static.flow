@@ -1,0 +1,21 @@
+from signalfx.detectors.apm.errors.static_v2 import static
+from signalfx.detectors.apm import utils as apm_utils
+from signalfx.detectors.rum import utils as rum_utils
+
+
+def detector(current_window=duration('5m'),
+             fire_rate_threshold=0.01, clear_rate_threshold=0.001,
+             attempt_threshold=1, filter_=None, group_by=None, custom_filter=None,
+             resource_type='resource_request', use_node_name=True,
+             auto_resolve_after=None):
+    _key = rum_utils.make_key(resource_type, use_node_name=use_node_name)
+    if apm_utils.RESOURCE_TYPE_MAPPING[_key]['metric_names']['count'] is None:
+        assert 0 > 1, {'sfui_errorTemplate': "this resource type does not report counts"}
+    if apm_utils.RESOURCE_TYPE_MAPPING[_key]['error']['true'] is None:
+        assert 0 > 1, {'sfui_errorTemplate': "this resource type does not report sf_error dimension"}
+    return static.detector(current_window=current_window,
+                           fire_rate_threshold=fire_rate_threshold,
+                           clear_rate_threshold=clear_rate_threshold,
+                           attempt_threshold=attempt_threshold, filter_=filter_, group_by=group_by,
+                           custom_filter=custom_filter, resource_type=_key,
+                           auto_resolve_after=auto_resolve_after)
