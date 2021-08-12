@@ -49,7 +49,9 @@ RESOURCE_TYPE_MAPPING = {
                  'allow_missing': ['sf_environment', 'sf_workflow'],
                  'error': {'true': V2_ERROR_TRUE,
                            'false': V2_ERROR_FALSE}},
+    rum_utils.RESOURCE_REQUEST_KEY: rum_utils.RESOURCE_REQUEST_VALUE,
     rum_utils.RESOURCE_REQUEST_NODE_KEY: rum_utils.RESOURCE_REQUEST_NODE_VALUE,
+    rum_utils.LONG_TASK_KEY: rum_utils.LONG_TASK_VALUE,
     rum_utils.LONG_TASK_NODE_KEY: rum_utils.LONG_TASK_NODE_VALUE
 }
 
