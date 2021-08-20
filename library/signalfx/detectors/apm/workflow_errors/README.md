@@ -1,3 +1,3 @@
-The `workflow_errors` submodule of `apm` facilitates the creation of error ratio detectors for workflows. Basically it supplies `'workflow'` for the keyword argument `resource_type` in several places, which replaces the `spans.*` metrics with their `workflows.*` counterparts (see [apm/utils](../../apm/utils.flow) for details).
+The `workflow_errors` submodule of `apm` facilitates the creation of error ratio detectors for workflows. Basically it supplies `'workflow'` for the keyword argument `resource_type` in several places, which replaces the `spans.*` metrics with their `workflows.*` counterparts (see [apm/utils](../utils.flow) for details).
 
 For more detailed documentation see the [errors](../../apm/errors/README.md) module, in particular the [static threshold](../../apm/errors/static_v2/README.md) and [sudden change](../../apm/errors/sudden_change_v2/README.md) alerts.

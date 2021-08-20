@@ -13,7 +13,7 @@ The `detector` function has the following parameters.
 |filter_|filter|specifies dimensional scope of the detector (on built-in dimensions)|None|
 |group_by|list of strings|group both errors and non-errors by these (in addition to default grouping associated with resource type)|None|
 |custom_filter|filter|specifies dimensional scope of the detector (on custom dimensions)|None|
-|resource_type|string|key from [RESOURCE_TYPE_MAPPING](../../../apm/utils.flow), determines schema|'service_operation'|
+|resource_type|string|key from [RESOURCE_TYPE_MAPPING](../../utils.flow), determines schema|'service_operation'|
 |auto_resolve_after|duration|if provided, duration after which to clear when group drops from schema or has value None|None|
 
 
