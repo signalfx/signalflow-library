@@ -15,7 +15,7 @@ The `detector` function has the following parameters.
 |exclude_errors|boolean|whether to exclude error spans from the request rate|False|
 |group_by|list of strings|sum by these (in addition to default grouping associated with resource type)|None|
 |custom_filter|filter|specifies dimensional scope of the detector (on custom dimensions)|None|
-|resource_type|string|key from [RESOURCE_TYPE_MAPPING](../../../apm/utils.flow), determines schema|'service_operation'|
+|resource_type|string|key from [RESOURCE_TYPE_MAPPING](../../utils.flow), determines schema|'service_operation'|
 |auto_resolve_after|duration|if provided, duration after which to clear when group drops from schema or has value None|None|
 
 

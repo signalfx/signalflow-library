@@ -17,7 +17,7 @@ The `detector_growth_rate` function detects when the request rate grows or decay
 |clear_growth_rate_threshold|number|request rate growth required to clear|0.1|
 |discard_historical_outliers|boolean|whether to take the median (True) or mean (False) of historical windows|True|
 |orientation|string|specifies whether detect fires when request rate is above or below threshold (options  'above', 'below')|'above'|
-|resource_type|string|key from [RESOURCE_TYPE_MAPPING](../../../apm/utils.flow), determines schema|'service_operation'|
+|resource_type|string|key from [RESOURCE_TYPE_MAPPING](../../utils.flow), determines schema|'service_operation'|
 |auto_resolve_after|duration|if provided, duration after which to clear when group drops from schema or has value None|None|
 
     
@@ -51,7 +51,7 @@ The `detector_mean_std` function detects when the request rate is too many devia
 |discard_historical_outliers|boolean|whether to take the median (True) or mean (False) of historical windows in case calculation_mode='within'; whether to take trimmed (True) or untrimmed (False) mean in case calculation_mode='across'|True|
 |calculation_mode|string|whether to calculate standard deviations across periods ('across') or within periods ('within')|'across'|
 |orientation|string|specifies whether detect fires when request rate is above or below threshold (options  'above', 'below')|'above'|
-|resource_type|string|key from [RESOURCE_TYPE_MAPPING](../../../apm/utils.flow), determines schema|'service_operation'|
+|resource_type|string|key from [RESOURCE_TYPE_MAPPING](../../utils.flow), determines schema|'service_operation'|
 |auto_resolve_after|duration|if provided, duration after which to clear when group drops from schema or has value None|None|
 
 It returns a detect block that triggers when the average request rate, suitably filtered and grouped,

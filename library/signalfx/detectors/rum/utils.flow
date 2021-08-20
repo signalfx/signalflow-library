@@ -13,7 +13,7 @@ GROUP_BY = ['app',
             'http.status_code']
 
 
-def metric_names(s, use_node_name=True, count_present=True, time_present=True):
+def metric_names(s, use_node_name=True, count_present=True, time_present=True, score_present=False):
     if use_node_name is True:
         n = 'node.'
     else:
@@ -24,13 +24,15 @@ def metric_names(s, use_node_name=True, count_present=True, time_present=True):
         count_value = None
     if time_present is True:
         p75_value = 'rum.' + n + s + '.time.ns.p75'
+    elif score_present is True:
+        p75_value = 'rum.' + n + s + '.score.p75'
     else:
         p75_value = None
     return {'count': count_value, 75: p75_value}
 
 
 def resource_type_value(s, use_node_name=True, count_present=True, time_present=True,
-                        error_present=True):
+                        error_present=True, score_present=False):
     if use_node_name is True:
         gp_by = GROUP_BY + NODE_GROUP_BY
         allow_missing = GROUP_BY + NODE_GROUP_BY
@@ -44,7 +46,8 @@ def resource_type_value(s, use_node_name=True, count_present=True, time_present=
         e_true = None
         e_false = None
     return {'metric_names': metric_names(s, use_node_name=use_node_name,
-                                         count_present=count_present, time_present=time_present),
+                                         count_present=count_present, time_present=time_present,
+                                         score_present=score_present),
             'group_by': gp_by,
             'allow_missing': allow_missing,
             'error': {'true': e_true,
@@ -59,13 +62,14 @@ def make_key(resource_type_str, use_node_name=True):
 
 
 def make_entry(resource_type_str, use_node_name=True, count_present=True, time_present=True,
-               error_present=True):
+               error_present=True, score_present=False):
     return make_key(resource_type_str, use_node_name=use_node_name), resource_type_value(
         resource_type_str,
         use_node_name=use_node_name,
         count_present=count_present,
         time_present=time_present,
-        error_present=error_present)
+        error_present=error_present,
+        score_present=score_present)
 
 
 RESOURCE_REQUEST_KEY = 'resource_request'
@@ -77,3 +81,56 @@ LONG_TASK_KEY = 'long_task'
 LONG_TASK_VALUE = resource_type_value(LONG_TASK_KEY, use_node_name=False, error_present=False)
 LONG_TASK_NODE_KEY, LONG_TASK_NODE_VALUE = make_entry(LONG_TASK_KEY, use_node_name=True,
                                                       error_present=False)
+
+PAGE_VIEW_KEY = 'page_view'
+PAGE_VIEW_VALUE = resource_type_value(PAGE_VIEW_KEY, use_node_name=False, error_present=False)
+PAGE_VIEW_NODE_KEY, PAGE_VIEW_NODE_VALUE = make_entry(PAGE_VIEW_KEY, use_node_name=True,
+                                                      error_present=False)
+
+CLIENT_ERROR_KEY = 'client_error'
+CLIENT_ERROR_VALUE = resource_type_value(CLIENT_ERROR_KEY, use_node_name=False, time_present=False,
+                                         error_present=False)
+CLIENT_ERROR_NODE_KEY, CLIENT_ERROR_NODE_VALUE = make_entry(CLIENT_ERROR_KEY, use_node_name=True,
+                                                            time_present=False, error_present=False)
+
+WEBVITALS_LCP_KEY = 'webvitals_lcp'
+WEBVITALS_LCP_VALUE = resource_type_value(WEBVITALS_LCP_KEY, use_node_name=False,
+                                          count_present=False, error_present=False)
+WEBVITALS_LCP_NODE_KEY, WEBVITALS_LCP_NODE_VALUE = make_entry(WEBVITALS_LCP_KEY, use_node_name=True,
+                                                              count_present=False,
+                                                              error_present=False)
+
+WEBVITALS_FID_KEY = 'webvitals_fid'
+WEBVITALS_FID_VALUE = resource_type_value(WEBVITALS_FID_KEY, use_node_name=False,
+                                          count_present=False, error_present=False)
+WEBVITALS_FID_NODE_KEY, WEBVITALS_FID_NODE_VALUE = make_entry(WEBVITALS_FID_KEY, use_node_name=True,
+                                                              count_present=False,
+                                                              error_present=False)
+
+RESOURCE_REQUEST_TTFB_KEY = 'resource_request.ttfb'
+RESOURCE_REQUEST_TTFB_VALUE = resource_type_value(RESOURCE_REQUEST_TTFB_KEY, use_node_name=False,
+                                                  count_present=False, error_present=False)
+RESOURCE_REQUEST_TTFB_NODE_KEY, RESOURCE_REQUEST_TTFB_NODE_VALUE = make_entry(
+    RESOURCE_REQUEST_TTFB_KEY, use_node_name=True,
+    count_present=False, error_present=False)
+
+CRASH_KEY = 'crash'
+CRASH_VALUE = resource_type_value(CRASH_KEY, use_node_name=False, time_present=False,
+                                  error_present=False)
+CRASH_NODE_KEY, CRASH_NODE_VALUE = make_entry(CRASH_KEY, use_node_name=True,
+                                              time_present=False, error_present=False)
+
+WEBVITALS_CLS_KEY = 'webvitals_cls'
+WEBVITALS_CLS_VALUE = resource_type_value(WEBVITALS_CLS_KEY, use_node_name=False,
+                                          time_present=False, error_present=False,
+                                          count_present=False, score_present=True)
+WEBVITALS_CLS_NODE_KEY, WEBVITALS_CLS_NODE_VALUE = make_entry(WEBVITALS_CLS_KEY, use_node_name=True,
+                                                              time_present=False,
+                                                              error_present=False,
+                                                              count_present=False,
+                                                              score_present=True)
+
+# TODO
+RUM_WORKFLOW_KEY = 'rum_workflow'
+# resource_type_value('workflow', use_node_name=False)
+# all three present
