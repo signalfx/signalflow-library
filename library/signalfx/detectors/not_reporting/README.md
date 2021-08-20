@@ -35,4 +35,13 @@ detect(mem_stopped_reporting or mem_too_high).publish()
 
 #### Usage note
 
-The behavior of `auto_resolve_after` may feel slightly different in this context relative to other alert conditions since the triggering condition itself involves "no data." The aspect of `auto_resolve_after` in effect here is that when a group drops from the schema (the result of some underlying time series being considered inactive), any alerts pertaining to it will be cleared by the `auto_resolve_after` mechanism. Clearing of `not_reporting` alerts within the activity period may be obtained by the use of explicit clear conditions. 
+The behavior of `auto_resolve_after` may feel slightly different in this context relative to other alert conditions since the triggering condition itself involves "no data." The aspect of `auto_resolve_after` in effect here is that when a group drops from the schema (the result of some underlying time series being considered inactive), any alerts pertaining to it will be cleared by the `auto_resolve_after` mechanism. Clearing of `not_reporting` alerts within the activity period may be obtained by the use of a composite condition. An example is below.
+
+```
+A = data('heartbeat_metric')
+
+# fires when no data for 10m, clears 30m later OR when data re-appears
+detect(when(A is None, '10m') and not when(A is None, '40m')).publish('heartbeat_with_clear')
+```
+
+
