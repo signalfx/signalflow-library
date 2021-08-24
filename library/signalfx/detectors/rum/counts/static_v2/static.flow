@@ -10,7 +10,7 @@ def detector(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear
     _key = rum_utils.make_key(resource_type, use_node_name=use_node_name)
     if apm_utils.RESOURCE_TYPE_MAPPING[_key]['metric_names']['count'] is None:
         assert 0 > 1, {'sfui_errorTemplate': "this resource type does not report counts"}
-    if apm_utils.RESOURCE_TYPE_MAPPING[_key]['error']['true'] is None:
+    if apm_utils.RESOURCE_TYPE_MAPPING[_key]['error']['true'] is False:
         _exclude_errors = False
     else:
         _exclude_errors = exclude_errors
