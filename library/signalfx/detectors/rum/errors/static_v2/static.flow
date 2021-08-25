@@ -11,7 +11,7 @@ def detector(current_window=duration('5m'),
     _key = rum_utils.make_key(resource_type, use_node_name=use_node_name)
     if apm_utils.RESOURCE_TYPE_MAPPING[_key]['metric_names']['count'] is None:
         assert 0 > 1, {'sfui_errorTemplate': "this resource type does not report counts"}
-    if apm_utils.RESOURCE_TYPE_MAPPING[_key]['error']['true'] is False:
+    if apm_utils.RESOURCE_TYPE_MAPPING[_key]['error']['false'] is None:
         assert 0 > 1, {'sfui_errorTemplate': "this resource type does not report sf_error dimension"}
     return static.detector(current_window=current_window,
                            fire_rate_threshold=fire_rate_threshold,

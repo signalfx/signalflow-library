@@ -44,7 +44,7 @@ def resource_type_value(s, use_node_name=True, count_present=True, time_present=
         e_false = ERROR_FALSE_FILTER
     else:
         e_true = False # since apm applies "not" to this field
-        e_false = False
+        e_false = None # filters can be compared to this value
     return {'metric_names': metric_names(s, use_node_name=use_node_name,
                                          count_present=count_present, time_present=time_present,
                                          score_present=score_present),
