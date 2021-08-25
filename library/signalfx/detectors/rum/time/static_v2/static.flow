@@ -19,7 +19,7 @@ def detector(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear
         _volume_static_threshold = volume_static_threshold
         _volume_relative_threshold = volume_relative_threshold
         _volume_nonzero_required = volume_nonzero_required
-    if apm_utils.RESOURCE_TYPE_MAPPING[_key]['error']['true'] is False:
+    if apm_utils.RESOURCE_TYPE_MAPPING[_key]['error']['false'] is None:
         _exclude_errors = False
     else:
         _exclude_errors = exclude_errors
