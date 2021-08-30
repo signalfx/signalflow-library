@@ -14,7 +14,7 @@ def detector(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear
     if apm_utils.RESOURCE_TYPE_MAPPING[_key]['metric_names']['count'] is None:
         _volume_static_threshold = None
         _volume_relative_threshold = None
-        _volume_nonzero_required = None
+        _volume_nonzero_required = 0.0001
     else:
         _volume_static_threshold = volume_static_threshold
         _volume_relative_threshold = volume_relative_threshold
