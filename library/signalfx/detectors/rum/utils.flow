@@ -9,6 +9,7 @@ GROUP_BY = ['app',
             'sf_ua_osname',
             'sf_environment',
             'sf_operation',
+            'sf_product',
             'http.method',
             'http.status_code']
 
