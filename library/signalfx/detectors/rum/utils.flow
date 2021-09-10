@@ -5,13 +5,17 @@ NODE_GROUP_BY = ['sf_node_type',
                  'sf_node_name']
 
 GROUP_BY = ['app',
-            'sf_ua_browsername',
-            'sf_ua_osname',
             'sf_environment',
-            'sf_operation',
-            'sf_product',
-            'http.method',
-            'http.status_code']
+            'sf_product']
+
+_GROUP_BY = ['app',
+             'sf_ua_browsername',
+             'sf_ua_osname',
+             'sf_environment',
+             'sf_operation',
+             'sf_product',
+             'http.method',
+             'http.status_code']
 
 
 def metric_names(s, use_node_name=True, count_present=True, time_present=True, score_present=False):
