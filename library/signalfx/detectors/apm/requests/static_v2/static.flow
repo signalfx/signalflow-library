@@ -23,9 +23,6 @@ def detector(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear
     fire_threshold_stream = const(fire_threshold)
     clear_threshold_stream = const(clear_threshold)
 
-    ann = [annotate(d, 'request_rate', {'sfui_streamType': 'signal'}),
-           annotate(fire_threshold_stream, 'fire_threshold', {
-               'sfui_config': '{"d_above_ft": {"sfui_streamType":"threshold","sfui_state":"fire","sfui_orientation":"above"}}'})]
     event_ann = {
         'fire_threshold': str(fire_threshold),
         'clear_threshold': str(clear_threshold),
@@ -36,6 +33,9 @@ def detector(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear
             'fire_threshold': fire_threshold, 'clear_threshold': clear_threshold,
             'sfui_errorKeys': ['fire_threshold', 'clear_threshold'],
             'sfui_errorTemplate': "{{{fire_threshold}}} must be greater than or equal to {{{clear_threshold}}}."}
+        ann = [annotate(d, 'request_rate', {'sfui_streamType': 'signal'}),
+               annotate(fire_threshold_stream, 'fire_threshold', {
+                   'sfui_config': '{"d_above_ft": {"sfui_streamType":"threshold","sfui_state":"fire","sfui_orientation":"above"}}'})]
         return detect(when(d > fire_threshold_stream, fire_lasting),
                       when(d < clear_threshold_stream, clear_lasting), annotations=ann,
                       event_annotations=event_ann, auto_resolve_after=auto_resolve_after)
@@ -45,6 +45,9 @@ def detector(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear
             'fire_threshold': fire_threshold, 'clear_threshold': clear_threshold,
             'sfui_errorKeys': ['fire_threshold', 'clear_threshold'],
             'sfui_errorTemplate': "{{{fire_threshold}}} must be less than or equal to {{{clear_threshold}}}."}
+        ann = [annotate(d, 'request_rate', {'sfui_streamType': 'signal'}),
+               annotate(fire_threshold_stream, 'fire_threshold', {
+                   'sfui_config': '{"d_above_ft": {"sfui_streamType":"threshold","sfui_state":"fire","sfui_orientation":"below"}}'})]
         return detect(when(d < fire_threshold_stream, fire_lasting),
                       when(d > clear_threshold_stream, clear_lasting), annotations=ann,
                       event_annotations=event_ann, auto_resolve_after=auto_resolve_after)
