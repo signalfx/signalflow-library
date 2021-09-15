@@ -4,7 +4,9 @@ ERROR_FALSE_FILTER = filter('sf_error', 'false')
 NODE_GROUP_BY = ['sf_node_type',
                  'sf_node_name']
 
-GROUP_BY = []
+GROUP_BY = ['app',
+            'sf_environment',
+            'sf_product']
 
 _GROUP_BY = ['app',
              'sf_ua_browsername',
