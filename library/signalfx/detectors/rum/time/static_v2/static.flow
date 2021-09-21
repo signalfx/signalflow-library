@@ -1,0 +1,34 @@
+from signalfx.detectors.apm.latency.static_v2 import static
+from signalfx.detectors.apm import utils as apm_utils
+from signalfx.detectors.rum import utils as rum_utils
+
+
+def detector(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear_lasting=None,
+             pctile=75, filter_=None, exclude_errors=True, group_by=None,
+             volume_static_threshold=None, volume_relative_threshold=None,
+             resource_type='resource_request', use_node_name=True,
+             volume_nonzero_required=0.1, use_ms=True, custom_filter=None, auto_resolve_after=None):
+    _key = rum_utils.make_key(resource_type, use_node_name=use_node_name)
+    if apm_utils.RESOURCE_TYPE_MAPPING[_key]['metric_names'][pctile] is None:
+        assert 0 > 1, {'sfui_errorTemplate': "this resource type does not report P75 metric"}
+    if apm_utils.RESOURCE_TYPE_MAPPING[_key]['metric_names']['count'] is None:
+        _volume_static_threshold = None
+        _volume_relative_threshold = None
+        _volume_nonzero_required = 0.0001
+    else:
+        _volume_static_threshold = volume_static_threshold
+        _volume_relative_threshold = volume_relative_threshold
+        _volume_nonzero_required = volume_nonzero_required
+    if apm_utils.RESOURCE_TYPE_MAPPING[_key]['error']['false'] is None:
+        _exclude_errors = False
+    else:
+        _exclude_errors = exclude_errors
+    return static.detector(fire_threshold=fire_threshold, fire_lasting=fire_lasting,
+                           clear_threshold=clear_threshold, clear_lasting=clear_lasting,
+                           pctile=pctile, filter_=filter_, exclude_errors=_exclude_errors,
+                           group_by=group_by,
+                           volume_static_threshold=_volume_static_threshold,
+                           volume_relative_threshold=_volume_relative_threshold,
+                           volume_nonzero_required=_volume_nonzero_required, use_ms=use_ms,
+                           custom_filter=custom_filter, resource_type=_key,
+                           auto_resolve_after=auto_resolve_after)

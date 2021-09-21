@@ -1,0 +1,21 @@
+from signalfx.detectors.apm.requests.static_v2 import static
+from signalfx.detectors.apm import utils as apm_utils
+from signalfx.detectors.rum import utils as rum_utils
+
+
+def detector(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear_lasting=None,
+             orientation='above', filter_=None, exclude_errors=False, group_by=None,
+             custom_filter=None, resource_type='resource_request', use_node_name=True,
+             auto_resolve_after=None):
+    _key = rum_utils.make_key(resource_type, use_node_name=use_node_name)
+    if apm_utils.RESOURCE_TYPE_MAPPING[_key]['metric_names']['count'] is None:
+        assert 0 > 1, {'sfui_errorTemplate': "this resource type does not report counts"}
+    if apm_utils.RESOURCE_TYPE_MAPPING[_key]['error']['false'] is None:
+        _exclude_errors = False
+    else:
+        _exclude_errors = exclude_errors
+    return static.detector(fire_threshold=fire_threshold, fire_lasting=fire_lasting,
+                           clear_threshold=clear_threshold, clear_lasting=clear_lasting,
+                           orientation=orientation, filter_=filter_, exclude_errors=_exclude_errors,
+                           group_by=group_by, custom_filter=custom_filter, resource_type=_key,
+                           auto_resolve_after=auto_resolve_after)
