@@ -16,6 +16,7 @@ def pctile_over_window(pctile=90, filter_=None, window=duration('5m'), exclude_e
     #  NB   if errors are included, the error and non-error streams will simply be averaged
     #           (unless of course 'error' is part of the group_by ..)
     #
+    assert pctile == 50 or pctile == 75 or pctile == 90 or pctile == 99
     filter__ = utils.merge_filters(filter_, exclude_errors, use_kind_filter=use_kind_filter,
                                    custom_filter=custom_filter, kind_filter=kind_filter,
                                    exclude_errors_filter=exclude_errors_filter)
@@ -181,8 +182,12 @@ def volume(filter_=None, window=duration('5m'), exclude_errors=True, use_trimmed
                                    custom_filter=custom_filter, kind_filter=kind_filter,
                                    exclude_errors_filter=exclude_errors_filter)
     gp_by = utils.merge_group_by_with_default(group_by, default=default_group_by)
-    vol = data(metric_names['count'], filter=filter__, rollup='rate').sum(by=gp_by,
-                                                                  allow_missing=default_allow_missing)
+    if metric_names['count'] is not None:
+        vol = data(metric_names['count'], filter=filter__, rollup='rate').sum(by=gp_by,
+                                                                              allow_missing=default_allow_missing)
+    else:
+        # adding this so non_empty_cond has no effect for resource_type schemas missing "count" metric
+        vol = const(1)
     if window is None:
         return vol
     elif use_trimmed_mean is True:
