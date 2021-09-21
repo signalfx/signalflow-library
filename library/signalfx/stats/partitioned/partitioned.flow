@@ -1,0 +1,16 @@
+def stddev(s, sub_window_length=duration('12h'), num_sub_windows=14):
+    # computes standard deviation of stream s over duration sub_window_length * num_sub_windows;
+    #   high resolution replacement for s.stddev(over=sub_window_length * num_sub_windows)
+    # :param s (stream): stream on which to compute windowed standard deviation
+    # :param _sub_window_length (duration): length of a single subwindow (default=duration('12h')
+    # :param num_sub_windows (number): number of subwindows
+    # :return: stream computing the specified standard deviation
+    _sub_window_length = duration(sub_window_length)
+    sum_squares = sum(
+        *[s.timeshift(i * _sub_window_length).pow(2).sum(over=_sub_window_length) for i in
+          range(num_sub_windows)])
+    sum_ = sum(*[s.timeshift(i * _sub_window_length).sum(over=_sub_window_length) for i in
+                 range(num_sub_windows)])
+    count_ = sum(*[s.timeshift(i * _sub_window_length).count(over=_sub_window_length) for i in
+                   range(num_sub_windows)])
+    return ((count_ * sum_squares - sum_ * sum_) / count_ / count_).sqrt()
