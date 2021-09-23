@@ -29,8 +29,8 @@ def span_errors(filter_=None, custom_filter=None, use_kind_filter=True,
     #     else:
     #         error_filter = filter_ and filter('error', 'true') and utils.KIND_FILTER and custom_filter
     #         non_error_filter = filter_ and filter('error', 'false') and utils.KIND_FILTER and custom_filter
-    error_stream = data(metric_names['count'], error_filter, rollup=r_up).fill(0)
-    non_error_stream = data(metric_names['count'], non_error_filter, rollup=r_up).fill(0)
+    error_stream = data(metric_names['count'], error_filter, rollup=r_up, resolution=utils.V2_DATA_RESOLUTION_TEN_SECONDS).fill(0)
+    non_error_stream = data(metric_names['count'], non_error_filter, rollup=r_up, resolution=utils.V2_DATA_RESOLUTION_TEN_SECONDS).fill(0)
     zero_non_error_schema = min(non_error_stream, const(0))
     zero_error_schema = min(error_stream, const(0))
     e = union(error_stream, zero_non_error_schema)
