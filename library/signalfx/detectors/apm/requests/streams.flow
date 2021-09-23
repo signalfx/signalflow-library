@@ -18,5 +18,5 @@ def request_rate(filter_=None, exclude_errors=False, group_by=None, custom_filte
     gp_by = utils.merge_group_by_with_default(group_by,
                                               default=utils.RESOURCE_TYPE_MAPPING[resource_type]['group_by'])
     default_allow_missing = utils.RESOURCE_TYPE_MAPPING[resource_type]['allow_missing']
-    return data(metric_name, filter=filter__, rollup='rate').fill(0).sum(by=gp_by,
+    return data(metric_name, filter=filter__, rollup='rate', resolution=utils.V2_DATA_RESOLUTION_TEN_SECONDS).fill(0).sum(by=gp_by,
                                                                          allow_missing=default_allow_missing)
