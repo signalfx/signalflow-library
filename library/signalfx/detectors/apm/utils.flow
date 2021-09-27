@@ -27,6 +27,8 @@ PCTILE_TO_METRIC = {'count': 'spans.count',
                     90: 'spans.duration.ns.p90',
                     99: 'spans.duration.ns.p99'}
 
+V2_DATA_RESOLUTION_TEN_SECONDS = 10000
+
 RESOURCE_TYPE_MAPPING = {
     'service_operation': {'metric_names': PCTILE_TO_METRIC,
                           'group_by': V2_DEFAULT_GROUPBY,
