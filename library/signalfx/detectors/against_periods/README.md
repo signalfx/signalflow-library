@@ -11,7 +11,7 @@ The `detector_growth_rate` function has the following parameters. Parameters wit
 |stream|stream|data being monitored|*None*|
 |window_to_compare|duration|length of current window (being tested for anomalous values), and historical windows (used to establish a baseline)|duration('15m')|
 |space_between_windows|duration|time range reflecting the periodicity of the data stream|duration('1w')|
-|num_windows|integer|number of previous periods used to define baseline, must be > 0|4|
+|num_windows|integer|number of previous periods used to define baseline, must be > 0 and <= 8|4|
 |fire_growth_rate_threshold|number|change over historical norm required to fire, should be >= 0|0.2|
 |clear_growth_rate_threshold|number|change over historical norm required to clear, should be >= 0|0.1|
 |discard_historical_outliers|boolean|whether to take the median (True) or mean (False) of historical windows|True|
