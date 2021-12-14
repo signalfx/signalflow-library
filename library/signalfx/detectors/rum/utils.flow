@@ -7,8 +7,7 @@ NODE_GROUP_BY = ['sf_node_type',
 GROUP_BY = ['app',
             'sf_environment',
             'sf_product',
-            'workflow.name',
-            'sf_metric']
+            'workflow.name']
 
 _GROUP_BY = ['app',
              'sf_ua_browsername',
