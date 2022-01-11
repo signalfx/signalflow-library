@@ -11,7 +11,8 @@ def detector(current_window=duration('5m'),
              default_group_by=utils.DEFAULT_GROUPBY,
              default_allow_missing=utils.DEFAULT_ALLOW_MISSING, r_up='delta',
              metric_names=utils.PCTILE_TO_METRIC,
-             auto_resolve_after=None):
+             auto_resolve_after=None, _alert_type=None,
+             _detector_type=None, _resource_type=None):
     # Detect when error rate exceeds a static threshold
     # :param current_window (duration): window on which error rate is calculated,
     #                                      default=duration('5m')
@@ -49,7 +50,11 @@ def detector(current_window=duration('5m'),
                'sfui_config': '{"ep_above_ft": {"sfui_streamType":"threshold","sfui_state":"fire","sfui_orientation":"above"}}'})]
     event_ann = {'current_window': str(current_window_),
                  'fire_pct_threshold': str(fire_pct_threshold),
-                 'sfui_incidentInformation': '[{"selectedIdentifiers":["fire_pct_threshold_stream","err_pct"], "conditionIdentifier":"ep_above_ft"}]'}
+                 'sfui_incidentInformation': '[{"selectedIdentifiers":["fire_pct_threshold_stream","err_pct"], "conditionIdentifier":"ep_above_ft"}]',
+                 'resource_type': str(_resource_type),
+                 'alert_type': str(_alert_type),
+                 'detector_type': str(_detector_type)
+                 }
     attempt_condition = conditions.volume(duration_=current_window_, shift=duration(0),
                                           filter_=filter_, group_by=group_by, num_error_threshold=0,
                                           num_attempt_threshold=attempt_threshold,

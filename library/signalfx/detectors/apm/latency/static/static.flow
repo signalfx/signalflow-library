@@ -10,7 +10,8 @@ def detector(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear
              exclude_errors_filter=utils.EXCLUDE_ERRORS_FILTER,
              default_group_by=utils.DEFAULT_GROUPBY,
              default_allow_missing=utils.DEFAULT_ALLOW_MISSING,
-             metric_names=utils.PCTILE_TO_METRIC, auto_resolve_after=None):
+             metric_names=utils.PCTILE_TO_METRIC, auto_resolve_after=None,
+             _alert_type=None, _detector_type=None, _resource_type=None):
     # Detect when latency exceeds a specified static threshold for a specified percent of duration
     # :param fire_threshold (number): latency threshold required to trigger, expressed in
     #                   nanoseconds or milliseconds (see use_ms)
@@ -61,7 +62,11 @@ def detector(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear
     event_ann = {
         'fire_threshold': str(fire_threshold),
         'clear_threshold': str(clear_threshold),
-        'sfui_incidentInformation': '[{"selectedIdentifiers":["fire_threshold_stream","d"], "conditionIdentifier":"d_above_ft"}]'}
+        'sfui_incidentInformation': '[{"selectedIdentifiers":["fire_threshold_stream","d"], "conditionIdentifier":"d_above_ft"}]',
+        'resource_type': str(_resource_type),
+        'alert_type': str(_alert_type),
+        'detector_type': str(_detector_type)
+    }
     non_empty_cond = conditions.static_volume_nonempty(lasting(fire_lasting.duration,
                                                                volume_nonzero_required),
                                                        filter_=filter_,
