@@ -18,4 +18,5 @@ def detector(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear
                            clear_threshold=clear_threshold, clear_lasting=clear_lasting,
                            orientation=orientation, filter_=filter_, exclude_errors=_exclude_errors,
                            group_by=group_by, custom_filter=custom_filter, resource_type=_key,
-                           auto_resolve_after=auto_resolve_after)
+                           auto_resolve_after=auto_resolve_after, _alert_type='count',
+                           _detector_type='rum', _resource_type=resource_type)
