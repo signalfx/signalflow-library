@@ -31,4 +31,5 @@ def detector(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear
                            volume_relative_threshold=_volume_relative_threshold,
                            volume_nonzero_required=_volume_nonzero_required, use_ms=use_ms,
                            custom_filter=custom_filter, resource_type=_key,
-                           auto_resolve_after=auto_resolve_after)
+                           auto_resolve_after=auto_resolve_after, _alert_type='time',
+                           _detector_type='rum', _resource_type=resource_type)

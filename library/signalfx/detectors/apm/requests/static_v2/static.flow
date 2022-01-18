@@ -3,7 +3,8 @@ from signalfx.detectors.apm.requests import streams
 
 def detector(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear_lasting=None,
              orientation='above', filter_=None, exclude_errors=False, group_by=None,
-             custom_filter=None, resource_type='service_operation', auto_resolve_after=None):
+             custom_filter=None, resource_type='service_operation', auto_resolve_after=None,
+             _alert_type=None, _detector_type=None, _resource_type=None):
     #
     # :param fire_threshold:
     # :param fire_lasting:
@@ -26,7 +27,11 @@ def detector(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear
     event_ann = {
         'fire_threshold': str(fire_threshold),
         'clear_threshold': str(clear_threshold),
-        'sfui_incidentInformation': '[{"selectedIdentifiers":["fire_threshold_stream","d"], "conditionIdentifier":"d_above_ft"}]'}
+        'sfui_incidentInformation': '[{"selectedIdentifiers":["fire_threshold_stream","d"], "conditionIdentifier":"d_above_ft"}]',
+        'resource_type': str(_resource_type),
+        'alert_type': str(_alert_type),
+        'detector_type': str(_detector_type)
+    }
 
     if orientation == 'above':
         assert fire_threshold >= clear_threshold, {
