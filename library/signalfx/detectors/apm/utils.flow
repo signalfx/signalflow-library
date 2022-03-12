@@ -70,9 +70,16 @@ RESOURCE_TYPE_MAPPING = {
     rum_utils.CRASH_KEY: rum_utils.CRASH_VALUE,
     rum_utils.CRASH_NODE_KEY: rum_utils.CRASH_NODE_VALUE,
     rum_utils.WEBVITALS_CLS_KEY: rum_utils.WEBVITALS_CLS_VALUE,
-    rum_utils.WEBVITALS_CLS_NODE_KEY: rum_utils.WEBVITALS_CLS_NODE_VALUE
+    rum_utils.WEBVITALS_CLS_NODE_KEY: rum_utils.WEBVITALS_CLS_NODE_VALUE,
+    rum_utils.HOTSTART_KEY: rum_utils.HOTSTART_VALUE,
+    rum_utils.HOTSTART_NODE_KEY: rum_utils.HOTSTART_NODE_VALUE,
+    rum_utils.COLDSTART_KEY: rum_utils.COLDSTART_VALUE,
+    rum_utils.COLDSTART_NODE_KEY: rum_utils.COLDSTART_NODE_VALUE,
+    rum_utils.WARMSTART_KEY: rum_utils.WARMSTART_VALUE,
+    rum_utils.WARMSTART_NODE_KEY: rum_utils.WARMSTART_NODE_VALUE,
+    rum_utils.APP_ERROR_KEY: rum_utils.APP_ERROR_VALUE,
+    rum_utils.APP_ERROR_NODE_KEY: rum_utils.APP_ERROR_NODE_VALUE
 }
-
 
 def merge_filters(filter_, exclude_errors, use_kind_filter=True, custom_filter=None,
                   kind_filter=KIND_FILTER, exclude_errors_filter=EXCLUDE_ERRORS_FILTER):
