@@ -1,0 +1,19 @@
+def annotate_stream(stream, label):
+    return annotate(stream, label, {'sfui_streamType': 'signal'})
+
+
+def annotate_fire_threshold(threshold_stream, label='fire_threshold', orientation=None):
+    if orientation is not None:
+        threshold_ui_config = '{"stream_' + orientation + \
+                              '_ft": {"sfui_streamType":"threshold","sfui_state":"fire","sfui_orientation":"' + \
+                              orientation + '"}}'
+    else:
+        threshold_ui_config = '{"stream_out_of_ft": {"sfui_streamType":"threshold","sfui_state":"fire"}}'
+    return annotate(threshold_stream, label, {'sfui_config': threshold_ui_config})
+
+
+def merge_filters(scope_filter, filter_):
+    if filter_ is not None:
+        return scope_filter and filter_
+    else:
+        return scope_filter
