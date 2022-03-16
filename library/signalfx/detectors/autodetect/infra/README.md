@@ -1,0 +1,1 @@
+The `autodetect.infra` module facilitates the creation of autodetect detectors on the infrastructure metrics. It consists of submodules for the specific infrastructure e.g. `k8s` for kubernetes related metrics 
