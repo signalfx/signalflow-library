@@ -1,0 +1,17 @@
+stages:
+  - tag
+
+tag-release:
+  stage: tag
+  before_script:
+    - eval $(ssh-agent -s)
+    - go-go git-ssh
+    - git config --global user.email "${CI_PROJECT_NAME}@splunk.com"
+    - git config --global user.name "CI Auto User"
+  script:
+    - echo "Latest version $(gitversion show)"
+    - BUMPED_VERSION="$(gitversion bump auto)"
+    - echo "New version ${BUMPED_VERSION}"
+    - git tag -f "${BUMPED_VERSION}"
+    - git push origin-ssh "${BUMPED_VERSION}" -o ci.skip
+
