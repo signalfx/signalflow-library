@@ -3,6 +3,9 @@ stages:
 
 tag-release:
   stage: tag
+  only:
+    refs:
+      - master
   before_script:
     - eval $(ssh-agent -s)
     - go-go git-ssh
