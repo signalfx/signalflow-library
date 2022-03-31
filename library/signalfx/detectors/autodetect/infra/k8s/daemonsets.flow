@@ -1,0 +1,29 @@
+from signalfx.detectors.autodetect import utils
+from signalfx.detectors.autodetect.k8s import utils as k8s_utils
+
+
+def daemonset_nodes_not_at_spec_detector(fire_threshold: int = 0, fire_lasting: lasting = lasting('5m', 0.95),
+                                    filter_: filter = None):
+    # Detects when number of scheduled and ready nodes in DaemonSet have diverged
+    # :param fire_threshold specifies fire threshold for desired minus ready nodes
+    # :param fire_threshold label=Trigger threshold
+    # :param fire_threshold min=0
+    # :param fire_lasting specifies lasting object associated with fire threshold
+    # :param fire_lasting label=Sensitivity
+    # :param filter_ specifies dimensional scope of the detector
+    # :param filter_ metric_name=k8s.daemonset.desired_scheduled_nodes
+    # :return: detect block that triggers when DaemonSets suitably filtered and grouped, are not at spec
+    group_by = [k8s_utils.K8S_CLUSTER_NAME_DIM, k8s_utils.K8S_DAEMONSET_NAME_DIM]
+    scheduled_stream = data('k8s.daemonset.desired_scheduled_nodes', filter=filter_).sum(by=group_by,
+                                                                                         allow_missing=group_by)
+    ready_stream = data('k8s.daemonset.ready_nodes', filter=filter_).sum(by=group_by)
+    stream = (scheduled_stream - ready_stream)
+
+    above_fire_threshold_stream = const(fire_threshold)
+    below_fire_threshold_stream = const(0)
+    ann = [utils.annotate_stream(stream, 'Scheduled - Ready'),
+           utils.annotate_fire_threshold(above_fire_threshold_stream, orientation='above'),
+           utils.annotate_fire_threshold(below_fire_threshold_stream, label='below_0_threshold', orientation='below'),
+           ]
+    return detect(when((stream > above_fire_threshold_stream) or (stream < below_fire_threshold_stream), lasting=fire_lasting),
+                  annotations=ann, auto_resolve_after=utils.AUTO_RESOLVE_AFTER)
