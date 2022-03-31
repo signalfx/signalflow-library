@@ -1,3 +1,7 @@
+AUTO_RESOLVE_AFTER = duration('1d')
+HOST_DIM = 'host'
+
+
 def annotate_stream(stream, label):
     return annotate(stream, label, {'sfui_streamType': 'signal'})
 

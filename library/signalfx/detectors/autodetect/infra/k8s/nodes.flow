@@ -1,40 +1,38 @@
-from signalfx.detectors.autodetect.utils import annotate_stream, annotate_fire_threshold, merge_filters
+from signalfx.detectors.autodetect import utils
+from signalfx.detectors.autodetect.k8s import utils as k8s_utils
 
 
-def nodes_not_ready_detector(fire_lasting: lasting = lasting('30s', 1), filter_: filter = None,
-                             auto_resolve_after: duration = duration('1d')):
+def nodes_not_ready_detector(fire_lasting: lasting = lasting('30s', 1), filter_: filter = None):
     # Detects when K8s Node is not in a ready state after 30s
-    # :param fire_lasting description=specifies lasting object associated with fire threshold
+    # :param fire_lasting specifies lasting object associated with fire threshold
     # :param fire_lasting label=Sensitivity
-    # :param filter_ description=specifies dimensional scope of the detector
+    # :param filter_ specifies dimensional scope of the detector
     # :param filter_ metric_name=k8s.node.condition_ready
-    # :param auto_resolve_after description=allow to auto-clear alerts after specified time when a metric time series stops reporting
-    # :param auto_resolve_after label=Auto-clear after
     # :return: detect block that triggers when nodes suitably filtered and grouped, are not ready
-    stream = data('k8s.node.condition_ready', filter=filter_).sum(by=['k8s.cluster.name', 'k8s.node.name'])
+    group_by = [k8s_utils.K8S_CLUSTER_NAME_DIM, k8s_utils.K8S_NODE_NAME_DIM]
+    stream = data('k8s.node.condition_ready', filter=filter_).sum(by=group_by, allow_missing=group_by)
     fire_threshold_stream = const(1)
-    ann = [annotate_stream(stream, 'Node condition ready'),
-           annotate_fire_threshold(fire_threshold_stream, orientation='below')]
+    ann = [utils.annotate_stream(stream, 'Node condition ready'),
+           utils.annotate_fire_threshold(fire_threshold_stream, orientation='below')]
     return detect(when(stream < fire_threshold_stream, lasting=fire_lasting), annotations=ann,
-                  auto_resolve_after=auto_resolve_after)
+                  auto_resolve_after=utils.AUTO_RESOLVE_AFTER)
 
 
 def node_memory_utilization_detector(fire_threshold: int = 90, fire_lasting: lasting = lasting('5m', 1),
-                                     filter_: filter = None, auto_resolve_after: duration = duration('1d')):
+                                     filter_: filter = None):
     # Detects when K8s Node memory utilization is high
-    # :param fire_threshold description=specifies fire threshold for memory utilization
+    # :param fire_threshold specifies fire threshold for memory utilization
     # :param fire_threshold label=Trigger threshold
-    # :param fire_lasting description=specifies lasting object associated with fire threshold
+    # :param fire_lasting specifies lasting object associated with fire threshold
     # :param fire_lasting label=Sensitivity
-    # :param filter_ description=specifies dimensional scope of the detector
+    # :param filter_ specifies dimensional scope of the detector
     # :param filter_ metric_name=memory.utilization
-    # :param auto_resolve_after description=allow to auto-clear alerts after specified time when a metric time series stops reporting
-    # :param auto_resolve_after label=Auto-clear after
     # :return: detect block that triggers when nodes memory utilization is above threshold
-    scope_filter = merge_filters(filter('k8s.cluster.name', '*'), filter_)
-    stream = data('memory.utilization', filter=scope_filter).sum(by=['host', 'k8s.cluster.name'])
+    scope_filter = utils.merge_filters(filter(k8s_utils.K8S_CLUSTER_NAME_DIM, '*'), filter_)
+    group_by = [k8s_utils.K8S_CLUSTER_NAME_DIM, utils.HOST_DIM]
+    stream = data('memory.utilization', filter=scope_filter).sum(by=group_by, allow_missing=group_by)
     fire_threshold_stream = const(fire_threshold)
-    ann = [annotate_stream(stream, 'Memory utilization'),
-           annotate_fire_threshold(fire_threshold_stream, orientation='above')]
+    ann = [utils.annotate_stream(stream, 'Memory utilization'),
+           utils.annotate_fire_threshold(fire_threshold_stream, orientation='above')]
     return detect(when(stream > fire_threshold_stream, lasting=fire_lasting), annotations=ann,
-                  auto_resolve_after=auto_resolve_after)
+                  auto_resolve_after=utils.AUTO_RESOLVE_AFTER)

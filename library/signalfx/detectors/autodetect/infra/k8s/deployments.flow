@@ -1,0 +1,28 @@
+from signalfx.detectors.autodetect import utils
+from signalfx.detectors.autodetect.k8s import utils as k8s_utils
+
+
+def deployment_not_at_spec_detector(fire_threshold: int = 0, fire_lasting: lasting = lasting('5m', 0.8),
+                                    filter_: filter = None):
+    # Detects when number of desired and available pods in Deployments have diverged
+    # :param fire_threshold specifies fire threshold for desired minus available deployments
+    # :param fire_threshold label=Trigger threshold
+    # :param fire_threshold min=0
+    # :param fire_lasting specifies lasting object associated with fire threshold
+    # :param fire_lasting label=Sensitivity
+    # :param filter_ specifies dimensional scope of the detector
+    # :param filter_ metric_name=k8s.deployment.desired
+    # :return: detect block that triggers when deployment suitably filtered and grouped, are not at spec
+    group_by = [k8s_utils.K8S_NAMESPACE_NAME_DIM, k8s_utils.K8S_CLUSTER_NAME_DIM, k8s_utils.K8S_DEPLOYMENT_NAME_DIM]
+    desired_stream = data('k8s.deployment.desired', filter=filter_).sum(by=group_by, allow_missing=group_by)
+    available_stream = data('k8s.deployment.available', filter=filter_).sum(by=group_by, allow_missing=group_by)
+    stream = (desired_stream - available_stream)
+
+    above_fire_threshold_stream = const(fire_threshold)
+    below_fire_threshold_stream = const(0)
+    ann = [utils.annotate_stream(stream, 'Desired - Available'),
+           utils.annotate_fire_threshold(above_fire_threshold_stream, orientation='above'),
+           utils.annotate_fire_threshold(below_fire_threshold_stream, label='below_0_threshold', orientation='below'),
+           ]
+    return detect(when((stream > above_fire_threshold_stream) or (stream < below_fire_threshold_stream), lasting=fire_lasting),
+                  annotations=ann, auto_resolve_after=utils.AUTO_RESOLVE_AFTER)

@@ -1,0 +1,19 @@
+from signalfx.detectors.autodetect import utils
+
+
+def detectors_aborted_detector(fire_threshold: int = 0, window: duration = duration('5h')):
+    # Detects when number of aborted detectors is above threshold over a period of time
+    # :param fire_threshold specifies fire threshold for aborted detectors
+    # :param fire_threshold label=Trigger threshold
+    # :param fire_threshold min=0
+    # :param window specifies a period of time to perform computation of aborted detectors
+    # :param window label=Over period
+    # :param window min=10m
+    # :return: detect block that triggers when organization has detectors aborted
+    stream = data('sf.org.numDetectorsAborted', rollup='sum').sum(over=window)
+
+    fire_threshold_stream = const(fire_threshold)
+    ann = [utils.annotate_stream(stream, 'Detectors Aborted'),
+           utils.annotate_fire_threshold(fire_threshold_stream, orientation='above')]
+    return detect(when(stream > fire_threshold_stream), annotations=ann,
+                  auto_resolve_after=utils.AUTO_RESOLVE_AFTER)
