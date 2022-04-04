@@ -35,3 +35,7 @@ build and deploy:
     - VERSION="$(gitversion show)"
     - ./mkrelease "${VERSION}"
     - aws s3 cp "signalfx-${VERSION}.zip" s3://signalflow-library-versions-us0-signalfx/
+  artifacts:
+    paths:
+      - "signalfx-*.zip"
+
