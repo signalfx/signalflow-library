@@ -5,26 +5,10 @@ stages:
 variables:
   AWS_ROLE_US0: aws:v1/o11y-infra/role/gitlab_signalflow_library_versions_management-us0
 
-build and deploy:
-  stage: build
-  only:
-    refs:
-      - master
-  before_script:   
-    - creds-helper init
-    - creds-helper aws --eval ${AWS_ROLE_US0}
-    - mkdir ~/.aws
-    - mv /root/.secrets/awsv1o11y-infrarolegitlab_signalflow_library_versi.aws ~/.aws/credentials
-  script:
-    - VERSION="$(gitversion show)"
-    - ./mkrelease $VERSION
-    - aws s3 cp signalfx-$VERSION.zip s3://signalflow-library-versions-us0-signalfx/
-
 tag-release:
   stage: tag
-  only:
-    refs:
-      - master
+  rules:
+    - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
   before_script:
     - eval $(ssh-agent -s)
     - go-go git-ssh
@@ -37,3 +21,17 @@ tag-release:
     - git tag -f "${BUMPED_VERSION}"
     - git push origin-ssh "${BUMPED_VERSION}" -o ci.skip
 
+build and deploy:
+  image: docker.repo.splunkdev.net/ci-cd/ci-container:debian-buster-aws
+  stage: build
+  rules:
+    - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
+  before_script:   
+    - creds-helper init
+    - creds-helper aws --eval ${AWS_ROLE_US0}
+    - mkdir ~/.aws
+    - mv /root/.secrets/awsv1o11y-infrarolegitlab_signalflow_library_versi.aws ~/.aws/credentials
+  script:
+    - VERSION="$(gitversion show)"
+    - ./mkrelease "${VERSION}"
+    - aws s3 cp "signalfx-${VERSION}.zip" s3://signalflow-library-versions-us0-signalfx/
