@@ -14,14 +14,11 @@ build and deploy:
     - creds-helper init
     - creds-helper aws --eval ${AWS_ROLE_US0}
     - mkdir ~/.aws
-    - ls /root/.secrets/
     - mv /root/.secrets/awsv1o11y-infrarolegitlab_signalflow_library_versi.aws ~/.aws/credentials
   script:
     - VERSION="$(gitversion show)"
     - ./mkrelease $VERSION
-    - ls -la
     - aws s3 cp signalfx-$VERSION.zip s3://signalflow-library-versions-us0-signalfx/
-    - aws s3 ls s3://signalflow-library-versions-us0-signalfx/
 
 tag-release:
   stage: tag
