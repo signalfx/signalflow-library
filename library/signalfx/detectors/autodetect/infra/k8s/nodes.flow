@@ -1,5 +1,5 @@
 from signalfx.detectors.autodetect import utils
-from signalfx.detectors.autodetect.k8s import utils as k8s_utils
+from signalfx.detectors.autodetect.infra.k8s import utils as k8s_utils
 
 
 def nodes_not_ready_detector(fire_lasting: lasting = lasting('30s', 1), filter_: filter = None):
