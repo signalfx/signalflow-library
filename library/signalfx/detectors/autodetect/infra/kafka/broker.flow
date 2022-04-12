@@ -1,0 +1,52 @@
+from signalfx.detectors.autodetect import utils
+from signalfx.detectors.autodetect.infra.kafka import utils as kafka_utils
+
+
+def controller_not_active_detector(filter_: filter = None):
+    # Detects when there are no active controller in a cluster
+    # :param filter_ specifies dimensional scope of the detector
+    # :param filter_ metric_name=gauge.kafka-underreplicated-partitions
+    # :return: detect block that triggers when there are no active controller in a cluster
+    group_by = [kafka_utils.KAFKA_CLUSTER_DIM]
+    stream = data('gauge.kafka-active-controllers', filter=filter_).sum(by=group_by, allow_missing=group_by)
+    fire_threshold_stream = const(1)
+    ann = [utils.annotate_stream(stream, 'Active Controllers'),
+           utils.annotate_fire_threshold(fire_threshold_stream, orientation='below')]
+    return detect(when(stream < fire_threshold_stream),  annotations=ann, auto_resolve_after=utils.AUTO_RESOLVE_AFTER)
+
+
+def underreplicated_partitions_detector(fire_threshold: int = 0,
+                                        fire_lasting: lasting = lasting('5m', 1),
+                                        filter_: filter = None):
+    # Detects when kafka partitions are under replicated
+    # :param fire_threshold specifies fire threshold for number of underreplicated partitions
+    # :param fire_threshold label=Trigger threshold
+    # :param fire_threshold min=0
+    # :param fire_lasting specifies lasting object associated with fire threshold
+    # :param fire_lasting label=Sensitivity
+    # :param filter_ specifies dimensional scope of the detector
+    # :param filter_ metric_name=gauge.kafka-underreplicated-partitions
+    # :return: detect block that triggers when number of underreplicated kafka partitions is above threshold
+    stream = data('gauge.kafka-underreplicated-partitions', filter=filter_)
+    fire_threshold_stream = const(fire_threshold)
+    ann = [utils.annotate_stream(stream, 'Underreplicated Partitions'),
+           utils.annotate_fire_threshold(fire_threshold_stream, orientation='above')]
+    return detect(when(stream > fire_threshold_stream, lasting=fire_lasting), annotations=ann,
+                  auto_resolve_after=utils.AUTO_RESOLVE_AFTER)
+
+
+def offline_partitions_detector(fire_threshold: int = 0, filter_: filter = None):
+    # Detects when kafka partitions are offline
+    # :param fire_threshold specifies fire threshold for number of offline partitions
+    # :param fire_threshold label=Trigger threshold
+    # :param fire_threshold min=0
+    # :param filter_ specifies dimensional scope of the detector
+    # :param filter_ metric_name=gauge.kafka-offline-partitions-count
+    # :return: detect block that triggers when number of offline kafka partitions is above threshold
+    group_by = [kafka_utils.KAFKA_CLUSTER_DIM, utils.HOST_DIM]
+    stream = data('gauge.kafka-offline-partitions-count', filter=filter_).max(by=group_by, allow_missing=group_by)
+    fire_threshold_stream = const(fire_threshold)
+    ann = [utils.annotate_stream(stream, 'Offline Partitions - Max'),
+           utils.annotate_fire_threshold(fire_threshold_stream, orientation='above')]
+    return detect(when(stream > fire_threshold_stream), annotations=ann,
+                  auto_resolve_after=utils.AUTO_RESOLVE_AFTER)

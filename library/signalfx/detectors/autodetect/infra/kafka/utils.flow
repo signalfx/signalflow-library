@@ -1,0 +1,4 @@
+KAFKA_CLUSTER_DIM = 'cluster'
+KAFKA_TOPIC_DIM = 'topic'
+KAFKA_PARTITION_DIM = 'partition'
+KAFKA_GROUP_DIM = 'group'
