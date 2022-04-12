@@ -17,3 +17,27 @@ def detectors_aborted_detector(fire_threshold: int = 0, window: duration = durat
            utils.annotate_fire_threshold(fire_threshold_stream, orientation='above')]
     return detect(when(stream > fire_threshold_stream), annotations=ann,
                   auto_resolve_after=utils.AUTO_RESOLVE_AFTER)
+
+
+def detectors_limit_detector(fire_threshold: int = 90, fire_lasting: lasting = lasting('3h', 1)):
+    # Detects when percentage of detectors(vs. limit) is above threshold
+    # :param fire_threshold specifies fire threshold in % for reaching the detector's limit
+    # :param fire_threshold label=Trigger threshold
+    # :param fire_threshold min=0
+    # :param fire_threshold max=100
+    # :param fire_threshold step=5
+    # :param fire_threshold unit=%
+    # :param fire_lasting specifies lasting object associated with fire threshold
+    # :param fire_lasting label=Sensitivity
+    # :return: detect block that triggers when percentage of detectors(vs. limit) is above threshold
+    scope = filter('purpose', 'CUSTOM')
+    limit_stream = data('sf.org.limit.detector', rollup='latest').fill(duration='2h').max()
+    current_num_stream = data('sf.org.num.detector', filter=scope, rollup='latest').fill(duration='2h').max()
+    stream = (current_num_stream / limit_stream * 100)
+
+    fire_threshold_stream = const(fire_threshold)
+    ann = [utils.annotate_stream(stream, '% Detector Limit Used'),
+           utils.annotate_fire_threshold(fire_threshold_stream, orientation='above')]
+
+    return detect(when(stream > fire_threshold_stream, lasting=fire_lasting), annotations=ann,
+                  auto_resolve_after=utils.AUTO_RESOLVE_AFTER)
