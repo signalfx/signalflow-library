@@ -1,0 +1,39 @@
+from signalfx.detectors.synthetics import utils
+
+
+def detector(resource_type: string, fire_threshold: int = 0, filter_: filter = None,
+             use_location: bool = False, exclude_failed_test: bool = False,
+             frequency: duration = '5m', consecutive: int = 1):
+    ###################################################################
+    # BETA Version - DO NOT USE IN PRODUCTION AS SIGNATURE MIGHT CHANGE
+    ###################################################################
+    # Detects when specific resource type is above threshold over a period
+    # that depends on how many times(specified by consecutive) it should violate the threshold
+    # :param resource_type specifies synthetics metric
+    # :param fire_threshold specifies fire threshold for resource_type
+    # :param filter_ specifies dimensional scope of the detector
+    # :param filter_ metric_name=synthetics.*
+    # :param use_location specifies if signal should be split by location_id
+    # :param exclude_failed_test specifies if check for threshold violations when test failed
+    # :frequency specifies the frequency of the test and is used for calculating consecutive failures condition
+    # :consecutive specifies for how many tests, threshold should be violated before alert is triggered
+
+    assert resource_type is not None
+
+    scope = utils.merge_filters(filter_, exclude_failed_test)
+    fire_lasting = lasting(duration(frequency) * consecutive, 0.8)
+    group_by = utils.get_group_by(use_location)
+    stream = data(resource_type, filter=scope, rollup='latest', resolution=utils.DEFAULT_RESOLUTION).max(by=group_by)\
+        .fill(duration=duration(frequency))
+    fire_threshold_stream = const(fire_threshold)
+
+    ann = [
+        utils.annotate_stream(stream, resource_type),
+        utils.annotate_fire_threshold(fire_threshold_stream, orientation='above'),
+           ]
+
+    return detect(when(stream > fire_threshold_stream, lasting=fire_lasting),
+                  annotations=ann, auto_resolve_after=utils.AUTO_RESOLVE_AFTER)
+
+# Sample testing script.
+# detector('synthetics.run.duration.time.ms', fire_threshold=35000).publish('Detection')

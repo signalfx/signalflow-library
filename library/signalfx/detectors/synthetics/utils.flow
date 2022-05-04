@@ -1,0 +1,40 @@
+DEFAULT_RESOLUTION = 60000
+AUTO_RESOLVE_AFTER = duration('1d')
+
+
+def get_group_by(use_location=False):
+    if use_location is True:
+        group_by = [
+            'test_id',
+            'test_type',
+            'location_id',
+        ]
+    else:
+        group_by = [
+            'test_id',
+            'test_type',
+        ]
+    return group_by
+
+
+def merge_filters(filter_=None, exclude_errors=False):
+    if exclude_errors is True:
+        scope = filter_ and filter('failed', 'false')
+    else:
+        scope = filter_
+
+    return scope
+
+
+def annotate_stream(stream, label):
+    return annotate(stream, label, {'sfui_streamType': 'signal'})
+
+
+def annotate_fire_threshold(threshold_stream, label='fire_threshold', orientation=None):
+    if orientation is not None:
+        threshold_ui_config = '{"stream_' + orientation + \
+                              '_ft": {"sfui_streamType":"threshold","sfui_state":"fire","sfui_orientation":"' + \
+                              orientation + '"}}'
+    else:
+        threshold_ui_config = '{"stream_out_of_ft": {"sfui_streamType":"threshold","sfui_state":"fire"}}'
+    return annotate(threshold_stream, label, {'sfui_config': threshold_ui_config})
