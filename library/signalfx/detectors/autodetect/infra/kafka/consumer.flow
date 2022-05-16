@@ -2,18 +2,20 @@ from signalfx.detectors.autodetect import utils
 from signalfx.detectors.autodetect.infra.kafka import utils as kafka_utils
 
 
-def consumer_group_lag_detector(fire_threshold: int = 100,
+def consumer_group_lag_detector(fire_threshold: float = 100,
                                 fire_lasting: lasting = lasting('2m', 1),
-                                clear_threshold: int = 100,
+                                clear_threshold: float = 100,
                                 clear_lasting: lasting = lasting('5m', 1),
                                 filter_: filter = None):
     # Detects when a consumer group is lagging behind the latest offset
     # :param fire_threshold specifies fire threshold for the consumer group lag
     # :param fire_threshold label=Trigger threshold
+    # :param fire_threshold round_to=0
     # :param fire_lasting specifies lasting object associated with fire threshold
     # :param fire_lasting label=Sensitivity
     # :param clear_threshold specifies clear threshold for the consumer group lag
     # :param clear_threshold label=Clear threshold
+    # :param clear_threshold round_to=0
     # :param clear_threshold constraint=lte(fire_threshold)
     # :param clear_lasting specifies lasting object associated with clear threshold
     # :param clear_lasting label=Clear Sensitivity

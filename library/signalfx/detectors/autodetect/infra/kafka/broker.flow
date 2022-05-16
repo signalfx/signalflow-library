@@ -15,13 +15,14 @@ def controller_not_active_detector(filter_: filter = None):
     return detect(when(stream < fire_threshold_stream),  annotations=ann, auto_resolve_after=utils.AUTO_RESOLVE_AFTER)
 
 
-def underreplicated_partitions_detector(fire_threshold: int = 0,
+def underreplicated_partitions_detector(fire_threshold: float = 0,
                                         fire_lasting: lasting = lasting('5m', 1),
                                         filter_: filter = None):
     # Detects when kafka partitions are under replicated
     # :param fire_threshold specifies fire threshold for number of underreplicated partitions
     # :param fire_threshold label=Trigger threshold
     # :param fire_threshold min=0
+    # :param fire_threshold round_to=0
     # :param fire_lasting specifies lasting object associated with fire threshold
     # :param fire_lasting label=Sensitivity
     # :param filter_ specifies dimensional scope of the detector
@@ -35,11 +36,12 @@ def underreplicated_partitions_detector(fire_threshold: int = 0,
                   auto_resolve_after=utils.AUTO_RESOLVE_AFTER)
 
 
-def offline_partitions_detector(fire_threshold: int = 0, filter_: filter = None):
+def offline_partitions_detector(fire_threshold: float = 0, filter_: filter = None):
     # Detects when kafka partitions are offline
     # :param fire_threshold specifies fire threshold for number of offline partitions
     # :param fire_threshold label=Trigger threshold
     # :param fire_threshold min=0
+    # :param fire_threshold round_to=0
     # :param filter_ specifies dimensional scope of the detector
     # :param filter_ metric_name=gauge.kafka-offline-partitions-count
     # :return: detect block that triggers when number of offline kafka partitions is above threshold

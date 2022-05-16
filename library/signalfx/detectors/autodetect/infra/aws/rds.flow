@@ -3,13 +3,15 @@ from signalfx.detectors.autodetect.infra.aws import utils as aws_utils
 from signalfx.detectors.countdown import countdown
 
 
-def disk_space_running_out_detector(fire_threshold: int = 48, clear_threshold: int = 96,
+def disk_space_running_out_detector(fire_threshold: float = 48, clear_threshold: float = 96,
                                     fire_lasting: lasting = lasting('10m', 0.8), filter_: filter = None):
     # Detects when AWS/RDS free disk space is going to run out
     # :param fire_threshold specifies fire threshold for space running out (in hours)
     # :param fire_threshold label=Trigger threshold
+    # :param fire_threshold unit=h
     # :param clear_threshold specifies clear threshold for space running out (in hours)
     # :param clear_threshold label=Clear threshold
+    # :param clear_threshold unit=h
     # :param fire_lasting specifies lasting object associated with fire threshold
     # :param fire_lasting label=Sensitivity
     # :param filter_ specifies dimensional scope of the detector

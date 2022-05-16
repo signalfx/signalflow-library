@@ -18,7 +18,7 @@ def nodes_not_ready_detector(fire_lasting: lasting = lasting('30s', 1), filter_:
                   auto_resolve_after=utils.AUTO_RESOLVE_AFTER)
 
 
-def node_memory_utilization_detector(fire_threshold: int = 90, fire_lasting: lasting = lasting('5m', 1),
+def node_memory_utilization_detector(fire_threshold: float = 90, fire_lasting: lasting = lasting('5m', 1),
                                      filter_: filter = None):
     # Detects when K8s Node memory utilization is high
     # :param fire_threshold specifies fire threshold for memory utilization
