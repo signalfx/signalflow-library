@@ -16,8 +16,11 @@ def container_restarts_detector(filter_: filter = None):
         .above(0, inclusive=True, clamp=True)
 
     fire_threshold_stream = const(0)
+    clear_threshold_stream = const(1)
     ann = [utils.annotate_stream(stream, 'Container Restarts'),
            utils.annotate_fire_threshold(fire_threshold_stream, orientation='above'),
            ]
-    return detect(when(stream > fire_threshold_stream, lasting=lasting('5m', 0.8)), annotations=ann,
-                  auto_resolve_after='2d')
+    return detect(when(stream > fire_threshold_stream, lasting=lasting('5m', 0.8)),
+                  off=when(stream < clear_threshold_stream, lasting=lasting('10m', 1)),
+                  annotations=ann,
+                  auto_resolve_after=utils.AUTO_RESOLVE_AFTER)

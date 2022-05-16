@@ -2,12 +2,13 @@ from signalfx.detectors.autodetect import utils
 from signalfx.detectors.autodetect.infra.k8s import utils as k8s_utils
 
 
-def deployment_not_at_spec_detector(fire_threshold: int = 0, fire_lasting: lasting = lasting('5m', 0.8),
+def deployment_not_at_spec_detector(fire_threshold: float = 0, fire_lasting: lasting = lasting('5m', 0.8),
                                     filter_: filter = None):
     # Detects when number of desired and available pods in Deployments have diverged
     # :param fire_threshold specifies fire threshold for desired minus available deployments
     # :param fire_threshold label=Trigger threshold
     # :param fire_threshold min=0
+    # :param fire_threshold round_to=0
     # :param fire_lasting specifies lasting object associated with fire threshold
     # :param fire_lasting label=Sensitivity
     # :param filter_ specifies dimensional scope of the detector
