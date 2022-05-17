@@ -1,6 +1,9 @@
 stages:
   - tag
   - build
+  - lab0-release
+  - dev-release
+  - prod-release
 
 variables:
   AWS_ROLE_US0: aws:v1/o11y-infra/role/gitlab_signalflow_library_versions_management-us0
@@ -26,6 +29,7 @@ build and deploy:
   stage: build
   rules:
     - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
+  allow_failure: false
   before_script:   
     - creds-helper init
     - creds-helper aws --eval ${AWS_ROLE_US0}
@@ -33,9 +37,103 @@ build and deploy:
     - mv /root/.secrets/awsv1o11y-infrarolegitlab_signalflow_library_versi.aws ~/.aws/credentials
   script:
     - VERSION="$(gitversion show)"
+    - echo VERSION=${VERSION} >> build.env
     - ./mkrelease "${VERSION}"
     - aws s3 cp "signalfx-${VERSION}.zip" s3://signalflow-library-versions-us0-signalfx/
   artifacts:
+    reports:
+      dotenv: build.env
     paths:
       - "signalfx-*.zip"
 
+.release:
+  variables:
+    JENKINS_JOB: signalflow-library-deploy-$REALM
+    JENKINS_PARAMS: VERSION=$VERSION
+  rules:
+    - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
+  allow_failure: false
+  trigger:
+    project: observability/shared/jenkins-jumpbox
+    branch: main
+    strategy: depend
+  needs:
+    - job: build and deploy
+      artifacts: true
+
+.dev-release:
+  extends: .release
+  stage: dev-release
+
+.prod-release:
+  extends: .release
+  stage: prod-release
+  when: manual
+  variables:
+    JENKINS_URL: "https://ci-deploy.signalfx.com"
+
+lab0-release:
+  extends: .dev-release
+  stage: lab0-release
+  variables:
+    REALM: lab0
+    JENKINS_URL: "https://ci-master.corp.signalfx.com"
+
+lab1-release:
+  extends: .dev-release
+  variables:
+    REALM: lab1
+    JENKINS_URL: "https://ci-deploy-dev.signalfx.com"
+
+lab2-release:
+  extends: .dev-release
+  variables:
+    REALM: lab2
+    JENKINS_URL: "https://ci-deploy-dev.signalfx.com"
+
+rc0-release:
+  extends: .dev-release
+  when: manual
+  variables:
+    REALM: rc0
+    JENKINS_URL: "https://ci.corp.signalfx.com"
+
+us0-release:
+  extends: .prod-release
+  variables:
+    REALM: us0
+
+us1-release:
+  extends: .prod-release
+  variables:
+    REALM: us1
+
+us2-release:
+  extends: .prod-release
+  variables:
+    REALM: us2
+
+eu0-release:
+  extends: .prod-release
+  variables:
+    REALM: eu0
+
+pypl-us0-release:
+  extends: .prod-release
+  variables:
+    REALM: pypl-us0
+
+pypl-us1-release:
+  extends: .prod-release
+  variables:
+    REALM: pypl-us1
+
+jp0-release:
+  extends: .prod-release
+  variables:
+    REALM: jp0
+
+mon0-release:
+  extends: .prod-release
+  variables:
+    REALM: mon0
