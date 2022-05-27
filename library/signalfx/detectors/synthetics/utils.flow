@@ -38,3 +38,50 @@ def annotate_fire_threshold(threshold_stream, label='fire_threshold', orientatio
     else:
         threshold_ui_config = '{"stream_out_of_ft": {"sfui_streamType":"threshold","sfui_state":"fire"}}'
     return annotate(threshold_stream, label, {'sfui_config': threshold_ui_config})
+
+
+def assert_threshold(fire_threshold, clear_threshold, orientation):
+    if clear_threshold is None:
+        return
+    if orientation == 'above':
+        assert fire_threshold >= clear_threshold, {
+            'fire_threshold': fire_threshold, 'clear_threshold': clear_threshold,
+            'sfui_errorKeys': ['fire_threshold', 'clear_threshold'],
+            'sfui_errorTemplate': "{{{fire_threshold}}} must be greater than or equal to {{{clear_threshold}}}."}
+    elif orientation == 'below':
+        assert fire_threshold <= clear_threshold, {
+            'fire_threshold': fire_threshold, 'clear_threshold': clear_threshold,
+            'sfui_errorKeys': ['fire_threshold', 'clear_threshold'],
+            'sfui_errorTemplate': '{{{fire_threshold}}} must be less than or equal to {{{clear_threshold}}}.'}
+    else:
+        assert 0 > 1, {
+            'orientation': orientation,
+            'sfui_errorKeys': ['orientation'],
+            'sfui_errorTemplate': '{{{orientation}}} threshold orientation is not supported'
+        }
+
+
+def directional_condition(stream, fire_threshold_stream, orientation):
+    if orientation == 'above':
+        return when(stream > fire_threshold_stream)
+    elif orientation == 'below':
+        return when(stream < fire_threshold_stream)
+    else:
+        assert 0 > 1
+
+
+def shift_resolution_condition(stream, fire_threshold_stream, orientation, shifts_num):
+    if shifts_num < 1:
+        return when(const(1) > 0)
+
+    first_shift = stream - stream.delta()
+    first_cond = directional_condition(first_shift, fire_threshold_stream, orientation)
+
+    if shifts_num == 1:
+        return first_cond
+    elif shifts_num == 2:
+        second_shift = first_shift - first_shift.delta()
+        return first_cond and directional_condition(second_shift, fire_threshold_stream, orientation)
+    else:
+        assert 0 > 1
+
