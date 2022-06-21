@@ -2,7 +2,9 @@ stages:
   - tag
   - build
   - lab0-release
+  - test-lab0
   - dev-release
+  - test-rc0
   - prod-release
 
 variables:
@@ -24,7 +26,7 @@ tag-release:
     - git tag -f "${BUMPED_VERSION}"
     - git push origin-ssh "${BUMPED_VERSION}" -o ci.skip
 
-build and deploy:
+build:
   image: docker.repo.splunkdev.net/ci-cd/ci-container:debian-buster-aws
   stage: build
   rules:
@@ -58,7 +60,7 @@ build and deploy:
     branch: main
     strategy: depend
   needs:
-    - job: build and deploy
+    - job: build
       artifacts: true
 
 .dev-release:
@@ -137,3 +139,26 @@ mon0-release:
   extends: .prod-release
   variables:
     REALM: mon0
+
+.test:
+  variables:
+    JENKINS_URL: "https://ci-qe.corp.signalfx.com/"
+  rules:
+    - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
+  allow_failure: true
+  trigger:
+    project: observability/shared/jenkins-jumpbox
+    branch: main
+    strategy: depend
+
+test-lab0:
+  extends: .test
+  stage: test-lab0
+  variables:
+    JENKINS_JOB: lab-system-test-signalflow-library
+
+test-rc0:
+  extends: .test
+  stage: test-rc0
+  variables:
+    JENKINS_JOB: rc-system-test-signalflow-library
