@@ -1,6 +1,7 @@
 stages:
   - tag
   - build
+  - deploy
   - lab0-release
   - test-lab0
   - dev-release
@@ -9,6 +10,7 @@ stages:
 
 variables:
   AWS_ROLE: aws:v1/o11y-infra/role/gitlab_private_signalflow_library_versions_management
+  GCP_ROLE: gcp:v1/o11y-infra/project/lab1-env-716/roleset/o11y-signalflow-bucket-access-lab1
 
 tag-release:
   stage: tag
@@ -27,26 +29,46 @@ tag-release:
     - git push origin-ssh "${BUMPED_VERSION}" -o ci.skip
 
 build:
-  image: docker.repo.splunkdev.net/ci-cd/ci-container:debian-buster-aws
   stage: build
   rules:
     - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
   allow_failure: false
-  before_script:   
-    - creds-helper init
-    - creds-helper aws --eval ${AWS_ROLE}
-    - mkdir ~/.aws
-    - mv /root/.secrets/awsv1o11y-infrarolegitlab_private_signalflow_libra.aws ~/.aws/credentials
   script:
     - VERSION="$(gitversion show)"
     - echo VERSION=${VERSION} >> build.env
     - ./mkrelease "${VERSION}"
-    - aws s3 cp "signalfx-${VERSION}.zip" s3://private-signalflow-library-versions-signalfx/
   artifacts:
     reports:
       dotenv: build.env
     paths:
       - "signalfx-*.zip"
+
+deploy-aws:
+  image: docker.repo.splunkdev.net/ci-cd/ci-container:debian-buster-aws
+  stage: deploy
+  rules:
+    - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
+  allow_failure: false
+  before_script:
+    - creds-helper init
+    - creds-helper aws --eval ${AWS_ROLE}
+    - mkdir ~/.aws
+    - mv /root/.secrets/awsv1o11y-infrarolegitlab_private_signalflow_libra.aws ~/.aws/credentials
+  script:
+    - aws s3 cp "signalfx-${VERSION}.zip" s3://private-signalflow-library-versions-signalfx/
+
+deploy-gcp:
+  image: docker.repo.splunkdev.net/ci-cd/ci-container:debian-buster-gcloud
+  stage: deploy
+  rules:
+    - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
+  allow_failure: false
+  before_script:
+    - creds-helper init
+    - eval $(creds-helper gcp --eval ${GCP_ROLE})
+    - gcloud auth activate-service-account --key-file=${GOOGLE_APPLICATION_CREDENTIALS}
+  script:
+    - gsutil cp "signalfx-${VERSION}.zip" gs://private-signalflow-library-versions-signalfx
 
 .release:
   variables:
@@ -59,9 +81,6 @@ build:
     project: observability/shared/jenkins-jumpbox
     branch: main
     strategy: depend
-  needs:
-    - job: build
-      artifacts: true
 
 .dev-release:
   extends: .release
