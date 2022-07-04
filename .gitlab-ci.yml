@@ -122,6 +122,7 @@ lab1-release:
 
 lab2-release:
   extends: .dev-release
+  allow_failure: true
   variables:
     REALM: lab2
     JENKINS_URL: "https://ci-deploy-dev.signalfx.com"
