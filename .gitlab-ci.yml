@@ -6,6 +6,7 @@ stages:
   - test-lab0
   - dev-release
   - test-rc0
+  - promote
   - prod-release
 
 variables:
@@ -69,6 +70,19 @@ deploy-gcp:
     - gcloud auth activate-service-account --key-file=${GOOGLE_APPLICATION_CREDENTIALS}
   script:
     - gsutil cp "signalfx-${VERSION}.zip" gs://private-signalflow-library-versions-signalfx
+
+promote-private-to-public:
+  image: docker.repo.splunkdev.net/ci-cd/ci-container:debian-buster-aws
+  stage: promote
+  rules:
+    - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
+  before_script:
+    - creds-helper init
+    - creds-helper aws --eval ${AWS_ROLE}
+    - mkdir ~/.aws
+    - mv /root/.secrets/awsv1o11y-infrarolegitlab_private_signalflow_libra.aws ~/.aws/credentials
+  script:
+    - aws s3 cp "s3://private-signalflow-library-versions-signalfx/signalfx-${VERSION}.zip" s3://public-signalflow-library-versions-signalfx/
 
 .release:
   variables:
