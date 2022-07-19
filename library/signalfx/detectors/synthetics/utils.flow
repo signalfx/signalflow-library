@@ -1,20 +1,20 @@
 DEFAULT_RESOLUTION = 60000
 AUTO_RESOLVE_AFTER = duration('1d')
 
+DEFAULT_ALLOW_MISSING = ['test', 'location']
+
 
 def get_group_by(use_location=False):
+    group_by = [
+        'sf_metric',
+        'test_id',
+        'test',
+        'test_type',
+    ]
     if use_location is True:
-        group_by = [
-            'test_id',
-            'test_type',
-            'location_id',
-        ]
+        return group_by + ['location_id', 'location']
     else:
-        group_by = [
-            'test_id',
-            'test_type',
-        ]
-    return group_by
+        return group_by
 
 
 def merge_filters(filter_=None, exclude_errors=False):
@@ -30,14 +30,30 @@ def annotate_stream(stream, label):
     return annotate(stream, label, {'sfui_streamType': 'signal'})
 
 
-def annotate_fire_threshold(threshold_stream, label='fire_threshold', orientation=None):
-    if orientation is not None:
-        threshold_ui_config = '{"stream_' + orientation + \
-                              '_ft": {"sfui_streamType":"threshold","sfui_state":"fire","sfui_orientation":"' + \
-                              orientation + '"}}'
-    else:
-        threshold_ui_config = '{"stream_out_of_ft": {"sfui_streamType":"threshold","sfui_state":"fire"}}'
+def get_condition_identifier(orientation):
+    return 'stream_' + str(orientation) + '_ft'
+
+
+def annotate_fire_threshold(threshold_stream, label='fire_threshold', orientation='above'):
+    condition_identifier = get_condition_identifier(orientation)
+    threshold_ui_config = '{"' + condition_identifier + '": {"sfui_streamType":"threshold","sfui_state":"fire","sfui_orientation":"' + \
+                              str(orientation) + '"}}'
+
     return annotate(threshold_stream, label, {'sfui_config': threshold_ui_config})
+
+
+def annotate_event(resource_type, fire_threshold, orientation):
+    readable_condition = str(resource_type) + ' is ' + str(orientation) + ' ' + str(fire_threshold)
+    condition_identifier = get_condition_identifier(orientation)
+    event_ann = {
+        'fire_threshold': str(fire_threshold),
+        'resource_type': str(resource_type),
+        'sfui_incidentInformation': '[{"selectedIdentifiers":["fire_threshold_stream","stream"],"conditionIdentifier":"' +
+                                    condition_identifier +
+                                    '","readableCondition":"' +
+                                    readable_condition + '","builtInFunction":"signalfx.detectors.synthetics"}]',
+    }
+    return event_ann
 
 
 def assert_threshold(fire_threshold, clear_threshold, orientation):
