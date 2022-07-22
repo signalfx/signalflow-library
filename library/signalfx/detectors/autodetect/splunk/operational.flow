@@ -1,4 +1,6 @@
+from signalfx.detectors.countdown import streams
 from signalfx.detectors.autodetect import utils
+from signalfx.detectors.autodetect.splunk import utils as splunk_utils
 
 
 def detectors_aborted_detector(fire_threshold: float = 0, window: duration = duration('5h')):
@@ -41,4 +43,215 @@ def detectors_limit_detector(fire_threshold: float = 90, fire_lasting: lasting =
            utils.annotate_fire_threshold(fire_threshold_stream, orientation='above')]
 
     return detect(when(stream > fire_threshold_stream, lasting=fire_lasting), annotations=ann,
+                  auto_resolve_after=utils.AUTO_RESOLVE_AFTER)
+
+
+def active_mts_limit_detector():
+    # Detects when percentage of AMTS(vs. limit) is above 100% or is above 90% and going to exceed in next 48h
+    # :return: detect block that triggers when alerting condition is met
+    limits_stream = data('sf.org.limit.activeTimeSeries').sum().publish('Active MTS limit')
+    ats_stream = data('sf.org.numActiveTimeSeries').sum().publish('Active MTS')
+
+    amts_usage_percentage = ((ats_stream / limits_stream) * 100)
+
+    amts_hours_left_inc = streams.hours_left_stream_incr(stream=amts_usage_percentage, maximum_capacity=100,
+                                                         imputed_value=97)
+    fire_over_limit_threshold_stream = const(100)
+    fire_threshold_stream = const(90)
+    fire_hours_threshold_stream = const(48)
+    fire_lasting = duration('30m')
+
+    clear_threshold_stream = const(85)
+    clear_hours_threshold_stream = const(96)
+
+    clear_percentage_cond = when(amts_usage_percentage < clear_threshold_stream, '30m')
+    clear_hours_cond = when(amts_hours_left_inc > clear_hours_threshold_stream, '1h')
+
+    annotations = [
+        utils.annotate_stream(amts_usage_percentage, 'AMTS Usage percentage'),
+    ]
+    readable_condition = 'Active MTS is over the limit or projected to reach the limit soon'
+    event_ann = {
+        'sfui_incidentInformation': '[{"selectedIdentifiers":["percentage"],"readableCondition":"' +
+                                    readable_condition +
+                                    '","builtInFunction":"signalfx.detectors.autodetect.operational"}]',
+    }
+    return detect(when(amts_usage_percentage > fire_over_limit_threshold_stream) or (
+                      when(amts_usage_percentage > fire_threshold_stream, fire_lasting) and
+                      when(amts_hours_left_inc < fire_hours_threshold_stream, fire_lasting)
+                  ),
+                  off=clear_percentage_cond and clear_hours_cond,
+                  annotations=annotations,
+                  event_annotations=event_ann,
+                  mode='split')
+
+
+def hosts_limit_detector(fire_threshold: float = 95, fire_lasting: lasting = lasting('30m', 1),
+                        clear_threshold: float = 90, clear_lasting: lasting = lasting('30m', 1),
+                        enable_extra_publishers: bool = False):
+    # Detects when host usage percentage is above threshold (vs hard limit)
+    # :param fire_threshold specifies fire threshold for the hosts usage percentage
+    # :param fire_threshold label=Trigger threshold
+    # :param fire_threshold min=0
+    # :param fire_threshold max=100
+    # :param fire_threshold unit=%
+    # :param fire_lasting specifies lasting object associated with fire threshold
+    # :param fire_lasting label=Sensitivity
+    # :param clear_threshold specifies clear threshold for hosts usage percentage
+    # :param clear_threshold label=Clear threshold
+    # :param clear_threshold min=0
+    # :param clear_threshold max=100
+    # :param clear_threshold unit=%
+    # :param clear_threshold constraint=lte(fire_threshold)
+    # :param clear_lasting specifies lasting object associated with clear threshold
+    # :param clear_lasting label=Clear Sensitivity
+    # :param enable_extra_publishers allows to show additional MTSes on the detector wizard
+    # :param enable_extra_publishers label=Show hosts usage
+    # :return: detect block that triggers when a hosts usage percentage is above threshold
+    assert fire_threshold >= clear_threshold, utils.threshold_validation_err_msg(fire_threshold, clear_threshold,
+                                                                                 orientation='above')
+    hosts_limit_stream = data('sf.org.limit.hosts').max().publish('Hosts Limit', enable=enable_extra_publishers)
+    hosts_stream = data('sf.org.numResourcesMonitored',
+                        filter=filter(splunk_utils.RESOURCE_TYPE_DIM, 'host')).sum().publish('Hosts Monitored',
+                                                                             enable=enable_extra_publishers)
+    host_usage_percentage = (hosts_stream / hosts_limit_stream * 100)
+
+    fire_threshold_stream = const(fire_threshold)
+    clear_threshold_stream = const(clear_threshold)
+
+    ann = [utils.annotate_stream(host_usage_percentage, 'Host usage percentage'),
+           utils.annotate_fire_threshold(fire_threshold_stream, orientation='above')]
+    readable_condition = 'Hosts usage percentage is above threshold'
+    event_ann = {
+        'sfui_incidentInformation': '[{"selectedIdentifiers":["host_usage_percentage","fire_threshold_stream"],"readableCondition":"' +
+                                    readable_condition +
+                                    '","builtInFunction":"signalfx.detectors.autodetect.operational"}]',
+    }
+    return detect(when(host_usage_percentage > fire_threshold_stream, lasting=fire_lasting),
+                  off=when(host_usage_percentage < clear_threshold_stream, lasting=clear_lasting),
+                  annotations=ann,
+                  event_annotations=event_ann,
+                  auto_resolve_after=utils.AUTO_RESOLVE_AFTER)
+
+
+def custom_mts_limit_detector(fire_threshold: float = 95, fire_lasting: lasting = lasting('30m', 1),
+                              clear_threshold: float = 90, clear_lasting: lasting = lasting('30m', 1),
+                              enable_extra_publishers: bool = False):
+    # Detects when custom metrics usage percentage is above threshold
+    # :param fire_threshold specifies fire threshold for the custom metrics usage percentage
+    # :param fire_threshold label=Trigger threshold
+    # :param fire_threshold min=0
+    # :param fire_threshold max=100
+    # :param fire_threshold unit=%
+    # :param fire_lasting specifies lasting object associated with fire threshold
+    # :param fire_lasting label=Sensitivity
+    # :param clear_threshold specifies clear threshold the custom metrics usage percentage
+    # :param clear_threshold label=Clear threshold
+    # :param clear_threshold min=0
+    # :param clear_threshold max=100
+    # :param clear_threshold unit=%
+    # :param clear_threshold constraint=lte(fire_threshold)
+    # :param clear_lasting specifies lasting object associated with clear threshold
+    # :param clear_lasting label=Clear Sensitivity
+    # :param enable_extra_publishers allows to show additional MTSes on the detector wizard
+    # :param enable_extra_publishers label=Show custom metrics usage
+    # :return: detect block that triggers when custom metrics usage percentage is above threshold
+    assert fire_threshold >= clear_threshold, utils.threshold_validation_err_msg(fire_threshold, clear_threshold,
+                                                                                 orientation='above')
+    custom_metrics_stream = data('sf.org.numCustomMetrics').sum().publish(label='Custom metrics used',
+                                                                          enable=enable_extra_publishers)
+    custom_metrics_limit_stream = data('sf.org.limit.customMetricMaxLimit').max().publish(
+        label='Custom metrics limit', enable=enable_extra_publishers)
+    custom_mts_usage_percentage = (custom_metrics_stream / custom_metrics_limit_stream * 100)
+
+    fire_threshold_stream = const(fire_threshold)
+    clear_threshold_stream = const(clear_threshold)
+
+    ann = [utils.annotate_stream(custom_mts_usage_percentage, 'Custom MTS usage percentage'),
+           utils.annotate_fire_threshold(fire_threshold_stream, orientation='above')]
+    readable_condition = 'Custom MTS usage percentage is above threshold'
+    event_ann = {
+        'sfui_incidentInformation': '[{"selectedIdentifiers":["custom_mts_usage_percentage","fire_threshold_stream"],"readableCondition":"' +
+                                    readable_condition +
+                                    '","builtInFunction":"signalfx.detectors.autodetect.operational"}]',
+    }
+    return detect(when(custom_mts_usage_percentage > fire_threshold_stream, lasting=fire_lasting),
+                  off=when(custom_mts_usage_percentage < clear_threshold_stream, lasting=clear_lasting),
+                  annotations=ann,
+                  event_annotations=event_ann,
+                  auto_resolve_after=utils.AUTO_RESOLVE_AFTER)
+
+
+def containers_limit_detector(fire_threshold: float = 95, fire_lasting: lasting = lasting('30m', 1),
+                             clear_threshold: float = 90, clear_lasting: lasting = lasting('30m', 1),
+                             enable_extra_publishers: bool = False):
+    # Detects when containers usage percentage is above threshold
+    # :param fire_threshold specifies fire threshold for the containers usage percentage
+    # :param fire_threshold label=Trigger threshold
+    # :param fire_threshold min=0
+    # :param fire_threshold max=100
+    # :param fire_threshold unit=%
+    # :param fire_lasting specifies lasting object associated with fire threshold
+    # :param fire_lasting label=Sensitivity
+    # :param clear_threshold specifies clear threshold the containers usage percentage
+    # :param clear_threshold label=Clear threshold
+    # :param clear_threshold min=0
+    # :param clear_threshold max=100
+    # :param clear_threshold unit=%
+    # :param clear_threshold constraint=lte(fire_threshold)
+    # :param clear_lasting specifies lasting object associated with clear threshold
+    # :param clear_lasting label=Clear Sensitivity
+    # :param enable_extra_publishers allows to show additional MTSes on the detector wizard
+    # :param enable_extra_publishers label=Show containers usage
+    # :return: detect block that triggers when containers usage percentage is above threshold
+    assert fire_threshold >= clear_threshold, utils.threshold_validation_err_msg(fire_threshold, clear_threshold,
+                                                                                 orientation='above')
+    containers_usage_stream = data('sf.org.numResourcesMonitored',
+                                   filter=filter(splunk_utils.RESOURCE_TYPE_DIM, 'container')).sum().publish('Containers monitored',
+                                                                                             enable=enable_extra_publishers)
+    containers_limit_stream = data('sf.org.limit.containers').max().publish('Containers limit',
+                                                                            enable=enable_extra_publishers)
+    containers_usage_percentage = (containers_usage_stream / containers_limit_stream * 100)
+
+    fire_threshold_stream = const(fire_threshold)
+    clear_threshold_stream = const(clear_threshold)
+
+    ann = [utils.annotate_stream(containers_usage_percentage, 'Containers usage percentage'),
+           utils.annotate_fire_threshold(fire_threshold_stream, orientation='above')]
+    readable_condition = 'Containers usage percentage is above threshold'
+    event_ann = {
+        'sfui_incidentInformation': '[{"selectedIdentifiers":["containers_usage_percentage","fire_threshold_stream"],"readableCondition":"' +
+                                    readable_condition +
+                                    '","builtInFunction":"signalfx.detectors.autodetect.operational"}]',
+    }
+
+    return detect(when(containers_usage_percentage > fire_threshold_stream, lasting=fire_lasting),
+                  off=when(containers_usage_percentage < clear_threshold_stream, lasting=clear_lasting),
+                  annotations=ann,
+                  event_annotations=event_ann,
+                  auto_resolve_after=utils.AUTO_RESOLVE_AFTER)
+
+
+def datapoints_throttling_detector(fire_threshold: float = 0, fire_lasting: lasting = lasting('5m', 0.8),
+                                   clear_lasting: lasting = lasting('5m', 1)):
+    # Detects when datapoints are throttled
+    # :param fire_threshold specifies fire threshold for the datapoints throttled
+    # :param fire_threshold label=Trigger threshold
+    # :param fire_threshold min=0
+    # :param fire_lasting specifies lasting object associated with fire threshold
+    # :param fire_lasting label=Sensitivity
+    # :param clear_lasting specifies lasting object associated with clear threshold
+    # :param clear_lasting label=Clear Sensitivity
+    # :return: detect block that triggers when datapoints throttled are above threshold
+    assert fire_threshold >= 0, utils.threshold_validation_err_msg(fire_threshold, 0, orientation='above')
+    stream = data('sf.org.numDatapointsDroppedThrottle').fill(0).sum()
+
+    fire_threshold_stream = const(fire_threshold)
+    clear_threshold_stream = const(0)
+    ann = [utils.annotate_stream(stream, 'Datapoints dropped'),
+           utils.annotate_fire_threshold(fire_threshold_stream, orientation='above')]
+
+    return detect(when(stream > fire_threshold_stream, lasting=fire_lasting),
+                  off=when(stream <= clear_threshold_stream, lasting=clear_lasting),
+                  annotations=ann,
                   auto_resolve_after=utils.AUTO_RESOLVE_AFTER)
