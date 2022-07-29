@@ -45,7 +45,7 @@ build:
       - "signalfx-*.zip"
 
 deploy-aws:
-  image: docker.repo.splunkdev.net/ci-cd/ci-container:debian-buster-aws
+  image: docker.repo.splunkdev.net/ci-cd/ci-container/debian-buster-aws:1.0.0
   stage: deploy
   rules:
     - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
@@ -59,7 +59,7 @@ deploy-aws:
     - aws s3 cp "signalfx-${VERSION}.zip" s3://private-signalflow-library-versions-signalfx/
 
 deploy-gcp:
-  image: docker.repo.splunkdev.net/ci-cd/ci-container:debian-buster-gcloud
+  image: docker.repo.splunkdev.net/ci-cd/ci-container/debian-buster-gcloud:1.0.0
   stage: deploy
   rules:
     - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
@@ -72,7 +72,7 @@ deploy-gcp:
     - gsutil cp "signalfx-${VERSION}.zip" gs://private-signalflow-library-versions-signalfx
 
 promote-private-to-public:
-  image: docker.repo.splunkdev.net/ci-cd/ci-container:debian-buster-aws
+  image: docker.repo.splunkdev.net/ci-cd/ci-container/debian-buster-aws:1.0.0
   stage: promote
   rules:
     - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
