@@ -169,6 +169,11 @@ jp0-release:
   variables:
     REALM: jp0
 
+au0-release:
+  extends: .prod-release
+  variables:
+    REALM: au0
+
 mon0-release:
   extends: .prod-release
   variables:
