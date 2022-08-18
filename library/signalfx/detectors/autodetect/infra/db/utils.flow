@@ -1,0 +1,5 @@
+REDIS_GROUP_BY = [
+    'plugin_instance', 'host.name', 'host.id', 'AWSUniqueId', 'cloud.provider', 'cloud.region', 'host.type', 'os.type',
+]
+
+REDIS_PLUGIN_FILTER = filter('plugin', 'redis_info')

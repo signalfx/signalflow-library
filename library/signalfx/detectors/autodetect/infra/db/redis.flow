@@ -1,0 +1,141 @@
+from signalfx.detectors.against_recent import against_recent
+from signalfx.detectors.autodetect import utils
+from signalfx.detectors.autodetect.infra.db import utils as db_utils
+
+
+def cpu_utilization_detector(fire_threshold: float = 90, fire_lasting: lasting = lasting('10m', 0.8),
+                             clear_threshold: float = 80, clear_lasting: lasting = lasting('10m', 1),
+                             filter_: filter = None):
+    # Detects when Redis CPU usage is above thresholds
+    # :param fire_threshold specifies fire threshold for the CPU usage
+    # :param fire_threshold label=Trigger threshold
+    # :param fire_lasting specifies lasting object associated with fire threshold
+    # :param fire_lasting label=Sensitivity
+    # :param clear_threshold specifies clear threshold for the CPU usage
+    # :param clear_threshold label=Clear threshold
+    # :param clear_threshold constraint=lte(fire_threshold)
+    # :param clear_lasting specifies lasting object associated with clear threshold
+    # :param clear_lasting label=Clear Sensitivity
+    # :param filter_ specifies dimensional scope of the detector
+    # :param filter_ metric_name=counter.used_cpu_sys
+    # :return: detect block that triggers when Redis CPU usage is above the threshold
+
+    assert fire_threshold >= clear_threshold, utils.threshold_validation_err_msg(fire_threshold, clear_threshold,
+                                                                                 orientation='above')
+    scope_filter = utils.merge_filters(db_utils.REDIS_PLUGIN_FILTER, filter_)
+
+    sys_cpu_stream = data('counter.used_cpu_sys', filter=scope_filter, rollup='rate').scale(100).mean(
+        by=db_utils.REDIS_GROUP_BY,
+        allow_missing=db_utils.REDIS_GROUP_BY)
+    user_cpu_stream = data('counter.used_cpu_user', filter=scope_filter, rollup='rate').scale(100).mean(
+        by=db_utils.REDIS_GROUP_BY,
+        allow_missing=db_utils.REDIS_GROUP_BY)
+    stream = sys_cpu_stream + user_cpu_stream
+
+    fire_threshold_stream = const(fire_threshold)
+    clear_threshold_stream = const(clear_threshold)
+    ann = [utils.annotate_stream(stream, 'CPU Utilization'),
+           utils.annotate_fire_threshold(fire_threshold_stream, orientation='above')]
+
+    return detect(when(stream > fire_threshold_stream, lasting=fire_lasting),
+                  off=when(stream < clear_threshold_stream, lasting=clear_lasting),
+                  annotations=ann,
+                  auto_resolve_after=utils.AUTO_RESOLVE_AFTER)
+
+
+def expired_evicted_keys_increase_detector(fire_num_stddev: float = 3,
+                                           current_window: duration = duration('10m'),
+                                           historical_window: duration = duration('1h'),
+                                           filter_: filter = None):
+    # :param fire_num_stddev label=Trigger deviation
+    # :param fire_num_stddev description=Expressed in standard deviations from baseline
+    # :param fire_num_stddev min=0
+    # :param fire_num_stddev step=0.1
+    # :param fire_num_stddev unit=SD
+    # :param current_window label=Evaluation window
+    # :param historical_window label=Historical window
+    # :param filter_ metric_name=counter.expired_keys
+    # :return: detect block that triggers when number of expired or evicted keys suddenly increased
+    scope_filter = utils.merge_filters(db_utils.REDIS_PLUGIN_FILTER, filter_)
+    expired_keys_stream = data('counter.expired_keys', filter=scope_filter, rollup='rate').mean(
+        by=db_utils.REDIS_GROUP_BY,
+        allow_missing=db_utils.REDIS_GROUP_BY)
+    evicted_keys_stream = data('counter.evicted_keys', filter=scope_filter, rollup='rate').mean(
+        by=db_utils.REDIS_GROUP_BY,
+        allow_missing=db_utils.REDIS_GROUP_BY)
+    stream = expired_keys_stream + evicted_keys_stream
+
+    clear_num_stddev = max(fire_num_stddev - 0.5, 0)
+
+    return against_recent.detector_mean_std(stream=stream,
+                                            current_window=current_window,
+                                            historical_window=historical_window,
+                                            fire_num_stddev=fire_num_stddev,
+                                            clear_num_stddev=clear_num_stddev,
+                                            orientation='above',
+                                            ignore_extremes=True,
+                                            calculation_mode='vanilla',
+                                            auto_resolve_after=utils.AUTO_RESOLVE_AFTER)
+
+
+def blocked_clients_increase_detector(fire_num_stddev: float = 3,
+                                      current_window: duration = duration('10m'),
+                                      historical_window: duration = duration('1h'),
+                                      filter_: filter = None):
+    # :param fire_num_stddev label=Trigger deviation
+    # :param fire_num_stddev description=Expressed in standard deviations from baseline
+    # :param fire_num_stddev min=0
+    # :param fire_num_stddev step=0.1
+    # :param fire_num_stddev unit=SD
+    # :param current_window label=Evaluation window
+    # :param historical_window label=Historical window
+    # :param filter_ metric_name=gauge.blocked_clients
+    # :return: detect block that triggers when number of blocked clients suddenly increased
+    scope_filter = utils.merge_filters(db_utils.REDIS_PLUGIN_FILTER, filter_)
+
+    stream = data('gauge.blocked_clients', filter=scope_filter, rollup='average').sum(
+        by=db_utils.REDIS_GROUP_BY,
+        allow_missing=db_utils.REDIS_GROUP_BY)
+
+    clear_num_stddev = max(fire_num_stddev - 0.5, 0)
+
+    return against_recent.detector_mean_std(stream=stream,
+                                            current_window=current_window,
+                                            historical_window=historical_window,
+                                            fire_num_stddev=fire_num_stddev,
+                                            clear_num_stddev=clear_num_stddev,
+                                            orientation='above',
+                                            ignore_extremes=True,
+                                            calculation_mode='vanilla',
+                                            auto_resolve_after=utils.AUTO_RESOLVE_AFTER)
+
+
+def rejected_connections_increase_detector(fire_num_stddev: float = 3,
+                                           current_window: duration = duration('10m'),
+                                           historical_window: duration = duration('1h'),
+                                           filter_: filter = None):
+    # :param fire_num_stddev label=Trigger deviation
+    # :param fire_num_stddev description=Expressed in standard deviations from baseline
+    # :param fire_num_stddev min=0
+    # :param fire_num_stddev step=0.1
+    # :param fire_num_stddev unit=SD
+    # :param current_window label=Evaluation window
+    # :param historical_window label=Historical window
+    # :param filter_ metric_name=gauge.blocked_clients
+    # :return: detect block that triggers when number of rejected connections suddenly increased
+    scope_filter = utils.merge_filters(db_utils.REDIS_PLUGIN_FILTER, filter_)
+    stream = data('counter.rejected_connections', filter=scope_filter, rollup='rate').sum(
+        by=db_utils.REDIS_GROUP_BY,
+        allow_missing=db_utils.REDIS_GROUP_BY)
+
+    clear_num_stddev = max(fire_num_stddev - 0.5, 0)
+
+    return against_recent.detector_mean_std(stream=stream,
+                                            current_window=current_window,
+                                            historical_window=historical_window,
+                                            fire_num_stddev=fire_num_stddev,
+                                            clear_num_stddev=clear_num_stddev,
+                                            orientation='above',
+                                            ignore_extremes=True,
+                                            calculation_mode='vanilla',
+                                            auto_resolve_after=utils.AUTO_RESOLVE_AFTER)
