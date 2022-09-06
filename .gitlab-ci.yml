@@ -1,4 +1,10 @@
+include:
+  - project: 'observability/shared/gitlab-jobs'
+    file: 'sast-scan-template.yml'
+  - template: 'Workflows/MergeRequest-Pipelines.gitlab-ci.yml'
+
 stages:
+  - code_analysis
   - tag
   - build
   - deploy
