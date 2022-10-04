@@ -1,3 +1,4 @@
 DB_INSTANCE_IDENTIFIER_DIM = 'DBInstanceIdentifier'
 
 RDS_NAMESPACE = 'AWS/RDS'
+ALB_NAMESPACE = 'AWS/ApplicationELB'
