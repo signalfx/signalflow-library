@@ -30,3 +30,40 @@ def consumed_lcu_increase_detector(fire_num_stddev: float = 3.5,
                                             ignore_extremes=True,
                                             calculation_mode='vanilla',
                                             auto_resolve_after=utils.AUTO_RESOLVE_AFTER)
+
+
+def http_5xx_count_increase_detector(fire_threshold: float = 0,
+                                     fire_lasting: lasting = None,
+                                     clear_threshold: float = 0,
+                                     clear_lasting: lasting = lasting('10m', 1),
+                                     filter_: filter = None
+):
+    # :param fire_threshold specifies fire threshold for the HTTP 5xx counts
+    # :param fire_threshold label=Trigger threshold
+    # :param fire_lasting specifies lasting object associated with fire threshold
+    # :param fire_lasting label=Sensitivity
+    # :param clear_threshold specifies clear threshold for the HTTP 5xx counts
+    # :param clear_threshold label=Clear threshold
+    # :param clear_threshold constraint=lte(fire_threshold)
+    # :param clear_lasting specifies lasting object associated with clear threshold
+    # :param clear_lasting label=Clear Sensitivity
+    # :param filter_ specifies dimensional scope of the detector
+    # :param filter_ metric_name=HTTPCode_ELB_5XX_Count
+    # :return: detect block that triggers when HTTP 5xx count usage is above the threshold
+
+    assert fire_threshold >= clear_threshold, utils.threshold_validation_err_msg(fire_threshold, clear_threshold,
+                                                                                 orientation='above')
+    initial_filter = filter(utils.NAMESPACE_DIM, aws_utils.ALB_NAMESPACE) and filter(utils.STAT_DIM, 'sum')
+    scope_filter = utils.merge_filters(initial_filter, filter_)
+    group_by = ['LoadBalancer', 'AWSUniqueId', 'aws_region', 'aws_account_id', 'AvailabilityZone']
+    stream = data('HTTPCode_ELB_5XX_Count', filter=scope_filter).sum(by=group_by)
+
+    fire_threshold_stream = const(fire_threshold)
+    clear_threshold_stream = const(clear_threshold)
+    ann = [utils.annotate_stream(stream, 'Sum of HTTP 5xx count'),
+           utils.annotate_fire_threshold(fire_threshold_stream, orientation='above')]
+
+    return detect(when(stream > fire_threshold_stream, lasting=fire_lasting),
+                  off=when(stream <= clear_threshold_stream, lasting=clear_lasting),
+                  annotations=ann,
+                  auto_resolve_after=utils.AUTO_RESOLVE_AFTER)
