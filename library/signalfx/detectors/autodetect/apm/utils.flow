@@ -1,0 +1,1 @@
+SF_KIND_FILTERS = filter('sf_kind', 'SERVER', 'CONSUMER')
