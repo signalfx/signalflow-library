@@ -1,6 +1,5 @@
 from signalfx.detectors.autodetect import utils
 from signalfx.detectors.apm.errors.sudden_change_v2 import sudden_change as errors_sudden_change_v2
-from signalfx.detectors.autodetect.apm import utils as apm_utils
 
 def error_rate_sudden_change_detector(current_window: duration = duration('10m'),
                                        preceding_window: duration = duration('1h'),
@@ -17,9 +16,8 @@ def error_rate_sudden_change_detector(current_window: duration = duration('10m')
     # :param attempt_threshold description=threshold on number of attempts being evaluated in order to trigger
     # :param attempt_threshold round_to=0
     # :return: detect block that triggers when error ratio grows by a specified amount
-    scope_filter = utils.merge_filters(apm_utils.SF_KIND_FILTERS, filter_)
     return errors_sudden_change_v2.detector(current_window=current_window, preceding_window=preceding_window,
                                             fire_growth_threshold=fire_growth_threshold,
                                             clear_growth_threshold=clear_growth_threshold,
-                                            filter_=scope_filter, attempt_threshold=attempt_threshold,
+                                            filter_=filter_, attempt_threshold=attempt_threshold,
                                             resource_type='service')
