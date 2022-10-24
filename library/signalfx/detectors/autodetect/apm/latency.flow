@@ -1,4 +1,3 @@
-from signalfx.detectors.autodetect import utils
 from signalfx.detectors.apm.latency.sudden_change_v2 import sudden_change as latency_sudden_change_v2
 
 def latency_growth_rate_detector(pctile: float = 90,
@@ -41,8 +40,5 @@ def latency_deviations_from_norm_detector(current_window: duration = duration('1
                                                          historical_window=historical_window,
                                                          fire_num_dev_threshold=fire_num_dev_threshold,
                                                          clear_num_dev_threshold=clear_num_dev_threshold,
-                                                         exclude_errors=exclude_errors,
                                                          volume_static_threshold=volume_static_threshold,
-                                                         volume_relative_threshold=volume_relative_threshold,
-                                                         auto_resolve_after=auto_resolve_after,
                                                          resource_type='service')
