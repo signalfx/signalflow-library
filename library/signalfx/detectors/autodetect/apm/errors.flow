@@ -1,22 +1,36 @@
+from signalfx.detectors.autodetect import utils
 from signalfx.detectors.apm.errors.sudden_change_v2 import sudden_change as errors_sudden_change_v2
 
+
 def error_rate_sudden_change_detector(current_window: duration = duration('10m'),
-                                       preceding_window: duration = duration('1h'),
-                                       fire_growth_threshold: float = 0.5,
-                                       clear_growth_threshold: float = 0.1,
-                                       filter_: filter = None,
-                                       attempt_threshold: float = 1.0):
+                                      preceding_window: duration = duration('1h'),
+                                      fire_growth_threshold_perc: float = 100,
+                                      clear_growth_threshold_perc: float = 80,
+                                      filter_: filter = None,
+                                      attempt_threshold: float = 10):
     # :param current_window label=Current window
+    # :param current_window description=Window being tested for high error rate
     # :param preceding_window label=Historical window
-    # :param fire_growth_threshold label=Trigger threshold
-    # :param clear_growth_threshold label=Clear threshold
+    # :param preceding_window description=Window that defines normal error rate
+    # :param fire_growth_threshold_perc label=Trigger threshold
+    # :param fire_growth_threshold_perc description=Trigger the alert when the current value is more than this percentage above the historical norm
+    # :param fire_growth_threshold_perc min=0
+    # :param fire_growth_threshold_perc max=100
+    # :param fire_growth_threshold_perc unit=%
+    # :param clear_growth_threshold_perc label=Clear threshold
+    # :param clear_growth_threshold_perc description=Clear the alert when the current value is less than this percentage above the historical norm; must be lower than trigger threshold.
+    # :param clear_growth_threshold_perc min=0
+    # :param clear_growth_threshold_perc max=100
+    # :param clear_growth_threshold_perc unit=%
     # :param filter_ metric_name=service.request.count
     # :param attempt_threshold label=Minimum request volume
-    # :param attempt_threshold description=threshold on number of attempts being evaluated in order to trigger
+    # :param attempt_threshold description=Minimum number of requests in current window; prevents alerts for sparse data.
     # :param attempt_threshold round_to=0
     # :return: detect block that triggers when error ratio grows by a specified amount
+    fire_growth_threshold_rate = fire_growth_threshold_perc * 0.01
+    clear_growth_threshold_rate = clear_growth_threshold_perc * 0.01
     return errors_sudden_change_v2.detector(current_window=current_window, preceding_window=preceding_window,
-                                            fire_growth_threshold=fire_growth_threshold,
-                                            clear_growth_threshold=clear_growth_threshold,
+                                            fire_growth_threshold=fire_growth_threshold_rate,
+                                            clear_growth_threshold=clear_growth_threshold_rate,
                                             filter_=filter_, attempt_threshold=attempt_threshold,
-                                            resource_type='service')
+                                            resource_type='service', auto_resolve_after=utils.AUTO_RESOLVE_AFTER)
