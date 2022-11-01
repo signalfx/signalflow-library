@@ -33,9 +33,9 @@ def consumed_lcu_increase_detector(fire_num_stddev: float = 3.5,
 
 
 def http_5xx_count_increase_detector(fire_threshold: float = 0,
-                                     fire_lasting: lasting = None,
+                                     fire_lasting: lasting = lasting('3m', 0.8),
                                      clear_threshold: float = 0,
-                                     clear_lasting: lasting = lasting('10m', 1),
+                                     clear_lasting: lasting = lasting('3m', 0.8),
                                      filter_: filter = None
 ):
     # :param fire_threshold specifies fire threshold for the HTTP 5xx counts
