@@ -1,39 +1,23 @@
+from signalfx.detectors.autodetect import utils
 from signalfx.detectors.apm.latency.sudden_change_v2 import sudden_change as latency_sudden_change_v2
 
-def latency_growth_rate_detector(pctile: float = 90,
-                        current_window: duration = duration('10m'),
-                        historical_window: duration = duration('1h'),
-                        fire_growth_rate_threshold: float = 0.3,
-                        clear_growth_rate_threshold: float = 0.2,
-                        volume_static_threshold: float = 0,
-                        filter_: filter = None):
-    # :param pctile label=Percentile to monitor
-    # :param current_window label=Current window
-    # :param historical_window label=Historical window
-    # :param fire_growth_rate_threshold label=Trigger threshold
-    # :param clear_growth_threshold label=Clear growth threshold
-    # :param volume_static_threshold label=Min. req/sec (absolute)
-    # :param filter_ metric_name=service.request.duration.ns.p90
-    # :return: detect block that triggers when latency grows by a specified amount relative to the preceding window
-    return latency_sudden_change_v2.growth_rate(pctile=pctile,
-                                                filter_=filter_, current_window=current_window,
-                                                historical_window=historical_window,
-                                                fire_growth_rate_threshold=fire_growth_rate_threshold,
-                                                clear_growth_rate_threshold=clear_growth_rate_threshold,
-                                                volume_static_threshold=volume_static_threshold,
-                                                resource_type='service')
 
 def latency_deviations_from_norm_detector(current_window: duration = duration('10m'),
-                                 historical_window: duration = duration('1h'),
-                                 fire_num_dev_threshold: float = 5.0,
-                                 clear_num_dev_threshold: float = 4.0,
-                                 volume_static_threshold: float = 0.0,
-                                 filter_: filter = None):
+                                          historical_window: duration = duration('1h'),
+                                          fire_num_dev_threshold: float = 5.0,
+                                          clear_num_dev_threshold: float = 4.0,
+                                          volume_static_threshold: float = 0.0,
+                                          filter_: filter = None):
     # :param current_window label=Current window
+    # :param current_window description=Time window to test for anomalous values
     # :param historical_window label=Historical window
+    # :param historical_window description=Time window to use for historical normal values
     # :param fire_num_dev_threshold label=Trigger threshold
+    # :param fire_num_dev_threshold description=Trigger the alert when the current value is greater than this number of deviations above historical norm
     # :param clear_num_dev_threshold label=Clear growth threshold
+    # :param clear_num_dev_threshold description=Clear the alert when the current value is less than this number of deviations above historical norm
     # :param volume_static_threshold label=Min. req/sec (absolute)
+    # :param volume_static_threshold description=Minimum request rate (requests/sec) required in current window; prevents alerts for sparse data.
     # :param filter_ metric_name=service.request.duration.ns.p90
     # :return: detect block that triggers when latency is too many deviations from the norm established in the preceding window
     return latency_sudden_change_v2.deviations_from_norm(filter_=filter_, current_window=current_window,
@@ -41,4 +25,5 @@ def latency_deviations_from_norm_detector(current_window: duration = duration('1
                                                          fire_num_dev_threshold=fire_num_dev_threshold,
                                                          clear_num_dev_threshold=clear_num_dev_threshold,
                                                          volume_static_threshold=volume_static_threshold,
-                                                         resource_type='service')
+                                                         resource_type='service',
+                                                         auto_resolve_after=utils.AUTO_RESOLVE_AFTER)
