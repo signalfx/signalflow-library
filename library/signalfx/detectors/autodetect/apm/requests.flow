@@ -1,4 +1,5 @@
 from signalfx.detectors.autodetect import utils
+from signalfx.detectors.apm.requests import streams
 from signalfx.detectors.apm.requests.sudden_change_v2 import sudden_change
 
 
@@ -18,6 +19,8 @@ def request_rate_mean_std_detector(current_window: duration = duration('10m'),
     # :param filter_ metric_name=service.request.count
     # :param filter_ dimensions=sf_environment,sf_service
     # :return: detect block that triggers when request rate is too many deviations from the norm established in the preceding window
+
+    streams.request_rate(filter_=filter_, resource_type='service').publish('Request Rate')
     return sudden_change.detector_mean_std(current_window=current_window, historical_window=historical_window,
                                            fire_num_stddev=fire_num_stddev,
                                            clear_num_stddev=clear_num_stddev,
