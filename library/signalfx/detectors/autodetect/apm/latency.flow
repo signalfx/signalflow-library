@@ -1,4 +1,5 @@
 from signalfx.detectors.autodetect import utils
+from signalfx.detectors.apm.requests import streams
 from signalfx.detectors.apm.latency.sudden_change_v2 import sudden_change as latency_sudden_change_v2
 
 
@@ -6,7 +7,7 @@ def latency_deviations_from_norm_detector(current_window: duration = duration('1
                                           historical_window: duration = duration('1h'),
                                           fire_num_dev_threshold: float = 5.0,
                                           clear_num_dev_threshold: float = 4.0,
-                                          volume_static_threshold: float = 0.0,
+                                          volume_relative_threshold_perc: float = 20,
                                           filter_: filter = None):
     # :param current_window label=Current window
     # :param current_window description=Time window to test for anomalous values
@@ -16,14 +17,21 @@ def latency_deviations_from_norm_detector(current_window: duration = duration('1
     # :param fire_num_dev_threshold description=Trigger the alert when the current value is greater than this number of deviations above historical norm
     # :param clear_num_dev_threshold label=Clear growth threshold
     # :param clear_num_dev_threshold description=Clear the alert when the current value is less than this number of deviations above historical norm
-    # :param volume_static_threshold label=Min. req/sec (absolute)
-    # :param volume_static_threshold description=Minimum request rate (requests/sec) required in current window; prevents alerts for sparse data.
+    # :param volume_relative_threshold_perc label=Min. req/sec (% of history)
+    # :param volume_relative_threshold_perc description=Minimum request rate, as a percentage of historical request rate, required in current window to trigger or clear the alert; prevents alerts for sparse data.
+    # :param volume_relative_threshold_perc min=0
+    # :param volume_relative_threshold_perc max=100
+    # :param volume_relative_threshold_perc unit=%
     # :param filter_ metric_name=service.request.duration.ns.p90
+    # :param filter_ dimensions=sf_environment,sf_service
     # :return: detect block that triggers when latency is too many deviations from the norm established in the preceding window
+    volume_relative_threshold_rate = volume_relative_threshold_perc * 0.01
+
+    streams.request_rate(filter_=filter_, resource_type='service').publish('Request Rate')
     return latency_sudden_change_v2.deviations_from_norm(filter_=filter_, current_window=current_window,
                                                          historical_window=historical_window,
                                                          fire_num_dev_threshold=fire_num_dev_threshold,
                                                          clear_num_dev_threshold=clear_num_dev_threshold,
-                                                         volume_static_threshold=volume_static_threshold,
+                                                         volume_relative_threshold=volume_relative_threshold_rate,
                                                          resource_type='service',
                                                          auto_resolve_after=utils.AUTO_RESOLVE_AFTER)
