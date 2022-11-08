@@ -67,7 +67,7 @@ def growth_rate(pctile=90, filter_=None, current_window=duration('5m'),
                                       metric_names=metric_names).timeshift(current_window_)
     fire_threshold = hist * (1 + fire_growth_rate_threshold)
     clear_threshold = hist * (1 + clear_growth_rate_threshold)
-    ann = [annotate(curr, 'current window', {'sfui_streamType': 'signal'}),
+    ann = [annotate(curr, 'current latency', {'sfui_streamType': 'signal'}),
            annotate(hist, 'baseline',
                     {'sfui_config': '{"signal_baseline": {"sfui_streamType":"signal"}}'}),
            annotate(fire_threshold, 'fire threshold', {
