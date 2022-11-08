@@ -1,5 +1,4 @@
 from signalfx.detectors.autodetect import utils
-from signalfx.detectors.apm.requests import streams
 from signalfx.detectors.apm.latency.sudden_change_v2 import sudden_change as latency_sudden_change_v2
 
 
@@ -27,7 +26,6 @@ def latency_deviations_from_norm_detector(current_window: duration = duration('1
     # :return: detect block that triggers when latency is too many deviations from the norm established in the preceding window
     volume_relative_threshold_rate = volume_relative_threshold_perc * 0.01
 
-    streams.request_rate(filter_=filter_, resource_type='service').publish('Request Rate')
     return latency_sudden_change_v2.deviations_from_norm(filter_=filter_, current_window=current_window,
                                                          historical_window=historical_window,
                                                          fire_num_dev_threshold=fire_num_dev_threshold,
