@@ -234,7 +234,7 @@ def deviations_from_norm(filter_=None, current_window=duration('5m'),
     hist_spread = historical_p90 - historical_p50
     fire_threshold = historical_p50 + fire_num_dev_threshold * hist_spread
     clear_threshold = historical_p50 + clear_num_dev_threshold * hist_spread
-    ann = [annotate(current_p50, 'current window', {'sfui_streamType': 'signal'}),
+    ann = [annotate(current_p50, 'current latency', {'sfui_streamType': 'signal'}),
            annotate(historical_p50, 'baseline',
                     {'sfui_config': '{"signal_baseline": {"sfui_streamType":"signal"}}'}),
            annotate(fire_threshold, 'fire threshold', {
