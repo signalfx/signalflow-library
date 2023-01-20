@@ -1,0 +1,96 @@
+from signalfx.detectors.slx import streams
+
+# Implementation of duration based alert from this doc: https://sre.google/workbook/alerting-on-slos/#benefits-and-disadvantages-of-using-a-duration
+# Trigger an alert when sli over compliance period is less than the SLO for a specified lasting time
+def slx_threshold_lasting_detector(good_events_stream, total_events_stream, compliance_period, fire_lasting, slo=99):
+    sli = streams.sli_over_compliance_period_stream(good_events_stream, total_events_stream, compliance_period)
+    slo_threshold = const(slo)
+    return detect(when(sli < slo_threshold, lasting=fire_lasting))
+
+# Trigger an alert when a certain percentage of SLO’s error budget has been consumed
+def error_budget_left_detector(good_events_stream, total_events_stream, compliance_period, percentage_error_budget_consumed, fire_lasting, slo=99):
+    error_budget_left = streams.error_budget_left(good_events_stream, total_events_stream, compliance_period, slo)
+    return detect(when(error_budget_left < const(percentage_error_budget_consumed), lasting=fire_lasting))
+
+# Implementation of burn rate detector from this doc: https://sre.google/workbook/alerting-on-slos/#pros_and_cons_of_alerting_based_on_burn_r
+# Trigger an alert when burn rate is greater than specified threshold
+def burn_rate_detector(good_events_stream, total_events_stream, time_window, slo, burn_rate_threshold, min_events_number=0):
+    burn_rate = streams.time_window_burn_rate(good_events_stream, total_events_stream, time_window, slo)
+    return detect(when((burn_rate >= burn_rate_threshold) and (total_events_stream > min_events_number)))
+
+# Implementation of multi burn rate detector from this doc: https://sre.google/workbook/alerting-on-slos/#pros_and_cons_of_using_multiple_burn_rate
+# Implementation of alerting logic which uses multiple burn rates and time windows, and fire alerts when burn rates surpass a specified threshold
+def multi_burn_rate_detector(good_events_stream,
+                             total_events_stream,
+                             time_window_1,
+                             time_window_2,
+                             burn_rate_threshold_time_window_1,
+                             burn_rate_threshold_time_window_2,
+                             slo=99,
+                             min_events_number=0):
+    burn_rate_time_window_1 = streams.time_window_burn_rate(good_events_stream, total_events_stream, time_window_1, slo)
+    burn_rate_time_window_2 = streams.time_window_burn_rate(good_events_stream, total_events_stream, time_window_2, slo)
+    return detect(when((burn_rate_time_window_1 >= burn_rate_threshold_time_window_1) or (burn_rate_time_window_2 >= burn_rate_threshold_time_window_2) and (
+        total_events_stream > min_events_number)))
+
+# Implementation of multi window burn rate detector from this doc: https://sre.google/workbook/alerting-on-slos/#pros_and_cons_of_using_multiple_b-id00013
+# Enhancement of the multi-burn-rate alerts to notify only when we’re still actively burning through the budget—thereby reducing the number of false positives.
+# To do this, we need to add another parameter: a shorter window to check if the error budget is still being consumed as we trigger the alert.
+# A good guideline is to make the short window 1/12 the duration of the long window
+def multi_window_burn_rate_detector(good_events_stream,
+                             total_events_stream,
+                             short_window,
+                             long_window,
+                             burn_rate_threshold,
+                             slo=99,
+                             min_events_number=0):
+
+    validate_time_windows(short_window, long_window)
+
+    burn_rate_short = streams.time_window_burn_rate(good_events_stream, total_events_stream, short_window, slo)
+    burn_rate_long = streams.time_window_burn_rate(good_events_stream, total_events_stream, long_window, slo)
+    return detect(when((burn_rate_short >= burn_rate_threshold) and (burn_rate_long >= burn_rate_threshold) and (
+                total_events_stream > min_events_number)))
+
+
+# Implementation of multi window burn rate detector from this doc: https://sre.google/workbook/alerting-on-slos/#pros_and_cons_of_using_multiple_b-id00013
+# Enhancement of the multi-burn-rate alerts to notify only when we’re still actively burning through the budget—thereby reducing the number of false positives.
+# To do this, we need to add another parameter: a shorter window to check if the error budget is still being consumed as we trigger the alert.
+# A good guideline is to make the short window 1/12 the duration of the long window
+def multi_window_multi_threshold_burn_rate_detector(good_events_stream,
+                             total_events_stream,
+                             short_window_1,
+                             long_window_1,
+                             short_window_2,
+                             long_window_2,
+                             burn_rate_threshold_1,
+                             burn_rate_threshold_2,
+                             slo=99,
+                             min_events_number=0):
+
+    validate_time_windows(short_window_1, long_window_1)
+    validate_time_windows(short_window_2, long_window_2)
+
+    burn_rate_short_1 = streams.time_window_burn_rate(good_events_stream, total_events_stream, short_window_1, slo)
+    burn_rate_long_1 = streams.time_window_burn_rate(good_events_stream, total_events_stream, long_window_1, slo)
+
+    burn_rate_short_2 = streams.time_window_burn_rate(good_events_stream, total_events_stream, short_window_2, slo)
+    burn_rate_long_2 = streams.time_window_burn_rate(good_events_stream, total_events_stream, long_window_2, slo)
+
+    return detect(when((((burn_rate_short_1 >= burn_rate_threshold_1) and (burn_rate_long_1 >= burn_rate_threshold_1))
+        or ((burn_rate_short_2 >= burn_rate_threshold_2) and (burn_rate_long_2 >= burn_rate_threshold_2)))
+        and (total_events_stream > min_events_number)))
+
+# Ensure that short window is > 1/30 of long_window and < long_window
+def validate_time_windows(short_window, long_window):
+    assert long_window > short_window, {
+            'long_window':  long_window,
+            'short_window': short_window,
+            'sfui_errorKeys': ['long_window', 'short_window'],
+            'sfui_errorTemplate': "{{{long_window}}} must be greater than to {{{short_window}}}."}
+
+    assert short_window >= long_window / 30, {
+            'long_window':  long_window,
+            'short_window': short_window,
+            'sfui_errorKeys': ['long_window', 'short_window'],
+            'sfui_errorTemplate': "{{{short_window}}} must be greater than 1/30 of {{{long_window}}}."}

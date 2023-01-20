@@ -1,0 +1,96 @@
+from signalfx.detectors.slx import streams
+
+MULTI_COMPLIANCE_PERIODS = [
+    {
+        "period": duration('7d'),
+        "label": " 7d"
+    },
+    {
+        "period": duration('30d'),
+        "label": " 30d"
+    },
+    {
+        "period": duration('90d'),
+        "label": " 90d"
+    }
+]
+
+
+def get_group_by_dimensions(split_by):
+    if split_by == 'Env':
+        return ['sf_environment']
+    elif split_by == 'Service/Env':
+        return ['sf_environment', 'sf_service']
+    elif split_by == 'Service':
+        return ['sf_service']
+    else:
+        return []
+
+
+def get_good_events_filter(initial_filter):
+    if initial_filter is not None:
+        return initial_filter and filter('sf_error', 'false')
+    else:
+        return filter('sf_error', 'false')
+
+
+def visualize_data(good_events_stream,
+                   total_events_stream,
+                   slo: float = 99,
+                   compliance_period: duration = duration('30d'),
+                   viz_type: string = 'sli', label=''):
+    if viz_type == 'sli':
+        streams.sli_over_compliance_period_stream(good_events_stream, total_events_stream, compliance_period).publish('SLI' + label)
+    elif viz_type == 'sli_slo':
+        streams.sli_over_compliance_period_stream(good_events_stream, total_events_stream, compliance_period).publish('SLI' + label)
+        const(slo).publish('SLO' + label)
+    elif viz_type == 'events':
+        good_events_stream.publish('Good requests' + label)
+        (total_events_stream - good_events_stream).publish('Errors' + label)
+    elif viz_type == 'errors':
+        (total_events_stream - good_events_stream).publish('Errors' + label)
+    elif viz_type == 'ErrorRate':
+        ((total_events_stream - good_events_stream)/total_events_stream).scale(100).publish('ErrorRate' + label)
+    elif viz_type == 'burn_rate':
+        streams.time_window_burn_rate(good_events_stream, total_events_stream, compliance_period, slo).publish('Burn rate' + label)
+    elif viz_type == 'error_budget':
+        streams.error_budget_left(good_events_stream, total_events_stream, compliance_period, slo).publish(
+            'Error budget consumption' + label)
+
+
+def apm_slx_detector(slo: float = 99,
+                     compliance_period: duration = duration('30d'),
+                     multi_compliance: bool = False,
+                     split_by: string = 'None',
+                     filter_: filter = None,
+                     viz_type: string = 'sli',
+                     min_events_number: float = 1):
+    # :param slo label=Service Level Objective
+    # :param slo unit=%
+    # :param slo min=0
+    # :param slo max=100
+    # :param compliance_period label=Compliance period
+    # :param multi_compliance label=Multi-periods
+    # :param split_by label=Split by
+    # :param split_by allowed_values=None,Env,Service/Env,Service
+    # :param filter_ metric_name=service.request.count
+    # :param viz_type label=Show on chart
+    # :param viz_type allowed_values=sli,sli_slo,events,errors,ErrorRate,burn_rate,error_budget
+
+    group_by = get_group_by_dimensions(split_by)
+    total_events_stream = data('service.request.count', filter=filter_).sum(by=group_by)
+
+    good_events_filter = get_good_events_filter(filter_)
+
+    good_events_stream = data('service.request.count', filter=good_events_filter).sum(by=group_by)
+
+    sli = streams.sli_over_compliance_period_stream(good_events_stream, total_events_stream, compliance_period)
+    slo_threshold = const(slo)
+    if multi_compliance:
+        [visualize_data(good_events_stream, total_events_stream, slo, x["period"], viz_type, x["label"]) for x in MULTI_COMPLIANCE_PERIODS]
+    else:
+        visualize_data(good_events_stream, total_events_stream, slo, compliance_period, viz_type)
+    ann = []
+
+    return detect(when(sli < slo_threshold and total_events_stream > min_events_number),
+                  annotations=ann)

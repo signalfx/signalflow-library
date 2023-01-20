@@ -1,0 +1,64 @@
+from signalfx.detectors.autodetect import utils
+from signalfx.detectors.autodetect.infra.aws import utils as aws_utils
+
+
+def connection_time_increase_detector(fire_threshold: float = 9000,
+                                      fire_lasting: lasting = lasting('2m', 1),
+                                      clear_threshold: float = 8000,
+                                      clear_lasting: lasting = lasting('2m', 1),
+                                      filter_: filter = None):
+    # :param fire_threshold specifies fire threshold for the connection time
+    # :param fire_threshold label=Trigger threshold
+    # :param fire_lasting specifies lasting object associated with fire threshold
+    # :param fire_lasting label=Sensitivity
+    # :param clear_threshold specifies clear threshold for the connection time
+    # :param clear_threshold label=Clear threshold
+    # :param clear_threshold constraint=lte(fire_threshold)
+    # :param clear_lasting specifies lasting object associated with clear threshold
+    # :param clear_lasting label=Clear Sensitivity
+    # :param filter_ specifies dimensional scope of the detector
+    # :param filter_ metric_name=ConnectionTime
+    # :return: detect block that triggers when connection time is above the threshold
+
+    assert fire_threshold >= clear_threshold, utils.threshold_validation_err_msg(fire_threshold, clear_threshold,
+                                                                                 orientation='above')
+    initial_filter = filter(utils.NAMESPACE_DIM, aws_utils.ROUTE53_NAMESPACE) and filter(utils.STAT_DIM, 'mean')
+    scope_filter = utils.merge_filters(initial_filter, filter_)
+    group_by = ['HealthCheckId', 'AWSUniqueId', 'Region', 'aws_account_id']
+    stream = data('ConnectionTime', filter=scope_filter, rollup='average', resolution='60s').mean(by=group_by)
+ 
+    fire_threshold_stream = const(fire_threshold)
+    clear_threshold_stream = const(clear_threshold)
+    ann = [utils.annotate_stream(stream, 'Connection time'),
+           utils.annotate_fire_threshold(fire_threshold_stream, orientation='above')]
+
+    return detect(when(stream >= fire_threshold_stream, lasting=fire_lasting),
+                  off=when(stream < clear_threshold_stream, lasting=clear_lasting),
+                  annotations=ann,
+                  auto_resolve_after=utils.AUTO_RESOLVE_AFTER)
+
+
+def unhealthy_status_of_health_check_endpoint_detector(fire_lasting: lasting = lasting('10m', 0.8),
+                                                       clear_lasting: lasting = lasting('10m', 0.8),
+                                                       filter_: filter = None):
+    # :param fire_lasting specifies lasting object associated with fire threshold
+    # :param fire_lasting label=Sensitivity
+    # :param clear_threshold constraint=gt(fire_threshold)
+    # :param clear_lasting specifies lasting object associated with clear threshold
+    # :param clear_lasting label=Clear Sensitivity
+    # :param filter_ specifies dimensional scope of the detector
+    # :param filter_ metric_name=HealthCheckStatus
+    # :return: detect block that triggers when status of the Route53 health check endpoint is unhealthy.
+    initial_filter = filter(utils.NAMESPACE_DIM, aws_utils.ROUTE53_NAMESPACE) and filter(utils.STAT_DIM, 'lower')
+    scope_filter = utils.merge_filters(initial_filter, filter_)
+    group_by = ['HealthCheckId', 'AWSUniqueId', 'aws_account_id']
+    stream = data('HealthCheckStatus', filter=scope_filter, rollup='latest', resolution='60s').mean(by=group_by)
+    fire_threshold_stream = const(0.0)
+    clear_threshold_stream = const(1.0)
+    ann = [utils.annotate_stream(stream, 'Unhealthy status for health check endpoints'),
+           utils.annotate_fire_threshold(fire_threshold_stream, orientation='below')]
+
+    return detect(when(stream == fire_threshold_stream, lasting=fire_lasting),
+                  off=when(stream == clear_threshold_stream, lasting=clear_lasting),
+                  annotations=ann,
+                  auto_resolve_after=utils.AUTO_RESOLVE_AFTER)

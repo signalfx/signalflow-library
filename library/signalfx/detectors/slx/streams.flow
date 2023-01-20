@@ -1,0 +1,18 @@
+def error_budget_stream(slo):
+    return const(100 - slo)
+
+# Calculate burn rate - so rate at which the error budget is being consumed
+# If it’s > 1, you’re consuming error budget faster than you are allowing for. If it’s < 1, you’re within budget.
+def time_window_burn_rate(good_events_stream, total_events_stream, time_window, slo=99):
+    return (100 - sli_over_compliance_period_stream(good_events_stream, total_events_stream, time_window)) / error_budget_stream(slo)
+
+# Calculate you SLI over compliance period
+def sli_over_compliance_period_stream(good_events_stream, total_events_stream, compliance_period=duration('30d')):
+    window_good_events = good_events_stream.sum(over=compliance_period)
+    window_total_events = total_events_stream.sum(over=compliance_period)
+    sli = (window_good_events/window_total_events).scale(100)
+    return sli
+
+# Calculate percentage of error budget left
+def error_budget_left(good_events_stream, total_events_stream, compliance_period=duration('30d'), slo=99):
+    return (1 - time_window_burn_rate(good_events_stream, total_events_stream, compliance_period, slo)).scale(100)
