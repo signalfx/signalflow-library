@@ -27,6 +27,7 @@ def error_rate_sudden_change_detector(current_window: duration = duration('10m')
     # :param attempt_threshold label=Minimum request volume
     # :param attempt_threshold description=Minimum number of requests in current window; prevents alerts for sparse data.
     # :param attempt_threshold round_to=0
+    # :viz valueSuffix=%
     # :return: detect block that triggers when error ratio grows by a specified amount
     fire_growth_threshold_rate = fire_growth_threshold_perc * 0.01
     clear_growth_threshold_rate = clear_growth_threshold_perc * 0.01

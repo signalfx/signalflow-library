@@ -1,0 +1,91 @@
+from signalfx.detectors.autodetect import utils
+from signalfx.detectors.autodetect.infra.db import utils as db_utils
+
+
+def session_utilization_detector(fire_threshold: float = 90,
+                                 fire_lasting: lasting = lasting('5m', 0.8),
+                                 clear_threshold: float = 90,
+                                 clear_lasting: lasting = lasting('5m', 0.8),
+                                 filter_: filter = None):
+    # Detects when Oracle session utilization is above threshold
+    # :param fire_threshold description=Specifies trigger threshold in % for the session utilization
+    # :param fire_threshold label=Trigger threshold(%)
+    # :param fire_threshold min=0
+    # :param fire_threshold max=100
+    # :param fire_threshold unit=%
+    # :param fire_lasting description=Specifies trigger sensitivity associated with trigger threshold
+    # :param fire_lasting label=Trigger sensitivity
+    # :param clear_threshold description=Specifies clear threshold in % for the session utilization
+    # :param clear_threshold label=Clear threshold(%)
+    # :param clear_threshold min=0
+    # :param clear_threshold max=100
+    # :param clear_threshold unit=%
+    # :param clear_threshold constraint=lte(fire_threshold)
+    # :param clear_lasting description=Specifies clear sensitivity associated with clear threshold
+    # :param clear_lasting label=Clear sensitivity
+    # :param filter_ specifies dimensional scope of the detector
+    # :param filter_ metric_name=oracledb.sessions.usage
+    # :viz valueSuffix=%
+    # :return: detect block that triggers when Oracle session utilization is above the threshold
+
+    assert fire_threshold >= clear_threshold, utils.threshold_validation_err_msg(fire_threshold, clear_threshold,
+                                                                                 orientation='above')
+    scope_filter = utils.merge_filters(db_utils.ORACLE_INSTANCE_NAME_FILTER, filter_)
+    current_utilization = data('oracledb.sessions.usage', filter=scope_filter).sum(by=db_utils.ORACLE_GROUP_BY)
+    resource_limit = data('oracledb.sessions.limit', filter=scope_filter).sum(by=db_utils.ORACLE_GROUP_BY)
+    stream = ((current_utilization / resource_limit) * 100)
+
+    fire_threshold_stream = const(fire_threshold)
+    clear_threshold_stream = const(clear_threshold)
+
+    ann = [utils.annotate_stream(stream, 'Session utilization'),
+           utils.annotate_fire_threshold(fire_threshold_stream, orientation='above')]
+
+    return detect(when(stream >= fire_threshold_stream, lasting = fire_lasting),
+                  off=when(stream < clear_threshold_stream, lasting = clear_lasting),
+                  annotations=ann,
+                  auto_resolve_after=utils.AUTO_RESOLVE_AFTER)
+
+
+def process_utilization_detector(fire_threshold: float = 90,
+                                 fire_lasting: lasting = lasting('5m', 0.8),
+                                 clear_threshold: float = 90,
+                                 clear_lasting: lasting = lasting('5m', 0.8),
+                                 filter_: filter = None):
+    # Detects when Oracle process utilization is above threshold
+    # :param fire_threshold description=Specifies trigger threshold in % for the process utilization
+    # :param fire_threshold label=Trigger threshold (%)
+    # :param fire_threshold min=0
+    # :param fire_threshold max=100
+    # :param fire_threshold unit=%
+    # :param fire_lasting description=Specifies trigger sensitivity associated with trigger threshold
+    # :param fire_lasting label=Trigger sensitivity
+    # :param clear_threshold description=Specifies clear threshold in % for the process utilization
+    # :param clear_threshold label=Clear threshold (%)
+    # :param clear_threshold min=0
+    # :param clear_threshold max=100
+    # :param clear_threshold unit=%
+    # :param clear_threshold constraint=lte(fire_threshold)
+    # :param clear_lasting description=Specifies clear sensitivity associated with clear threshold
+    # :param clear_lasting label=Clear sensitivity
+    # :param filter_ specifies dimensional scope of the detector
+    # :param filter_ metric_name=oracledb.processes.usage
+    # :viz valueSuffix=%
+    # :return: Detect block that triggers when Oracle process utilization is above the threshold
+    assert fire_threshold >= clear_threshold, utils.threshold_validation_err_msg(fire_threshold, clear_threshold,
+                                                                                 orientation='above')
+    scope_filter = utils.merge_filters(db_utils.ORACLE_INSTANCE_NAME_FILTER, filter_)
+    current_utilization = data('oracledb.processes.usage', filter=scope_filter).sum(by=db_utils.ORACLE_GROUP_BY)
+    resource_limit = data('oracledb.processes.limit', filter=scope_filter).sum(by=db_utils.ORACLE_GROUP_BY)
+    stream = ((current_utilization / resource_limit) * 100)
+
+    fire_threshold_stream = const(fire_threshold)
+    clear_threshold_stream = const(clear_threshold)
+
+    ann = [utils.annotate_stream(stream, 'Process utilization'),
+           utils.annotate_fire_threshold(fire_threshold_stream, orientation='above')]
+
+    return detect(when(stream >= fire_threshold_stream, lasting=fire_lasting),
+                  off=when(stream < clear_threshold_stream, lasting=clear_lasting),
+                  annotations=ann,
+                  auto_resolve_after=utils.AUTO_RESOLVE_AFTER)
