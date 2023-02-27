@@ -1,8 +1,10 @@
 ORACLE_INSTANCE_NAME = 'oracledb.instance.name'
+TABLESPACE_NAME = 'tablespace_name'
 REDIS_GROUP_BY = [
     'plugin_instance', 'host.name', 'host.id', 'AWSUniqueId', 'cloud.provider', 'cloud.region', 'host.type', 'os.type',
 ]
 ORACLE_GROUP_BY = [ ORACLE_INSTANCE_NAME ]
+ORACLE_TABLESPACE_GROUP_BY = [ ORACLE_INSTANCE_NAME, TABLESPACE_NAME ]
 
 REDIS_PLUGIN_FILTER = filter('plugin', 'redis_info')
 ORACLE_INSTANCE_NAME_FILTER = filter(ORACLE_INSTANCE_NAME, '*')
