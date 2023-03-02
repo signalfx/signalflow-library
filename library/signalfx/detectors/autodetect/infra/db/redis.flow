@@ -18,6 +18,7 @@ def cpu_utilization_detector(fire_threshold: float = 90, fire_lasting: lasting =
     # :param clear_lasting label=Clear Sensitivity
     # :param filter_ specifies dimensional scope of the detector
     # :param filter_ metric_name=counter.used_cpu_sys
+    # :viz valueSuffix=%
     # :return: detect block that triggers when Redis CPU usage is above the threshold
 
     assert fire_threshold >= clear_threshold, utils.threshold_validation_err_msg(fire_threshold, clear_threshold,

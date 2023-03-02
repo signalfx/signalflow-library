@@ -18,6 +18,7 @@ def connection_time_increase_detector(fire_threshold: float = 9000,
     # :param clear_lasting label=Clear Sensitivity
     # :param filter_ specifies dimensional scope of the detector
     # :param filter_ metric_name=ConnectionTime
+    # :viz valueUnit=Millisecond
     # :return: detect block that triggers when connection time is above the threshold
 
     assert fire_threshold >= clear_threshold, utils.threshold_validation_err_msg(fire_threshold, clear_threshold,

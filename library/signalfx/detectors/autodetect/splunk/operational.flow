@@ -32,6 +32,7 @@ def detectors_limit_detector(fire_threshold: float = 90, fire_lasting: lasting =
     # :param fire_threshold unit=%
     # :param fire_lasting specifies lasting object associated with fire threshold
     # :param fire_lasting label=Sensitivity
+    # :viz valueSuffix=%
     # :return: detect block that triggers when percentage of detectors(vs. limit) is above threshold
     scope = filter('purpose', 'CUSTOM')
     limit_stream = data('sf.org.limit.detector', rollup='latest').fill(duration='2h').max()
@@ -107,6 +108,7 @@ def hosts_limit_detector(fire_threshold: float = 95, fire_lasting: lasting = las
     # :param clear_lasting label=Clear Sensitivity
     # :param enable_extra_publishers allows to show additional MTSes on the detector wizard
     # :param enable_extra_publishers label=Show hosts usage
+    # :viz valueSuffix=%
     # :return: detect block that triggers when a hosts usage percentage is above threshold
     assert fire_threshold >= clear_threshold, utils.threshold_validation_err_msg(fire_threshold, clear_threshold,
                                                                                  orientation='above')
@@ -155,6 +157,7 @@ def custom_mts_limit_detector(fire_threshold: float = 95, fire_lasting: lasting 
     # :param clear_lasting label=Clear Sensitivity
     # :param enable_extra_publishers allows to show additional MTSes on the detector wizard
     # :param enable_extra_publishers label=Show custom metrics usage
+    # :viz valueSuffix=%
     # :return: detect block that triggers when custom metrics usage percentage is above threshold
     assert fire_threshold >= clear_threshold, utils.threshold_validation_err_msg(fire_threshold, clear_threshold,
                                                                                  orientation='above')
@@ -203,6 +206,7 @@ def containers_limit_detector(fire_threshold: float = 95, fire_lasting: lasting 
     # :param clear_lasting label=Clear Sensitivity
     # :param enable_extra_publishers allows to show additional MTSes on the detector wizard
     # :param enable_extra_publishers label=Show containers usage
+    # :viz valueSuffix=%
     # :return: detect block that triggers when containers usage percentage is above threshold
     assert fire_threshold >= clear_threshold, utils.threshold_validation_err_msg(fire_threshold, clear_threshold,
                                                                                  orientation='above')
