@@ -4,7 +4,7 @@ from signalfx.detectors.autodetect.infra.k8s import utils as k8s_utils
 
 def container_restarts_detector(filter_: filter = None):
     # Detects when container restart count is > 0
-    # :param filter_ specifies dimensional scope of the detector
+    # :param filter_ description=Specifies dimensional scope of the detector
     # :param filter_ metric_name=k8s.container.restarts
     # :return: detect block that triggers when containers suitably filtered and grouped, cannot start
     group_by = [k8s_utils.K8S_NAMESPACE_NAME_DIM,
@@ -17,7 +17,7 @@ def container_restarts_detector(filter_: filter = None):
 
     fire_threshold_stream = const(0)
     clear_threshold_stream = const(1)
-    ann = [utils.annotate_stream(stream, 'Container Restarts'),
+    ann = [utils.annotate_stream(stream, 'Container restarts'),
            utils.annotate_fire_threshold(fire_threshold_stream, orientation='above'),
            ]
     return detect(when(stream > fire_threshold_stream, lasting=lasting('5m', 0.8)),

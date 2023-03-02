@@ -12,8 +12,11 @@ def consumed_lcu_increase_detector(fire_num_stddev: float = 3.5,
     # :param fire_num_stddev min=0
     # :param fire_num_stddev step=0.1
     # :param fire_num_stddev unit=SD
+    # :param current_window description=The time range being monitored
     # :param current_window label=Evaluation window
+    # :param historical_window description=The time range being used to define the recent trend
     # :param historical_window label=Historical window
+    # :param filter_ description=Specifies dimensional scope of the detector
     # :param filter_ metric_name=ConsumedLCUs
     # :return: detect block that triggers when number of consumed lcu suddenly increased
     initial_filter = filter(utils.NAMESPACE_DIM, aws_utils.ALB_NAMESPACE) and filter(utils.STAT_DIM, 'sum')
@@ -41,14 +44,17 @@ def http_5xx_count_increase_detector(fire_num_stddev: float = 3.5,
     # :param fire_num_stddev min=0
     # :param fire_num_stddev step=0.1
     # :param fire_num_stddev unit=SD
+    # :param current_window description=The time range being monitored
     # :param current_window label=Evaluation window
+    # :param historical_window description=The time range being used to define the recent trend
     # :param historical_window label=Historical window
+    # :param filter_ description=Specifies dimensional scope of the detector
     # :param filter_ metric_name=HTTPCode_ELB_5XX_Count
     # :return: detect block that triggers when number of HTTP 5xx error suddenly increased
     initial_filter = filter(utils.NAMESPACE_DIM, aws_utils.ALB_NAMESPACE) and filter(utils.STAT_DIM, 'sum')
     group_by = ['LoadBalancer', 'AWSUniqueId', 'aws_region', 'aws_account_id', 'AvailabilityZone']
     scope_filter = utils.merge_filters(initial_filter, filter_)
-    stream = data('HTTPCode_ELB_5XX_Count', filter=scope_filter, extrapolation='zero', rollup='sum', resolution='60s').sum(by=group_by).publish(label='Number of HTTP 5xx server errors')
+    stream = data('HTTPCode_ELB_5XX_Count', filter=scope_filter, extrapolation='zero', rollup='sum', resolution='60s').sum(by=group_by).publish(label='# HTTP 5xx server errors')
     clear_num_stddev = max(fire_num_stddev - 0.5, 0)
     return against_recent.detector_mean_std(stream=stream,
                                             current_window=current_window,

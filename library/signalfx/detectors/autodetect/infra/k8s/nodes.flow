@@ -4,9 +4,9 @@ from signalfx.detectors.autodetect.infra.k8s import utils as k8s_utils
 
 def nodes_not_ready_detector(fire_lasting: lasting = lasting('30s', 1), filter_: filter = None):
     # Detects when K8s Node is not in a ready state after 30s
-    # :param fire_lasting specifies lasting object associated with fire threshold
-    # :param fire_lasting label=Sensitivity
-    # :param filter_ specifies dimensional scope of the detector
+    # :param fire_lasting description=Specifies trigger sensitivity associated with fire threshold
+    # :param fire_lasting label=Trigger sensitivity
+    # :param filter_ description=Specifies dimensional scope of the detector
     # :param filter_ metric_name=k8s.node.condition_ready
     # :return: detect block that triggers when nodes suitably filtered and grouped, are not ready
     group_by = [k8s_utils.K8S_CLUSTER_NAME_DIM, k8s_utils.K8S_NODE_NAME_DIM]
@@ -21,12 +21,14 @@ def nodes_not_ready_detector(fire_lasting: lasting = lasting('30s', 1), filter_:
 def node_memory_utilization_detector(fire_threshold: float = 90, fire_lasting: lasting = lasting('5m', 1),
                                      filter_: filter = None):
     # Detects when K8s Node memory utilization is high
-    # :param fire_threshold specifies fire threshold for memory utilization
+    # :param fire_threshold description=Specifies trigger threshold for memory utilization
     # :param fire_threshold label=Trigger threshold
-    # :param fire_lasting specifies lasting object associated with fire threshold
-    # :param fire_lasting label=Sensitivity
-    # :param filter_ specifies dimensional scope of the detector
+    # :param fire_threshold unit=%
+    # :param fire_lasting description=Specifies trigger sensitivity associated with fire threshold
+    # :param fire_lasting label=Trigger sensitivity
+    # :param filter_ description=Specifies dimensional scope of the detector
     # :param filter_ metric_name=memory.utilization
+    # :viz valueSuffix=%
     # :return: detect block that triggers when nodes memory utilization is above threshold
     scope_filter = utils.merge_filters(filter(k8s_utils.K8S_CLUSTER_NAME_DIM, '*'), filter_)
     group_by = [k8s_utils.K8S_CLUSTER_NAME_DIM, utils.HOST_DIM]

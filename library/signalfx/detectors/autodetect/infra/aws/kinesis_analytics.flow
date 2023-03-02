@@ -11,8 +11,11 @@ def input_processing_record_failed_detector(fire_num_stddev: float = 3.5,
     # :param fire_num_stddev min=0
     # :param fire_num_stddev step=0.1
     # :param fire_num_stddev unit=SD
+    # :param current_window description=The time range being monitored
     # :param current_window label=Evaluation window
+    # :param historical_window description=The time range being used to define the recent trend
     # :param historical_window label=Historical window
+    # :param filter_ description=Specifies dimensional scope of the detector
     # :param filter_ metric_name=InputProcessing.ProcessingFailedRecords
     # :return: detect block that triggers when number of records failed returned by lambda function marked with ProcessingFailed suddenly increased
     initial_filter = filter(utils.NAMESPACE_DIM, aws_utils.KINESIS_ANALYTICS_NAMESPACE) and filter(utils.STAT_DIM, 'mean')
@@ -40,8 +43,11 @@ def bytes_sudden_change_detector(fire_num_stddev: float = 3.5,
     # :param fire_num_stddev min=0
     # :param fire_num_stddev step=0.1
     # :param fire_num_stddev unit=SD
+    # :param current_window description=The time range being monitored
     # :param current_window label=Evaluation window
+    # :param historical_window description=The time range being used to define the recent trend
     # :param historical_window label=Historical window
+    # :param filter_ description=Specifies dimensional scope of the detector
     # :param filter_ metric_name=Bytes
     # :viz valueUnit=Byte
     # :return: detect block that triggers when number of bytes read (per input stream) or written (per output stream) suddenly increased

@@ -7,16 +7,18 @@ def connection_time_increase_detector(fire_threshold: float = 9000,
                                       clear_threshold: float = 8000,
                                       clear_lasting: lasting = lasting('2m', 1),
                                       filter_: filter = None):
-    # :param fire_threshold specifies fire threshold for the connection time
+    # :param fire_threshold description=Specifies trigger threshold for the connection time
     # :param fire_threshold label=Trigger threshold
-    # :param fire_lasting specifies lasting object associated with fire threshold
-    # :param fire_lasting label=Sensitivity
-    # :param clear_threshold specifies clear threshold for the connection time
+    # :param fire_threshold unit=ms
+    # :param fire_lasting description=Specifies trigger sensitivity associated with fire threshold
+    # :param fire_lasting label=Trigger sensitivity
+    # :param clear_threshold unit=ms
+    # :param clear_threshold description=Specifies clear threshold for the connection time
     # :param clear_threshold label=Clear threshold
     # :param clear_threshold constraint=lte(fire_threshold)
-    # :param clear_lasting specifies lasting object associated with clear threshold
-    # :param clear_lasting label=Clear Sensitivity
-    # :param filter_ specifies dimensional scope of the detector
+    # :param clear_lasting description=Specifies clear sensitivity associated with clear threshold
+    # :param clear_lasting label=Clear sensitivity
+    # :param filter_ description=Specifies dimensional scope of the detector
     # :param filter_ metric_name=ConnectionTime
     # :viz valueUnit=Millisecond
     # :return: detect block that triggers when connection time is above the threshold
@@ -42,12 +44,12 @@ def connection_time_increase_detector(fire_threshold: float = 9000,
 def unhealthy_status_of_health_check_endpoint_detector(fire_lasting: lasting = lasting('10m', 0.8),
                                                        clear_lasting: lasting = lasting('10m', 0.8),
                                                        filter_: filter = None):
-    # :param fire_lasting specifies lasting object associated with fire threshold
-    # :param fire_lasting label=Sensitivity
+    # :param fire_lasting description=Specifies trigger sensitivity associated with fire threshold
+    # :param fire_lasting label=Trigger sensitivity
     # :param clear_threshold constraint=gt(fire_threshold)
-    # :param clear_lasting specifies lasting object associated with clear threshold
-    # :param clear_lasting label=Clear Sensitivity
-    # :param filter_ specifies dimensional scope of the detector
+    # :param clear_lasting description=Specifies clear sensitivity associated with clear threshold
+    # :param clear_lasting label=Clear sensitivity
+    # :param filter_ description=Specifies dimensional scope of the detector
     # :param filter_ metric_name=HealthCheckStatus
     # :return: detect block that triggers when status of the Route53 health check endpoint is unhealthy.
     initial_filter = filter(utils.NAMESPACE_DIM, aws_utils.ROUTE53_NAMESPACE) and filter(utils.STAT_DIM, 'lower')

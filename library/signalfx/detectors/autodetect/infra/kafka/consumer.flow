@@ -8,18 +8,18 @@ def consumer_group_lag_detector(fire_threshold: float = 100,
                                 clear_lasting: lasting = lasting('5m', 1),
                                 filter_: filter = None):
     # Detects when a consumer group is lagging behind the latest offset
-    # :param fire_threshold specifies fire threshold for the consumer group lag
+    # :param fire_threshold description=Specifies trigger threshold for the consumer group lag
     # :param fire_threshold label=Trigger threshold
     # :param fire_threshold round_to=0
-    # :param fire_lasting specifies lasting object associated with fire threshold
-    # :param fire_lasting label=Sensitivity
-    # :param clear_threshold specifies clear threshold for the consumer group lag
+    # :param fire_lasting description=Specifies trigger sensitivity associated with fire threshold
+    # :param fire_lasting label=trigger sensitivity
+    # :param clear_threshold description=Specifies clear threshold for the consumer group lag
     # :param clear_threshold label=Clear threshold
     # :param clear_threshold round_to=0
     # :param clear_threshold constraint=lte(fire_threshold)
-    # :param clear_lasting specifies lasting object associated with clear threshold
-    # :param clear_lasting label=Clear Sensitivity
-    # :param filter_ specifies dimensional scope of the detector
+    # :param clear_lasting description=Specifies clear sensitivity associated with clear threshold
+    # :param clear_lasting label=Clear sensitivity
+    # :param filter_ description=Specifies dimensional scope of the detector
     # :param filter_ metric_name=kafka.consumer_group.lag
     # :return: detect block that triggers when a consumer group is lagging behind the latest offset
     assert fire_threshold >= clear_threshold, utils.threshold_validation_err_msg(fire_threshold, clear_threshold,
@@ -30,7 +30,7 @@ def consumer_group_lag_detector(fire_threshold: float = 100,
                                                                                       allow_missing=group_by)
     fire_threshold_stream = const(fire_threshold)
     clear_threshold_stream = const(clear_threshold)
-    ann = [utils.annotate_stream(stream, 'Consumer Group Lag'),
+    ann = [utils.annotate_stream(stream, 'Consumer group lag'),
            utils.annotate_fire_threshold(fire_threshold_stream, orientation='above')]
     return detect(when(stream > fire_threshold_stream, lasting=fire_lasting),
                   when(stream < clear_threshold_stream, lasting=clear_lasting),

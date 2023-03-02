@@ -7,16 +7,18 @@ def cpu_utilization_detector(fire_threshold: float = 90, fire_lasting: lasting =
                              clear_threshold: float = 80, clear_lasting: lasting = lasting('10m', 1),
                              filter_: filter = None):
     # Detects when Redis CPU usage is above thresholds
-    # :param fire_threshold specifies fire threshold for the CPU usage
+    # :param fire_threshold description=Specifies trigger threshold for the CPU usage
     # :param fire_threshold label=Trigger threshold
-    # :param fire_lasting specifies lasting object associated with fire threshold
-    # :param fire_lasting label=Sensitivity
-    # :param clear_threshold specifies clear threshold for the CPU usage
+    # :param fire_threshold unit=%
+    # :param fire_lasting description=Specifies trigger sensitivity associated with fire threshold
+    # :param fire_lasting label=Trigger sensitivity
+    # :param clear_threshold description=Specifies clear threshold for the CPU usage
     # :param clear_threshold label=Clear threshold
+    # :param clear_threshold unit=%
     # :param clear_threshold constraint=lte(fire_threshold)
-    # :param clear_lasting specifies lasting object associated with clear threshold
-    # :param clear_lasting label=Clear Sensitivity
-    # :param filter_ specifies dimensional scope of the detector
+    # :param clear_lasting description=Specifies clear sensitivity associated with clear threshold
+    # :param clear_lasting label=Clear sensitivity
+    # :param filter_ description=Specifies dimensional scope of the detector
     # :param filter_ metric_name=counter.used_cpu_sys
     # :viz valueSuffix=%
     # :return: detect block that triggers when Redis CPU usage is above the threshold
@@ -35,7 +37,7 @@ def cpu_utilization_detector(fire_threshold: float = 90, fire_lasting: lasting =
 
     fire_threshold_stream = const(fire_threshold)
     clear_threshold_stream = const(clear_threshold)
-    ann = [utils.annotate_stream(stream, 'CPU Utilization'),
+    ann = [utils.annotate_stream(stream, 'CPU utilization'),
            utils.annotate_fire_threshold(fire_threshold_stream, orientation='above')]
 
     return detect(when(stream > fire_threshold_stream, lasting=fire_lasting),
@@ -53,8 +55,11 @@ def expired_evicted_keys_increase_detector(fire_num_stddev: float = 3,
     # :param fire_num_stddev min=0
     # :param fire_num_stddev step=0.1
     # :param fire_num_stddev unit=SD
+    # :param current_window description=The time range being monitored
     # :param current_window label=Evaluation window
+    # :param historical_window description=The time range being used to define the recent trend
     # :param historical_window label=Historical window
+    # :param filter_ description=Specifies dimensional scope of the detector
     # :param filter_ metric_name=counter.expired_keys
     # :return: detect block that triggers when number of expired or evicted keys suddenly increased
     scope_filter = utils.merge_filters(db_utils.REDIS_PLUGIN_FILTER, filter_)
@@ -88,8 +93,11 @@ def blocked_clients_increase_detector(fire_num_stddev: float = 3,
     # :param fire_num_stddev min=0
     # :param fire_num_stddev step=0.1
     # :param fire_num_stddev unit=SD
+    # :param current_window description=The time range being monitored
     # :param current_window label=Evaluation window
+    # :param historical_window description=The time range being used to define the recent trend
     # :param historical_window label=Historical window
+    # :param filter_ description=Specifies dimensional scope of the detector
     # :param filter_ metric_name=gauge.blocked_clients
     # :return: detect block that triggers when number of blocked clients suddenly increased
     scope_filter = utils.merge_filters(db_utils.REDIS_PLUGIN_FILTER, filter_)
@@ -120,8 +128,11 @@ def rejected_connections_increase_detector(fire_num_stddev: float = 3,
     # :param fire_num_stddev min=0
     # :param fire_num_stddev step=0.1
     # :param fire_num_stddev unit=SD
+    # :param current_window description=The time range being monitored
     # :param current_window label=Evaluation window
+    # :param historical_window description=The time range being used to define the recent trend
     # :param historical_window label=Historical window
+    # :param filter_ description=Specifies dimensional scope of the detector
     # :param filter_ metric_name=gauge.blocked_clients
     # :return: detect block that triggers when number of rejected connections suddenly increased
     scope_filter = utils.merge_filters(db_utils.REDIS_PLUGIN_FILTER, filter_)
