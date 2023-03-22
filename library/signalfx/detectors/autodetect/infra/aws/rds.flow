@@ -16,7 +16,7 @@ def disk_space_running_out_detector(fire_threshold: float = 48, clear_threshold:
     # :param fire_lasting label=Trigger sensitivity
     # :param filter_ description=Specifies dimensional scope of the detector
     # :param filter_ metric_name=FreeStorageSpace
-    # :viz valueUnit=Byte
+    # :viz valueUnit=Hour
     # :return: detect block that triggers when AWS/RDS free disk space is going to run out
     initial_filter = filter(utils.NAMESPACE_DIM, aws_utils.RDS_NAMESPACE)\
                      and filter(aws_utils.DB_INSTANCE_IDENTIFIER_DIM, '*') \

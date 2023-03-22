@@ -1,5 +1,6 @@
 from signalfx.detectors.autodetect import utils
 from signalfx.detectors.autodetect.infra.db import utils as db_utils
+from signalfx.detectors.against_recent import against_recent
 
 
 def session_utilization_detector(fire_threshold: float = 90,
@@ -132,3 +133,33 @@ def tablespace_utilization_detector(fire_threshold: float = 95,
                   off=when(stream < clear_threshold_stream, lasting=clear_lasting),
                   annotations=ann,
                   auto_resolve_after=utils.AUTO_RESOLVE_AFTER)
+
+def hard_parses_increase_detector(fire_num_stddev: float = 4.5,
+                                 current_window: duration = duration('10m'),
+                                 historical_window: duration = duration('1h'),
+                                 filter_: filter = None):
+    # :param fire_num_stddev label=Trigger deviation
+    # :param fire_num_stddev description=Expressed in standard deviations from baseline
+    # :param fire_num_stddev min=0
+    # :param fire_num_stddev step=0.1
+    # :param fire_num_stddev unit=SD
+    # :param current_window description=The time range being monitored
+    # :param current_window label=Evaluation window
+    # :param historical_window description=The time range being used to define the recent trend
+    # :param historical_window label=Historical window
+    # :param filter_ description=Specifies dimensional scope of the detector
+    # :param filter_ metric_name=oracledb.hard_parses
+    # :return: detect block that triggers when number of hard parses suddenly increased
+
+    scope_filter = utils.merge_filters(db_utils.ORACLE_INSTANCE_NAME_FILTER, filter_)
+    stream = data('oracledb.hard_parses', filter=scope_filter).sum(by=db_utils.ORACLE_GROUP_BY).publish(label='# Change in hard parses')
+    clear_num_stddev = max(fire_num_stddev - 0.5, 0)
+    return against_recent.detector_mean_std(stream=stream,
+                                            current_window=current_window,
+                                            historical_window=historical_window,
+                                            fire_num_stddev=fire_num_stddev,
+                                            clear_num_stddev=clear_num_stddev,
+                                            orientation='above',
+                                            ignore_extremes=True,
+                                            calculation_mode='vanilla',
+                                            auto_resolve_after=utils.AUTO_RESOLVE_AFTER)

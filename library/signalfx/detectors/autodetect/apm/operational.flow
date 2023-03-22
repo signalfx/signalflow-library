@@ -1,0 +1,24 @@
+from signalfx.detectors.autodetect import utils
+def profiling_throttling_detector(fire_threshold: float = 0, fire_lasting: lasting = lasting('5m', 0.8),
+                                   clear_lasting: lasting = lasting('5m', 1)):
+    # Detects when profiling messages are throttled
+    # :param fire_threshold description=Specifies trigger threshold for the profiling messages throttled
+    # :param fire_threshold label=Trigger threshold
+    # :param fire_threshold min=0
+    # :param fire_lasting description=Specifies trigger sensitivity associated with trigger threshold
+    # :param fire_lasting label=Trigger sensitivity
+    # :param clear_lasting description=Specifies clear sensitivity associated with clear threshold
+    # :param clear_lasting label=Clear sensitivity
+    # :return: detect block that triggers when profiling messages throttled are above threshold
+    assert fire_threshold >= 0, utils.threshold_validation_err_msg(fire_threshold, 0, orientation='above')
+    stream = data('sf.org.profiling.numMessagesDroppedThrottle').fill(0).sum()
+
+    fire_threshold_stream = const(fire_threshold)
+    clear_threshold_stream = const(0)
+    ann = [utils.annotate_stream(stream, 'Profiling messages dropped'),
+           utils.annotate_fire_threshold(fire_threshold_stream, orientation='above')]
+
+    return detect(when(stream > fire_threshold_stream, lasting=fire_lasting),
+                  off=when(stream <= clear_threshold_stream, lasting=clear_lasting),
+                  annotations=ann,
+                  auto_resolve_after=utils.AUTO_RESOLVE_AFTER)
