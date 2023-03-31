@@ -1,5 +1,6 @@
 from signalfx.detectors.countdown import streams
 from signalfx.detectors.autodetect import utils
+from signalfx.detectors.against_recent import against_recent
 from signalfx.detectors.autodetect.splunk import utils as splunk_utils
 
 
@@ -259,3 +260,35 @@ def datapoints_throttling_detector(fire_threshold: float = 0, fire_lasting: last
                   off=when(stream <= clear_threshold_stream, lasting=clear_lasting),
                   annotations=ann,
                   auto_resolve_after=utils.AUTO_RESOLVE_AFTER)
+
+def mts_creations_throttling_detector(fire_num_stddev: float = 4,
+                                      clear_num_stddev: float = 2,
+                                      current_window: duration = duration('40m'),
+                                      historical_window: duration = duration('5h')):
+    # :param fire_num_stddev label=Trigger deviation
+    # :param fire_num_stddev description=Expressed in standard deviations from baseline
+    # :param fire_num_stddev min=0
+    # :param fire_num_stddev step=0.1
+    # :param fire_num_stddev unit=SD
+    # :param clear_num_stddev label=Clear deviation
+    # :param clear_num_stddev description=Expressed in standard deviations from baseline
+    # :param clear_num_stddev min=0
+    # :param clear_num_stddev step=0.1
+    # :param clear_num_stddev unit=SD
+    # :param current_window description=The time range being monitored
+    # :param current_window label=Evaluation window
+    # :param historical_window description=The time range being used to define the recent trend
+    # :param historical_window label=Historical window
+    # :return: detect block that triggers when a number of throttled MTS creations suddenly increased
+    assert fire_num_stddev > clear_num_stddev, utils.stddev_validation_err_msg(fire_num_stddev, clear_num_stddev,
+                                                                                 orientation='above')
+    stream = data('sf.org.numThrottledMetricTimeSeriesCreateCalls').mean(by=['source_orgname', 'orgId']).publish(label='# Metric creations throttled')
+    return against_recent.detector_mean_std(stream=stream,
+                                            current_window=current_window,
+                                            historical_window=historical_window,
+                                            fire_num_stddev=fire_num_stddev,
+                                            clear_num_stddev=clear_num_stddev,
+                                            orientation='above',
+                                            ignore_extremes=False,
+                                            calculation_mode='ewma',
+                                            auto_resolve_after= duration('5h'))

@@ -31,6 +31,18 @@ def threshold_validation_err_msg(fire_threshold, clear_threshold, orientation):
             'sfui_errorKeys': ['fire_threshold', 'clear_threshold'],
             'sfui_errorTemplate': "{{{fire_threshold}}} must be " + msg_str + " than or equal to {{{clear_threshold}}}."}
 
+def stddev_validation_err_msg(fire_num_stddev, clear_num_stddev, orientation):
+    assert orientation == 'above' or orientation == 'below'
+    if orientation == 'above':
+        msg_str = 'greater'
+    elif orientation == 'below':
+        msg_str = 'less'
+
+    return {
+            'fire_num_stddev': fire_num_stddev, 'clear_num_stddev': clear_num_stddev,
+            'sfui_errorKeys': ['fire_num_stddev', 'clear_num_stddev'],
+            'sfui_errorTemplate': "{{{fire_num_stddev}}} must be " + msg_str + " than or equal to {{{clear_num_stddev}}}."}
+
 
 def merge_filters(scope_filter, filter_):
     if filter_ is not None:
