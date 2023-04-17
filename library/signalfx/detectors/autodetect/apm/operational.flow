@@ -62,7 +62,7 @@ def spans_blocked_detector(fire_threshold: float = 0, fire_lasting: lasting = la
     # :param clear_lasting label=Clear sensitivity
     # :return: detect block that triggers when spans dropped are above threshold
     assert fire_threshold >= 0, utils.threshold_validation_err_msg(fire_threshold, 0, orientation='above')
-    stream = data('sf.org.apm.numSpansDroppedBlocked').fill(0).sum()
+    stream = data('sf.org.apm.numSpansDroppedBlocked').fill(0).sum(by=['reason'])
 
     fire_threshold_stream = const(fire_threshold)
     clear_threshold_stream = const(0)

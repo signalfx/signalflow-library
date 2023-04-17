@@ -135,9 +135,9 @@ def tablespace_utilization_detector(fire_threshold: float = 95,
                   auto_resolve_after=utils.AUTO_RESOLVE_AFTER)
 
 def hard_parses_increase_detector(fire_num_stddev: float = 4.5,
-                                 current_window: duration = duration('10m'),
-                                 historical_window: duration = duration('1h'),
-                                 filter_: filter = None):
+                                  current_window: duration = duration('20m'),
+                                  historical_window: duration = duration('3h'),
+                                  filter_: filter = None):
     # :param fire_num_stddev label=Trigger deviation
     # :param fire_num_stddev description=Expressed in standard deviations from baseline
     # :param fire_num_stddev min=0

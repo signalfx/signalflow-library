@@ -1,0 +1,24 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+    name: signalflow-library
+    title: signalflow-library
+    functionalDomain: []
+    description: Modules and Examples of SignalFlow usage
+    annotations:
+        backstage.io/source-location: url:https://cd.splunkdev.com/observability/imm/signalflow-library
+        backstage.io/view-url: https://cd.splunkdev.com/observability/imm/signalflow-library/-/blob/master/.service-manifests/signalflow-library-component.yaml
+        backstage.io/edit-url: https://cd.splunkdev.com/observability/imm/signalflow-library/-/edit/master/.service-manifests/signalflow-library-component.yaml
+        splunk.com/slack-url: ""
+        splunk.com/issue-tracker-url: ""
+    links:
+        - title: Overview
+          url: ""
+        - title: ERD/RFC
+          url: ""
+        - title: Ops Runbook
+          url: ""
+spec:
+    lifecycle: production
+    type: product
+    owner: group:EO-NEEDS-OWNER
