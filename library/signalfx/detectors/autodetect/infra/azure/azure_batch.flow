@@ -1,0 +1,40 @@
+from signalfx.detectors.autodetect import utils
+from signalfx.detectors.autodetect.infra.azure import utils as azure_utils
+
+def task_fail_event_detector(fire_threshold: float = 0, 
+                                 fire_lasting: lasting = lasting('20m', 0.8),
+                                 clear_threshold: float = 0,
+                                 clear_lasting: lasting = lasting('20m', 0.8),
+                                 filter_: filter = None):
+    # Detects when failed task event count is above threshold
+    # :param fire_threshold description=Specifies trigger threshold for the failed task event
+    # :param fire_threshold label=Trigger threshold
+    # :param fire_lasting description=Specifies trigger sensitivity associated with trigger threshold
+    # :param fire_lasting label=Trigger sensitivity
+    # :param clear_threshold description=Specifies clear threshold for the failed task event
+    # :param clear_threshold label=Clear threshold
+    # :param clear_threshold constraint=lte(fire_threshold)
+    # :param clear_lasting description=Specifies clear sensitivity associated with clear threshold
+    # :param clear_lasting label=Clear sensitivity
+    # :param filter_ description=Specifies dimensional scope of the detector
+    # :param filter_ metric_name=TaskFailEvent
+    # :return: detect block that triggers when failed task count is above the threshold
+    
+    assert fire_threshold >= clear_threshold, utils.threshold_validation_err_msg(fire_threshold, clear_threshold,
+                                                                                 orientation='above')
+    initial_filter = filter(azure_utils.RESOURCE_TYPE, azure_utils.AZURE_BATCH) and filter(azure_utils.PRIMARY_AGGREGATION_TYPE, "true")
+    scope_filter = utils.merge_filters(initial_filter, filter_)
+    stream = data('TaskFailEvent', filter=scope_filter, extrapolation='zero').sum(by=azure_utils.AZURE_GROUP_BY).publish('Task failed event')
+    
+    
+
+    fire_threshold_stream = const(fire_threshold)
+    clear_threshold_stream = const(clear_threshold)
+
+    ann = [utils.annotate_stream(stream, 'Task failed event'),
+           utils.annotate_fire_threshold(fire_threshold_stream, orientation='above')]
+
+    return detect(when(stream > fire_threshold_stream, lasting = fire_lasting),
+                  off=when(stream <= clear_threshold_stream, lasting = clear_lasting),
+                  annotations=ann,
+                  auto_resolve_after=utils.AUTO_RESOLVE_AFTER)

@@ -2,15 +2,18 @@ from signalfx.detectors.slx import streams
 
 # Implementation of duration based alert from this doc: https://sre.google/workbook/alerting-on-slos/#benefits-and-disadvantages-of-using-a-duration
 # Trigger an alert when sli over compliance period is less than the SLO for a specified lasting time
-def slx_threshold_lasting_detector(good_events_stream, total_events_stream, compliance_period, fire_lasting, slo=99):
+def slx_threshold_lasting_detector(good_events_stream, total_events_stream, compliance_period, fire_lasting='5m', slo=99, percent_of_lasting=100):
+    validate_percentage(percent_of_lasting)
     sli = streams.sli_over_compliance_period_stream(good_events_stream, total_events_stream, compliance_period)
     slo_threshold = const(slo)
-    return detect(when(sli < slo_threshold, lasting=fire_lasting))
+    return detect(when(sli < slo_threshold, lasting=lasting(fire_lasting, percent_of_lasting * 0.01)))
 
 # Trigger an alert when a certain percentage of SLO’s error budget has been consumed
-def error_budget_left_detector(good_events_stream, total_events_stream, compliance_period, percentage_error_budget_consumed, fire_lasting, slo=99):
+def error_budget_left_detector(good_events_stream, total_events_stream, compliance_period, percent_error_budget_left_threshold, fire_lasting, slo=99, percent_of_lasting=100):
+    validate_percentage(percent_of_lasting)
+    validate_percentage(percent_error_budget_left_threshold)
     error_budget_left = streams.error_budget_left(good_events_stream, total_events_stream, compliance_period, slo)
-    return detect(when(error_budget_left < const(percentage_error_budget_consumed), lasting=fire_lasting))
+    return detect(when(error_budget_left < const(percent_error_budget_left_threshold), lasting=lasting(fire_lasting, percent_of_lasting * 0.01)))
 
 # Implementation of burn rate detector from this doc: https://sre.google/workbook/alerting-on-slos/#pros_and_cons_of_alerting_based_on_burn_r
 # Trigger an alert when burn rate is greater than specified threshold
@@ -83,14 +86,20 @@ def multi_window_multi_threshold_burn_rate_detector(good_events_stream,
 
 # Ensure that short window is > 1/30 of long_window and < long_window
 def validate_time_windows(short_window, long_window):
-    assert long_window > short_window, {
+    assert duration(long_window) > duration(short_window), {
             'long_window':  long_window,
             'short_window': short_window,
             'sfui_errorKeys': ['long_window', 'short_window'],
             'sfui_errorTemplate': "{{{long_window}}} must be greater than to {{{short_window}}}."}
-
-    assert short_window >= long_window / 30, {
+    assert duration(short_window) >= duration(long_window) / 30, {
             'long_window':  long_window,
             'short_window': short_window,
             'sfui_errorKeys': ['long_window', 'short_window'],
             'sfui_errorTemplate': "{{{short_window}}} must be greater than 1/30 of {{{long_window}}}."}
+
+# Ensure that percentage is in range: (0..100]
+def validate_percentage(percentage):
+    assert percentage > 0 and percentage <= 100, {
+        'percentage':  percentage,
+        'sfui_errorKeys': ['percentage'],
+        'sfui_errorTemplate': "{{{percentage}}} must be in range: (0..100]"}
