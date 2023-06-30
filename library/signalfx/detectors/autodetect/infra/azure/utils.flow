@@ -1,6 +1,7 @@
 RESOURCE_TYPE = "resource_type"
 ELASTIC_POOLS = "Microsoft.Sql/servers/elasticpools"
 AZURE_BATCH = "Microsoft.Batch/batchAccounts"
+EVENT_HUBS = "Microsoft.EventHub/namespaces"
 PRIMARY_AGGREGATION_TYPE = "primary_aggregation_type"
 
 AZURE_GROUP_BY = ['azure_resource_name', 'subscription_id']
