@@ -1,5 +1,6 @@
 from signalfx.detectors.autodetect import utils
 from signalfx.detectors.autodetect.infra.azure import utils as azure_utils
+from signalfx.detectors.against_recent import against_recent
 
 def task_fail_event_detector(fire_threshold: float = 0, 
                                  fire_lasting: lasting = lasting('20m', 0.8),
