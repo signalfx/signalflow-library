@@ -108,3 +108,34 @@ def running_node_detector(fire_num_stddev: float = 3.5,
                                             ignore_extremes=True,
                                             calculation_mode='vanilla',
                                             auto_resolve_after=utils.AUTO_RESOLVE_AFTER)
+
+def task_start_event_detector(fire_num_stddev: float = 3.5,
+                         current_window: duration = duration('20m'),
+                         historical_window: duration = duration('1h'),
+                         filter_: filter = None):
+    # :param fire_num_stddev label=Trigger deviation
+    # :param fire_num_stddev description=Expressed in standard deviations from baseline
+    # :param fire_num_stddev min=0
+    # :param fire_num_stddev step=0.1
+    # :param fire_num_stddev unit=SD
+    # :param current_window description=The time range being monitored
+    # :param current_window label=Evaluation window
+    # :param historical_window description=The time range being used to define the recent trend
+    # :param historical_window label=Historical window
+    # :param filter_ description=Specifies dimensional scope of the detector
+    # :param filter_ metric_name=TaskStartEvent
+    # :return: detect block that triggers when number of task start event suddenly decreased
+    
+    initial_filter = filter(azure_utils.RESOURCE_TYPE, azure_utils.AZURE_BATCH) and filter(azure_utils.PRIMARY_AGGREGATION_TYPE, "true")
+    scope_filter = utils.merge_filters(initial_filter, filter_)
+    stream = data('TaskStartEvent', filter=scope_filter).sum(by=azure_utils.AZURE_GROUP_BY).publish(label='Task start event')
+    clear_num_stddev = max(fire_num_stddev - 0.5, 0)
+    return against_recent.detector_mean_std(stream=stream,
+                                            current_window=current_window,
+                                            historical_window=historical_window,
+                                            fire_num_stddev=fire_num_stddev,
+                                            clear_num_stddev=clear_num_stddev,
+                                            orientation='below',
+                                            ignore_extremes=True,
+                                            calculation_mode='vanilla',
+                                            auto_resolve_after=utils.AUTO_RESOLVE_AFTER)
