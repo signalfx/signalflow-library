@@ -109,9 +109,9 @@ def running_node_detector(fire_num_stddev: float = 3.5,
                                             calculation_mode='vanilla',
                                             auto_resolve_after=utils.AUTO_RESOLVE_AFTER)
 
-def task_start_event_detector(fire_num_stddev: float = 3.5,
+def task_start_event_detector(fire_num_stddev: float = 4.5,
                          current_window: duration = duration('20m'),
-                         historical_window: duration = duration('1h'),
+                         historical_window: duration = duration('3h'),
                          filter_: filter = None):
     # :param fire_num_stddev label=Trigger deviation
     # :param fire_num_stddev description=Expressed in standard deviations from baseline
