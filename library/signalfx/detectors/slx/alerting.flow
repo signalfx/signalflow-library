@@ -1,25 +1,26 @@
 from signalfx.detectors.slx import streams
+from signalfx.detectors.slx import utils
 
 # Implementation of duration based alert from this doc: https://sre.google/workbook/alerting-on-slos/#benefits-and-disadvantages-of-using-a-duration
 # Trigger an alert when sli over compliance period is less than the SLO for a specified lasting time
 def slx_threshold_lasting_detector(good_events_stream, total_events_stream, compliance_period, fire_lasting='5m', slo=99, percent_of_lasting=100):
-    validate_percentage(percent_of_lasting)
-    sli = streams.sli_over_compliance_period_stream(good_events_stream, total_events_stream, compliance_period)
+    utils.validate_percentage(percent_of_lasting)
+    sli = streams.sli_over_compliance_period_stream(good_events_stream, total_events_stream, compliance_period).publish('SLI')
     slo_threshold = const(slo)
     return detect(when(sli < slo_threshold, lasting=lasting(fire_lasting, percent_of_lasting * 0.01)))
 
 # Trigger an alert when a certain percentage of SLO’s error budget has been consumed
 def error_budget_left_detector(good_events_stream, total_events_stream, compliance_period, percent_error_budget_left_threshold, fire_lasting, slo=99, percent_of_lasting=100):
-    validate_percentage(percent_of_lasting)
-    validate_percentage(percent_error_budget_left_threshold)
-    error_budget_left = streams.error_budget_left(good_events_stream, total_events_stream, compliance_period, slo)
+    utils.validate_percentage(percent_of_lasting)
+    utils.validate_percentage(percent_error_budget_left_threshold)
+    error_budget_left = streams.error_budget_left(good_events_stream, total_events_stream, compliance_period, slo).publish('Error budget left')
     return detect(when(error_budget_left < const(percent_error_budget_left_threshold), lasting=lasting(fire_lasting, percent_of_lasting * 0.01)))
 
 # Implementation of burn rate detector from this doc: https://sre.google/workbook/alerting-on-slos/#pros_and_cons_of_alerting_based_on_burn_r
 # Trigger an alert when burn rate is greater than specified threshold
 def burn_rate_detector(good_events_stream, total_events_stream, time_window, slo, burn_rate_threshold, min_events_number=0):
-    burn_rate = streams.time_window_burn_rate(good_events_stream, total_events_stream, time_window, slo)
-    return detect(when((burn_rate >= burn_rate_threshold) and (total_events_stream > min_events_number)))
+    burn_rate = streams.time_window_burn_rate(good_events_stream, total_events_stream, time_window, slo).publish('Burn rate')
+    return detect(when((burn_rate >= burn_rate_threshold) and (total_events_stream.sum() > min_events_number)))
 
 # Implementation of multi burn rate detector from this doc: https://sre.google/workbook/alerting-on-slos/#pros_and_cons_of_using_multiple_burn_rate
 # Implementation of alerting logic which uses multiple burn rates and time windows, and fire alerts when burn rates surpass a specified threshold
@@ -31,10 +32,10 @@ def multi_burn_rate_detector(good_events_stream,
                              burn_rate_threshold_time_window_2,
                              slo=99,
                              min_events_number=0):
-    burn_rate_time_window_1 = streams.time_window_burn_rate(good_events_stream, total_events_stream, time_window_1, slo)
-    burn_rate_time_window_2 = streams.time_window_burn_rate(good_events_stream, total_events_stream, time_window_2, slo)
+    burn_rate_time_window_1 = streams.time_window_burn_rate(good_events_stream, total_events_stream, time_window_1, slo).publish('Burn rate window 1')
+    burn_rate_time_window_2 = streams.time_window_burn_rate(good_events_stream, total_events_stream, time_window_2, slo).publish('Burn rate window 2')
     return detect(when((burn_rate_time_window_1 >= burn_rate_threshold_time_window_1) or (burn_rate_time_window_2 >= burn_rate_threshold_time_window_2) and (
-        total_events_stream > min_events_number)))
+        total_events_stream.sum() > min_events_number)))
 
 # Implementation of multi window burn rate detector from this doc: https://sre.google/workbook/alerting-on-slos/#pros_and_cons_of_using_multiple_b-id00013
 # Enhancement of the multi-burn-rate alerts to notify only when we’re still actively burning through the budget—thereby reducing the number of false positives.
@@ -48,12 +49,12 @@ def multi_window_burn_rate_detector(good_events_stream,
                              slo=99,
                              min_events_number=0):
 
-    validate_time_windows(short_window, long_window)
+    utils.validate_time_windows(short_window, long_window)
 
-    burn_rate_short = streams.time_window_burn_rate(good_events_stream, total_events_stream, short_window, slo)
-    burn_rate_long = streams.time_window_burn_rate(good_events_stream, total_events_stream, long_window, slo)
+    burn_rate_short = streams.time_window_burn_rate(good_events_stream, total_events_stream, short_window, slo).publish('Burn rate short window')
+    burn_rate_long = streams.time_window_burn_rate(good_events_stream, total_events_stream, long_window, slo).publish('Burn rate long window')
     return detect(when((burn_rate_short >= burn_rate_threshold) and (burn_rate_long >= burn_rate_threshold) and (
-                total_events_stream > min_events_number)))
+                total_events_stream.sum() > min_events_number)))
 
 
 # Implementation of multi window burn rate detector from this doc: https://sre.google/workbook/alerting-on-slos/#pros_and_cons_of_using_multiple_b-id00013
@@ -71,35 +72,40 @@ def multi_window_multi_threshold_burn_rate_detector(good_events_stream,
                              slo=99,
                              min_events_number=0):
 
-    validate_time_windows(short_window_1, long_window_1)
-    validate_time_windows(short_window_2, long_window_2)
+    utils.validate_time_windows(short_window_1, long_window_1)
+    utils.validate_time_windows(short_window_2, long_window_2)
 
-    burn_rate_short_1 = streams.time_window_burn_rate(good_events_stream, total_events_stream, short_window_1, slo)
-    burn_rate_long_1 = streams.time_window_burn_rate(good_events_stream, total_events_stream, long_window_1, slo)
+    burn_rate_short_1 = streams.time_window_burn_rate(good_events_stream, total_events_stream, short_window_1, slo).publish('Burn rate short window 1')
+    burn_rate_long_1 = streams.time_window_burn_rate(good_events_stream, total_events_stream, long_window_1, slo).publish('Burn rate long window 1')
 
-    burn_rate_short_2 = streams.time_window_burn_rate(good_events_stream, total_events_stream, short_window_2, slo)
-    burn_rate_long_2 = streams.time_window_burn_rate(good_events_stream, total_events_stream, long_window_2, slo)
+    burn_rate_short_2 = streams.time_window_burn_rate(good_events_stream, total_events_stream, short_window_2, slo).publish('Burn rate short window 2')
+    burn_rate_long_2 = streams.time_window_burn_rate(good_events_stream, total_events_stream, long_window_2, slo).publish('Burn rate long window 2')
 
     return detect(when((((burn_rate_short_1 >= burn_rate_threshold_1) and (burn_rate_long_1 >= burn_rate_threshold_1))
         or ((burn_rate_short_2 >= burn_rate_threshold_2) and (burn_rate_long_2 >= burn_rate_threshold_2)))
-        and (total_events_stream > min_events_number)))
+        and (total_events_stream.sum() > min_events_number)))
 
-# Ensure that short window is > 1/30 of long_window and < long_window
-def validate_time_windows(short_window, long_window):
-    assert duration(long_window) > duration(short_window), {
-            'long_window':  long_window,
-            'short_window': short_window,
-            'sfui_errorKeys': ['long_window', 'short_window'],
-            'sfui_errorTemplate': "{{{long_window}}} must be greater than to {{{short_window}}}."}
-    assert duration(short_window) >= duration(long_window) / 30, {
-            'long_window':  long_window,
-            'short_window': short_window,
-            'sfui_errorKeys': ['long_window', 'short_window'],
-            'sfui_errorTemplate': "{{{short_window}}} must be greater than 1/30 of {{{long_window}}}."}
+### CALENDAR WINDOW FUNCTIONS START ###
 
-# Ensure that percentage is in range: (0..100]
-def validate_percentage(percentage):
-    assert percentage > 0 and percentage <= 100, {
-        'percentage':  percentage,
-        'sfui_errorKeys': ['percentage'],
-        'sfui_errorTemplate': "{{{percentage}}} must be in range: (0..100]"}
+# Implementation of duration based alert from this doc: https://sre.google/workbook/alerting-on-slos/#benefits-and-disadvantages-of-using-a-duration
+# Trigger an alert when sli over calendar window is less than the SLO for a specified lasting time
+def calendar_slx_threshold_lasting_detector(good_events_stream, total_events_stream, cycle_type, cycle_start, fire_lasting='5m', slo=99, percent_of_lasting=100):
+    utils.validate_percentage(percent_of_lasting)
+    sli = streams.sli_over_calendar_window_stream(good_events_stream, total_events_stream, cycle_type, cycle_start).publish('SLI')
+    slo_threshold = const(slo)
+    return detect(when(sli < slo_threshold, lasting=lasting(fire_lasting, percent_of_lasting * 0.01)))
+
+# Trigger an alert when a certain percentage of SLO’s error budget has been consumed
+def calendar_error_budget_left_detector(good_events_stream, total_events_stream, cycle_type, cycle_start, percent_error_budget_left_threshold, fire_lasting, slo=99, percent_of_lasting=100):
+    utils.validate_percentage(percent_of_lasting)
+    utils.validate_percentage(percent_error_budget_left_threshold)
+    error_budget_left = streams.calendar_window_error_budget_left(good_events_stream, total_events_stream, cycle_type, cycle_start, slo).publish('Error budget left')
+    return detect(when(error_budget_left < const(percent_error_budget_left_threshold), lasting=lasting(fire_lasting, percent_of_lasting * 0.01)))
+
+# Implementation of burn rate detector from this doc: https://sre.google/workbook/alerting-on-slos/#pros_and_cons_of_alerting_based_on_burn_r
+# Trigger an alert when burn rate is greater than specified threshold
+def calendar_burn_rate_detector(good_events_stream, total_events_stream, cycle_type, cycle_start, slo, burn_rate_threshold, min_events_number=0):
+    burn_rate = streams.calendar_window_burn_rate(good_events_stream, total_events_stream, cycle_type, cycle_start, slo).publish('Burn rate')
+    return detect(when((burn_rate >= burn_rate_threshold) and (total_events_stream.sum() > min_events_number)))
+
+### CALENDAR WINDOW FUNCTIONS END ###

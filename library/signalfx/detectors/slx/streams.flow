@@ -8,11 +8,28 @@ def time_window_burn_rate(good_events_stream, total_events_stream, time_window, 
 
 # Calculate you SLI over compliance period
 def sli_over_compliance_period_stream(good_events_stream, total_events_stream, compliance_period=duration('30d')):
-    window_good_events = good_events_stream.sum(over=compliance_period)
-    window_total_events = total_events_stream.sum(over=compliance_period)
+    window_good_events = max(0, good_events_stream).sum().sum(over=compliance_period)
+    window_total_events = total_events_stream.sum().sum(over=compliance_period)
     sli = (window_good_events/window_total_events).scale(100)
     return sli
 
 # Calculate percentage of error budget left
 def error_budget_left(good_events_stream, total_events_stream, compliance_period=duration('30d'), slo=99):
     return (1 - time_window_burn_rate(good_events_stream, total_events_stream, compliance_period, slo)).scale(100)
+
+### CALENDAR WINDOW FUNCTIONS START ###
+
+# Calculate you SLI over calendar window
+def sli_over_calendar_window_stream(good_events_stream, total_events_stream, cycle_type='month', cycle_start='1d'):
+    window_good_events = max(0, good_events_stream).sum().sum(cycle=cycle_type, cycle_start=cycle_start, partial_values=True)
+    window_total_events = total_events_stream.sum().sum(cycle=cycle_type, cycle_start=cycle_start, partial_values=True)
+    sli = (window_good_events/window_total_events).scale(100)
+    return sli
+
+def calendar_window_burn_rate(good_events_stream, total_events_stream, cycle_type='month', cycle_start='1d', slo=99):
+    return (100 - sli_over_calendar_window_stream(good_events_stream, total_events_stream, cycle_type, cycle_start)) / error_budget_stream(slo)
+
+def calendar_window_error_budget_left(good_events_stream, total_events_stream, cycle_type='month', cycle_start='1d', slo=99):
+    return (1 - calendar_window_burn_rate(good_events_stream, total_events_stream, cycle_type, cycle_start, slo)).scale(100)
+
+### CALENDAR WINDOW FUNCTIONS END ###

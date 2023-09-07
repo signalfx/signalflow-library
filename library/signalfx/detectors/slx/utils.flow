@@ -1,0 +1,20 @@
+# Ensure that percentage is in range: (0..100]
+def validate_percentage(percentage):
+    assert percentage > 0 and percentage <= 100, {
+        'percentage':  percentage,
+        'sfui_errorKeys': ['percentage'],
+        'sfui_errorTemplate': "{{{percentage}}} must be in range: (0..100]"}
+
+
+# Ensure that short window is > 1/30 of long_window and < long_window
+def validate_time_windows(short_window, long_window):
+    assert duration(long_window) > duration(short_window), {
+            'long_window':  long_window,
+            'short_window': short_window,
+            'sfui_errorKeys': ['long_window', 'short_window'],
+            'sfui_errorTemplate': "{{{long_window}}} must be greater than to {{{short_window}}}."}
+    assert duration(short_window) >= duration(long_window) / 30, {
+            'long_window':  long_window,
+            'short_window': short_window,
+            'sfui_errorKeys': ['long_window', 'short_window'],
+            'sfui_errorTemplate': "{{{short_window}}} must be greater than 1/30 of {{{long_window}}}."}

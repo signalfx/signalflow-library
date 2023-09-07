@@ -1,0 +1,33 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    "local>observability/shared/renovate-presets:cicd-automerge.json",
+    "local>observability/shared/renovate-presets:docker-automerge.json"
+  ],
+  "labels": [
+    "dependency-update"
+  ],
+  "major": {
+    "labels": [
+      "major",
+      "dependency-update"
+    ]
+  },
+  "minor": {
+    "labels": [
+      "minor",
+      "dependency-update"
+    ]
+  },
+  "patch": {
+    "labels": [
+      "patch",
+      "dependency-update"
+    ]
+  },
+  "prConcurrentLimit": 10,
+  "prHourlyLimit": 20,
+  "rebaseWhen": "conflicted",
+  "reviewers": ["okta-groups/sg-o11y-imm-analytics"]
+}
