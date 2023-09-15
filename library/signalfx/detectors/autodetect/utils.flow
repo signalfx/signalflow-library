@@ -3,6 +3,7 @@ AUTO_RESOLVE_AFTER = duration('1d')
 HOST_DIM = 'host'
 NAMESPACE_DIM = 'namespace'
 STAT_DIM = 'stat'
+CLOUD_PLATFORM_DIM = 'cloud.platform'
 
 
 def annotate_stream(stream, label):
