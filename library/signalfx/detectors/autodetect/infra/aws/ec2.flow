@@ -46,4 +46,3 @@ def disk_utilization_detector(fire_threshold: float = 80,
                   off=when(stream < clear_threshold_stream, lasting=clear_lasting),
                   annotations=ann,
                   auto_resolve_after=utils.AUTO_RESOLVE_AFTER)
-                  
