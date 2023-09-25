@@ -6,3 +6,4 @@ ROUTE53_NAMESPACE = 'AWS/Route53'
 KINESIS_ANALYTICS_NAMESPACE = 'AWS/KinesisAnalytics'
 
 CLOUD_PLATFORM_DIM_EC2 = 'aws_ec2'
+EC2_GROUP_BY = ['aws_instance_id']

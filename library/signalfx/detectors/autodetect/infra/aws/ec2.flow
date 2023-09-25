@@ -6,8 +6,7 @@ def disk_utilization_detector(fire_threshold: float = 80,
                               fire_lasting: lasting = lasting('10m', 0.8),
                               clear_threshold: float = 80,
                               clear_lasting: lasting = lasting('10m', 0.8),
-                              filter_: filter = None):
-                                     
+                              filter_: filter = None):                   
     # Detects when disk utilization of AWS EC2 instance is above threshold
     # :param fire_threshold description=Specifies trigger threshold in % for the disk utilization
     # :param fire_threshold label=Trigger threshold (%)
@@ -33,8 +32,7 @@ def disk_utilization_detector(fire_threshold: float = 80,
                                                                                  orientation='above')
     initial_filter = filter(utils.CLOUD_PLATFORM_DIM, aws_utils.CLOUD_PLATFORM_DIM_EC2)
     scope_filter = utils.merge_filters(initial_filter, filter_)
-    group_by = ['aws_instance_id']
-    stream = data('disk.utilization', filter=scope_filter).mean(by=group_by)
+    stream = data('disk.utilization', filter=scope_filter).mean(by=aws_utils.EC2_GROUP_BY)
 
     fire_threshold_stream = const(fire_threshold)
     clear_threshold_stream = const(clear_threshold)
@@ -42,6 +40,50 @@ def disk_utilization_detector(fire_threshold: float = 80,
     ann = [utils.annotate_stream(stream, 'Disk utilization'),
            utils.annotate_fire_threshold(fire_threshold_stream, orientation='above')]
 
+    return detect(when(stream >= fire_threshold_stream, lasting=fire_lasting),
+                  off=when(stream < clear_threshold_stream, lasting=clear_lasting),
+                  annotations=ann,
+                  auto_resolve_after=utils.AUTO_RESOLVE_AFTER)
+                  
+
+def memory_utilization_detector(fire_threshold: float = 80,
+                                fire_lasting: lasting = lasting('10m', 0.8),
+                                clear_threshold: float = 80,
+                                clear_lasting: lasting = lasting('10m', 0.8),
+                                filter_: filter = None):
+    # Detects when memory utilization of AWS EC2 instance is above threshold
+    # :param fire_threshold description=Specifies trigger threshold in % for the memory utilization
+    # :param fire_threshold label=Trigger threshold (%)
+    # :param fire_threshold min=0
+    # :param fire_threshold max=100
+    # :param fire_threshold unit=%
+    # :param fire_lasting description=Specifies trigger sensitivity associated with trigger threshold
+    # :param fire_lasting label=Trigger sensitivity
+    # :param clear_threshold description=Specifies clear threshold in % for the memory utilization
+    # :param clear_threshold label=Clear threshold (%)
+    # :param clear_threshold min=0
+    # :param clear_threshold max=100
+    # :param clear_threshold unit=%
+    # :param clear_threshold constraint=lte(fire_threshold)
+    # :param clear_lasting description=Specifies clear sensitivity associated with clear threshold
+    # :param clear_lasting label=Clear sensitivity
+    # :param filter_ description=Specifies dimensional scope of the detector
+    # :param filter_ metric_name=memory.utilization
+    # :viz valueSuffix=%
+    # :return: detect block that triggers when memory utilization of AWS EC2 instance is above the threshold
+
+    assert fire_threshold >= clear_threshold, utils.threshold_validation_err_msg(fire_threshold, clear_threshold,
+                                                                                 orientation='above')
+    initial_filter = filter(utils.CLOUD_PLATFORM_DIM, aws_utils.CLOUD_PLATFORM_DIM_EC2)
+    scope_filter = utils.merge_filters(initial_filter, filter_)
+    stream = data('memory.utilization', filter=scope_filter).mean(by=aws_utils.EC2_GROUP_BY)
+    
+    fire_threshold_stream = const(fire_threshold)
+    clear_threshold_stream = const(clear_threshold)
+    
+    ann = [utils.annotate_stream(stream, 'Memory utilization'),
+           utils.annotate_fire_threshold(fire_threshold_stream, orientation='above')]
+           
     return detect(when(stream >= fire_threshold_stream, lasting=fire_lasting),
                   off=when(stream < clear_threshold_stream, lasting=clear_lasting),
                   annotations=ann,
