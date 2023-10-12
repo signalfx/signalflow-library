@@ -44,65 +44,89 @@ def disk_utilization_detector(fire_threshold: float = 80,
                   off=when(stream < clear_threshold_stream, lasting=clear_lasting),
                   annotations=ann,
                   auto_resolve_after=utils.AUTO_RESOLVE_AFTER)
-                  
 
-def memory_utilization_detector(fire_num_stddev: float = 3,
-                                current_window: duration = duration('30m'),
-                                historical_window: duration = duration('24h'),
-                                filter_: filter = None):
-    # :param fire_num_stddev label=Trigger deviation
-    # :param fire_num_stddev description=Expressed in standard deviations from baseline
-    # :param fire_num_stddev min=0
-    # :param fire_num_stddev step=0.1
-    # :param fire_num_stddev unit=SD
-    # :param current_window description=The time range being monitored
-    # :param current_window label=Evaluation window
-    # :param historical_window description=The time range being used to define the recent trend
-    # :param historical_window label=Historical window
+
+def memory_utilization_detector(fire_threshold: float = 90,
+                                fire_lasting: lasting = lasting('10m', 0.8),
+                                clear_threshold: float = 90,
+                                clear_lasting: lasting = lasting('10m', 0.8),
+                                filter_: filter = None):                   
+    # Detects when memory utilization of AWS EC2 instance is above threshold
+    # :param fire_threshold description=Specifies trigger threshold in % for the memory utilization
+    # :param fire_threshold label=Trigger threshold (%)
+    # :param fire_threshold min=0
+    # :param fire_threshold max=100
+    # :param fire_threshold unit=%
+    # :param fire_lasting description=Specifies trigger sensitivity associated with trigger threshold
+    # :param fire_lasting label=Trigger sensitivity
+    # :param clear_threshold description=Specifies clear threshold in % for the memory utilization
+    # :param clear_threshold label=Clear threshold (%)
+    # :param clear_threshold min=0
+    # :param clear_threshold max=100
+    # :param clear_threshold unit=%
+    # :param clear_threshold constraint=lte(fire_threshold)
+    # :param clear_lasting description=Specifies clear sensitivity associated with clear threshold
+    # :param clear_lasting label=Clear sensitivity
     # :param filter_ description=Specifies dimensional scope of the detector
     # :param filter_ metric_name=memory.utilization
     # :viz valueSuffix=%
-    # :return: detect block that triggers when memory utilization of AWS EC2 instance suddenly increased
+    # :return: detect block that triggers when memory utilization of AWS EC2 instance is above the threshold
+    
+    assert fire_threshold >= clear_threshold, utils.threshold_validation_err_msg(fire_threshold, clear_threshold,
+                                                                                 orientation='above')
     initial_filter = filter(utils.CLOUD_PLATFORM_DIM, aws_utils.CLOUD_PLATFORM_DIM_EC2)
     scope_filter = utils.merge_filters(initial_filter, filter_)
-    stream = data('memory.utilization', filter=scope_filter).mean(by=aws_utils.EC2_GROUP_BY).publish(label='Memory utilization')
-    clear_num_stddev = max(fire_num_stddev - 0.5, 0)
-    return against_recent.detector_mean_std(stream=stream,
-                                            current_window=current_window,
-                                            historical_window=historical_window,
-                                            fire_num_stddev=fire_num_stddev,
-                                            clear_num_stddev=clear_num_stddev,
-                                            orientation='above',
-                                            ignore_extremes=True,
-                                            calculation_mode='vanilla',
-                                            auto_resolve_after=utils.AUTO_RESOLVE_AFTER)
+    stream = data('memory.utilization', filter=scope_filter).mean(by=aws_utils.EC2_GROUP_BY)
+
+    fire_threshold_stream = const(fire_threshold)
+    clear_threshold_stream = const(clear_threshold)
+
+    ann = [utils.annotate_stream(stream, 'Memory utilization'),
+           utils.annotate_fire_threshold(fire_threshold_stream, orientation='above')]
+
+    return detect(when(stream >= fire_threshold_stream, lasting=fire_lasting),
+                  off=when(stream < clear_threshold_stream, lasting=clear_lasting),
+                  annotations=ann,
+                  auto_resolve_after=utils.AUTO_RESOLVE_AFTER)
 
 
-def cpu_utilization_detector(fire_num_stddev: float = 3,
-                             current_window: duration = duration('30m'),
-                             historical_window: duration = duration('24h'),
-                             filter_: filter = None):
-    # :param fire_num_stddev label=Trigger deviation
-    # :param fire_num_stddev description=Expressed in standard deviations from baseline
-    # :param fire_num_stddev min=0
-    # :param fire_num_stddev step=0.1
-    # :param fire_num_stddev unit=SD
-    # :param current_window description=The time range being monitored
-    # :param current_window label=Evaluation window
-    # :param historical_window description=The time range being used to define the recent trend
-    # :param historical_window label=Historical window
+def cpu_utilization_detector(fire_threshold: float = 90,
+                             fire_lasting: lasting = lasting('10m', 0.8),
+                             clear_threshold: float = 90,
+                             clear_lasting: lasting = lasting('10m', 0.8),
+                             filter_: filter = None):                   
+    # Detects when CPU utilization of AWS EC2 instance is above threshold
+    # :param fire_threshold description=Specifies trigger threshold in % for the CPU utilization
+    # :param fire_threshold label=Trigger threshold (%)
+    # :param fire_threshold min=0
+    # :param fire_threshold max=100
+    # :param fire_threshold unit=%
+    # :param fire_lasting description=Specifies trigger sensitivity associated with trigger threshold
+    # :param fire_lasting label=Trigger sensitivity
+    # :param clear_threshold description=Specifies clear threshold in % for the CPU utilization
+    # :param clear_threshold label=Clear threshold (%)
+    # :param clear_threshold min=0
+    # :param clear_threshold max=100
+    # :param clear_threshold unit=%
+    # :param clear_threshold constraint=lte(fire_threshold)
+    # :param clear_lasting description=Specifies clear sensitivity associated with clear threshold
+    # :param clear_lasting label=Clear sensitivity
     # :param filter_ description=Specifies dimensional scope of the detector
     # :param filter_ metric_name=^aws.ec2.cpu.utilization
     # :viz valueSuffix=%
-    # :return: detect block that triggers when CPU utilization of AWS EC2 instance suddenly increased
-    stream = data('^aws.ec2.cpu.utilization').mean(by=aws_utils.EC2_GROUP_BY).publish(label='CPU utilization')
-    clear_num_stddev = max(fire_num_stddev - 0.5, 0)
-    return against_recent.detector_mean_std(stream=stream,
-                                            current_window=current_window,
-                                            historical_window=historical_window,
-                                            fire_num_stddev=fire_num_stddev,
-                                            clear_num_stddev=clear_num_stddev,
-                                            orientation='above',
-                                            ignore_extremes=True,
-                                            calculation_mode='vanilla',
-                                            auto_resolve_after=utils.AUTO_RESOLVE_AFTER)
+    # :return: detect block that triggers when CPU utilization of AWS EC2 instance is above the threshold
+    
+    assert fire_threshold >= clear_threshold, utils.threshold_validation_err_msg(fire_threshold, clear_threshold,
+                                                                                 orientation='above')
+    stream = data('^aws.ec2.cpu.utilization').mean(by=aws_utils.EC2_GROUP_BY)
+
+    fire_threshold_stream = const(fire_threshold)
+    clear_threshold_stream = const(clear_threshold)
+
+    ann = [utils.annotate_stream(stream, 'CPU utilization'),
+           utils.annotate_fire_threshold(fire_threshold_stream, orientation='above')]
+
+    return detect(when(stream >= fire_threshold_stream, lasting=fire_lasting),
+                  off=when(stream < clear_threshold_stream, lasting=clear_lasting),
+                  annotations=ann,
+                  auto_resolve_after=utils.AUTO_RESOLVE_AFTER)

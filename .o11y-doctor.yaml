@@ -1,0 +1,20 @@
+assignUnassignedMergeRequests:
+  gracePeriod: 1
+
+assignMergeRequestReviewersFromGroups:
+  gracePeriod: 1
+  groups:
+    - sg-o11y-imm-analytics
+  except:
+    - bot_polyjuice
+  ignoreLabels:
+    - auto-merge-enabled
+
+unassignReviewersFromDrafts: {}
+
+closeStaleMergeRequests:
+  staleAfterDays: 21
+  closeAfterStaleDays: 7
+
+approveRenovateUpdates:
+  requireLabel: auto-merge-enabled
