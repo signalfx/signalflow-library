@@ -14,7 +14,8 @@ def error_budget_left_detector(good_events_stream, total_events_stream, complian
     utils.validate_percentage(percent_of_lasting)
     utils.validate_percentage(percent_error_budget_left_threshold)
     error_budget_left = streams.error_budget_left(good_events_stream, total_events_stream, compliance_period, slo).publish('Error budget left')
-    return detect(when(error_budget_left < const(percent_error_budget_left_threshold), lasting=lasting(fire_lasting, percent_of_lasting * 0.01)))
+    error_budget_left_threshold = const(percent_error_budget_left_threshold)
+    return detect(when(error_budget_left < error_budget_left_threshold, lasting=lasting(fire_lasting, percent_of_lasting * 0.01)))
 
 # Implementation of burn rate detector from this doc: https://sre.google/workbook/alerting-on-slos/#pros_and_cons_of_alerting_based_on_burn_r
 # Trigger an alert when burn rate is greater than specified threshold
@@ -100,7 +101,8 @@ def calendar_error_budget_left_detector(good_events_stream, total_events_stream,
     utils.validate_percentage(percent_of_lasting)
     utils.validate_percentage(percent_error_budget_left_threshold)
     error_budget_left = streams.calendar_window_error_budget_left(good_events_stream, total_events_stream, cycle_type, cycle_start, slo).publish('Error budget left')
-    return detect(when(error_budget_left < const(percent_error_budget_left_threshold), lasting=lasting(fire_lasting, percent_of_lasting * 0.01)))
+    error_budget_left_threshold = const(percent_error_budget_left_threshold)
+    return detect(when(error_budget_left < error_budget_left_threshold, lasting=lasting(fire_lasting, percent_of_lasting * 0.01)))
 
 # Implementation of burn rate detector from this doc: https://sre.google/workbook/alerting-on-slos/#pros_and_cons_of_alerting_based_on_burn_r
 # Trigger an alert when burn rate is greater than specified threshold
