@@ -1,0 +1,7 @@
+CLOUD_PROVIDER = 'cloud.provider'
+K8S_NODE_NAME = 'k8s.node.name'
+K8S_CLUSTER_NAME = 'k8s.cluster.name'
+GCP_ID = 'gcp_id'
+AWS_UNIQUE_ID = 'AWSUniqueId'
+AZURE_RESOURCE_ID = 'azure_resource_id'
+HOST_NAME = 'host.name'

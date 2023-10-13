@@ -1,0 +1,48 @@
+from signalfx.detectors.autodetect import utils
+from signalfx.detectors.autodetect.infra.dc_host import utils as host_utils
+
+def disk_utilization_detector(fire_threshold: float = 80,
+                              fire_lasting: lasting = lasting('10m', 0.8),
+                              clear_threshold: float = 80,
+                              clear_lasting: lasting = lasting('10m', 0.8),
+                              filter_: filter = None):                   
+    # Detects when disk utilization of data center host is above threshold
+    # :param fire_threshold description=Specifies trigger threshold in % for the disk utilization
+    # :param fire_threshold label=Trigger threshold (%)
+    # :param fire_threshold min=0
+    # :param fire_threshold max=100
+    # :param fire_threshold unit=%
+    # :param fire_lasting description=Specifies trigger sensitivity associated with trigger threshold
+    # :param fire_lasting label=Trigger sensitivity
+    # :param clear_threshold description=Specifies clear threshold in % for the disk utilization
+    # :param clear_threshold label=Clear threshold (%)
+    # :param clear_threshold min=0
+    # :param clear_threshold max=100
+    # :param clear_threshold unit=%
+    # :param clear_threshold constraint=lte(fire_threshold)
+    # :param clear_lasting description=Specifies clear sensitivity associated with clear threshold
+    # :param clear_lasting label=Clear sensitivity
+    # :param filter_ description=Specifies dimensional scope of the detector
+    # :param filter_ metric_name=disk.summary_utilization
+    # :viz valueSuffix=%
+    # :return: detect block that triggers when disk utilization of data center is above the threshold
+
+    assert fire_threshold >= clear_threshold, utils.threshold_validation_err_msg(fire_threshold, clear_threshold,
+                                                                                 orientation='above')
+
+    initial_filter = ((not filter(host_utils.CLOUD_PROVIDER, '*')) and (not filter(host_utils.CLOUD_PROVIDER, '*')) and (not filter(host_utils.K8S_NODE_NAME, '*')) and (not filter(host_utils.K8S_CLUSTER_NAME, '*')) and (not filter(host_utils.GCP_ID, '*')) and (not filter(host_utils.AWS_UNIQUE_ID, '*')) and (not filter(host_utils.AZURE_RESOURCE_ID, '*')) and filter(host_utils.HOST_NAME, '*'))
+
+
+    scope_filter = utils.merge_filters(initial_filter, filter_)
+    stream = data('disk.summary_utilization', filter=scope_filter).mean(by=[host_utils.HOST_NAME])
+
+    fire_threshold_stream = const(fire_threshold)
+    clear_threshold_stream = const(clear_threshold)
+
+    ann = [utils.annotate_stream(stream, 'Disk utilization'),
+           utils.annotate_fire_threshold(fire_threshold_stream, orientation='above')]
+
+    return detect(when(stream >= fire_threshold_stream, lasting=fire_lasting),
+                  off=when(stream < clear_threshold_stream, lasting=clear_lasting),
+                  annotations=ann,
+                  auto_resolve_after=utils.AUTO_RESOLVE_AFTER)
