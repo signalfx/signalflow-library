@@ -6,4 +6,4 @@ AWS_UNIQUE_ID = 'AWSUniqueId'
 AZURE_RESOURCE_ID = 'azure_resource_id'
 HOST_NAME = 'host.name'
 
-HOST_RESOURCES_FILTER = ((not filter(host_utils.CLOUD_PROVIDER, '*')) and (not filter(host_utils.CLOUD_PROVIDER, '*')) and (not filter(host_utils.K8S_NODE_NAME, '*')) and (not filter(host_utils.K8S_CLUSTER_NAME, '*')) and (not filter(host_utils.GCP_ID, '*')) and (not filter(host_utils.AWS_UNIQUE_ID, '*')) and (not filter(host_utils.AZURE_RESOURCE_ID, '*')) and filter(host_utils.HOST_NAME, '*'))
+HOST_RESOURCES_FILTER = ((not filter(CLOUD_PROVIDER, '*')) and (not filter(CLOUD_PROVIDER, '*')) and (not filter(K8S_NODE_NAME, '*')) and (not filter(K8S_CLUSTER_NAME, '*')) and (not filter(GCP_ID, '*')) and (not filter(AWS_UNIQUE_ID, '*')) and (not filter(AZURE_RESOURCE_ID, '*')) and filter(HOST_NAME, '*'))
