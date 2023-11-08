@@ -294,9 +294,9 @@ def mts_creations_throttling_detector(fire_num_stddev: float = 4,
                                             auto_resolve_after= duration('5h'))
 
 def aws_invalid_metric_stream_integration_not_found_detector(fire_threshold: float = 0,
-                                                             fire_lasting: lasting = lasting('10m', 0.8),
+                                                             fire_lasting: lasting = lasting('15m', 1),
                                                              clear_threshold: float = 0,
-                                                             clear_lasting: lasting = lasting('10m', 0.8),
+                                                             clear_lasting: lasting = lasting('15m', 1),
                                                              filter_: filter = None):                   
     # Detects when integration not found for AWS metric invalid stream
     # :param fire_threshold description=Specifies trigger threshold for the AWS invalid metric streams
@@ -328,12 +328,12 @@ def aws_invalid_metric_stream_integration_not_found_detector(fire_threshold: flo
     return detect(when(stream > fire_threshold_stream, lasting=fire_lasting),
                   off=when(stream <= clear_threshold_stream, lasting=clear_lasting),
                   annotations=ann,
-                  auto_resolve_after=utils.AUTO_RESOLVE_AFTER)
+                  auto_resolve_after=splunk_utils.AWS_INVALID_METRIC_STREAM_AUTO_RESOLVE)
 
 def aws_invalid_metric_stream_integration_or_feature_disabled_detector(fire_threshold: float = 0,
-                                                                       fire_lasting: lasting = lasting('10m', 0.8),
+                                                                       fire_lasting: lasting = lasting('15m', 1),
                                                                        clear_threshold: float = 0,
-                                                                       clear_lasting: lasting = lasting('10m', 0.8),
+                                                                       clear_lasting: lasting = lasting('15m', 1),
                                                                        filter_: filter = None):                
     # Detects when integration or feature disabled for AWS metric invalid stream
     # :param fire_threshold description=Specifies trigger threshold for the AWS invalid metric streams
@@ -365,4 +365,4 @@ def aws_invalid_metric_stream_integration_or_feature_disabled_detector(fire_thre
     return detect(when(stream > fire_threshold_stream, lasting=fire_lasting),
                   off=when(stream <= clear_threshold_stream, lasting=clear_lasting),
                   annotations=ann,
-                  auto_resolve_after=utils.AUTO_RESOLVE_AFTER)
+                  auto_resolve_after=splunk_utils.AWS_INVALID_METRIC_STREAM_AUTO_RESOLVE)
