@@ -282,7 +282,7 @@ def mts_creations_throttling_detector(fire_num_stddev: float = 4,
     # :return: detect block that triggers when a number of throttled MTS creations suddenly increased
     assert fire_num_stddev > clear_num_stddev, utils.stddev_validation_err_msg(fire_num_stddev, clear_num_stddev,
                                                                                  orientation='above')
-    stream = data('sf.org.numThrottledMetricTimeSeriesCreateCalls').mean(by=['source_orgname', 'orgId']).publish(label='# Metric creations throttled')
+    stream = data('sf.org.numThrottledMetricTimeSeriesCreateCalls').mean(by=['orgId']).publish(label='# Metric creations throttled')
     return against_recent.detector_mean_std(stream=stream,
                                             current_window=current_window,
                                             historical_window=historical_window,
