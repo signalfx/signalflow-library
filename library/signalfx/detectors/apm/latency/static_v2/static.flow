@@ -1,4 +1,5 @@
 from signalfx.detectors.apm.latency.static import static
+from signalfx.detectors.apm.latency import streams, conditions
 from signalfx.detectors.apm import utils
 
 
@@ -7,21 +8,138 @@ def detector(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear
              volume_static_threshold=None, volume_relative_threshold=None,
              volume_nonzero_required=0.1, use_ms=True, custom_filter=None,
              resource_type='service_operation', auto_resolve_after=None,
-             _alert_type=None, _detector_type=None, _resource_type=None):
-    return static.detector(fire_threshold=fire_threshold, fire_lasting=fire_lasting,
-                           clear_threshold=clear_threshold, clear_lasting=clear_lasting,
-                           pctile=pctile, filter_=filter_, exclude_errors=exclude_errors,
-                           group_by=group_by,
-                           volume_static_threshold=volume_static_threshold,
-                           volume_relative_threshold=volume_relative_threshold,
-                           volume_nonzero_required=volume_nonzero_required, use_ms=use_ms,
-                           custom_filter=custom_filter,
-                           use_kind_filter=False, kind_filter=utils.V2_KIND_FILTER,
-                           exclude_errors_filter=not
-                           utils.RESOURCE_TYPE_MAPPING[resource_type]['error']['true'],
-                           default_group_by=utils.RESOURCE_TYPE_MAPPING[resource_type]['group_by'],
-                           default_allow_missing=utils.RESOURCE_TYPE_MAPPING[resource_type][
-                               'allow_missing'],
-                           metric_names=utils.RESOURCE_TYPE_MAPPING[resource_type]['metric_names'],
-                           auto_resolve_after=auto_resolve_after, _alert_type=_alert_type,
-                           _detector_type=_detector_type, _resource_type=_resource_type)
+             _alert_type='latency', _detector_type='apm', _resource_type=None):
+    # Detect when latency exceeds a specified static threshold for a specified percent of duration
+    # :param fire_threshold (number): latency threshold required to trigger, expressed in
+    #                   nanoseconds or milliseconds (see use_ms)
+    # :param fire_lasting (lasting): percent of duration associated with fire_threshold
+    # :param clear_threshold: latency threshold required to clear, expressed in, expressed in
+    #                   nanoseconds or milliseconds (see use_ms)
+    # :param clear_lasting (lasting): percent of duration associated with clear_threshold
+    # :param pctile (number): percentile to monitor, one of 50, 90, 99, default=90
+    # :param filter_ (filter): specifies dimensional scope of the detector, default=None
+    # :param exclude_errors (boolean): whether to exclude error spans from latency metric, default=True
+    # :param group_by (list of strings): average latency by these (in addition to default grouping
+    #                    by cluster, service, operation), default=None
+    # :param volume_static_threshold (number): threshold on request rate (per second) required for
+    #                    alert to trigger, default=None
+    # :param volume_relative_threshold (number): require request rate on window being evaluated to be
+    #                    at least this proportion of request rate on preceding window (used for
+    #                    trigger and clear), default=None
+    # :param volume_nonzero_required (number between 0 and 1): require request rate to be nonzero
+    #                    for this proportion of fire_lasting.duration (used for trigger and clear),
+    #                     default=0.1
+    # :param use_ms (boolean): if True, use milliseconds; else use nanoseconds (see fire_threshold and clear_threshold)
+    # :return: detect block that triggers when the specified percentile of latency, suitably
+    #           filtered and grouped, exceeds the specified threshold for the required percent
+    #           of duration; clears when latency remains below the specified clear threshold
+    #           for the required percent of duration; plus suitable volume conditions
+    use_kind_filter = False
+    kind_filter = utils.V2_KIND_FILTER
+    exclude_errors_filter = not utils.RESOURCE_TYPE_MAPPING_HISTOGRAMS[resource_type]['error']['true']
+    default_group_by = utils.RESOURCE_TYPE_MAPPING_HISTOGRAMS[resource_type]['group_by']
+    default_allow_missing = utils.RESOURCE_TYPE_MAPPING_HISTOGRAMS[resource_type]['allow_missing']
+    metric_names = utils.RESOURCE_TYPE_MAPPING_HISTOGRAMS[resource_type]['metric_names']
+
+    assert fire_threshold >= clear_threshold, {
+        'fire_threshold': fire_threshold, 'clear_threshold': clear_threshold,
+        'sfui_errorKeys': ['fire_threshold', 'clear_threshold'],
+        'sfui_errorTemplate': "{{{fire_threshold}}} must be greater than or equal to {{{clear_threshold}}}."}
+    ## can we move this check to streams??
+    assert pctile == 50 or pctile == 75 or pctile == 90 or pctile == 99, {
+        'pctile': pctile,
+        'sfui_errorKeys': ['pctile'],
+        'sfui_errorTemplate': "{{{pctile}}} must be one of 50, 75, 90, 99."}
+    d = streams.pctile_over_window_histograms(pctile=pctile, filter_=filter_, window=None,
+                                   exclude_errors=exclude_errors, group_by=group_by, use_ms=use_ms,
+                                   custom_filter=custom_filter, use_kind_filter=use_kind_filter,
+                                   kind_filter=kind_filter,
+                                   exclude_errors_filter=exclude_errors_filter,
+                                   default_group_by=default_group_by,
+                                   default_allow_missing=default_allow_missing,
+                                   metric_names=metric_names)
+    fire_threshold_stream = const(fire_threshold)
+    clear_threshold_stream = const(clear_threshold)
+    ann = [annotate(d, 'latency', {'sfui_streamType': 'signal'}),
+           annotate(fire_threshold_stream, 'fire_threshold', {
+               'sfui_config': '{"d_above_ft": {"sfui_streamType":"threshold","sfui_state":"fire","sfui_orientation":"above"}}'})]
+    event_ann = {
+        'fire_threshold': str(fire_threshold),
+        'clear_threshold': str(clear_threshold),
+        'sfui_incidentInformation': '[{"selectedIdentifiers":["fire_threshold_stream","d"], "conditionIdentifier":"d_above_ft"}]',
+        'resource_type': str(_resource_type),
+        'alert_type': str(_alert_type),
+        'detector_type': str(_detector_type)
+    }
+    non_empty_cond = conditions.static_volume_nonempty_histograms(lasting(fire_lasting.duration,
+                                                               volume_nonzero_required),
+                                                       filter_=filter_,
+                                                       exclude_errors=exclude_errors,
+                                                       group_by=group_by,
+                                                       custom_filter=custom_filter,
+                                                       use_kind_filter=use_kind_filter,
+                                                       kind_filter=kind_filter,
+                                                       exclude_errors_filter=exclude_errors_filter,
+                                                       default_group_by=default_group_by,
+                                                       default_allow_missing=default_allow_missing,
+                                                       metric_names=metric_names)
+    if volume_static_threshold is not None and volume_relative_threshold is not None:
+        static_ = conditions.static_on_volume_histograms(fire_lasting.duration,
+                                              volume_static_threshold, filter_=filter_,
+                                              exclude_errors=exclude_errors,
+                                              group_by=group_by, custom_filter=custom_filter,
+                                              use_kind_filter=use_kind_filter,
+                                              kind_filter=kind_filter,
+                                              exclude_errors_filter=exclude_errors_filter,
+                                              default_group_by=default_group_by,
+                                              default_allow_missing=default_allow_missing,
+                                              metric_names=metric_names)
+        relative = conditions.volume_sc_histograms(filter_=filter_, current_window=fire_lasting.duration,
+                                        historical_window=5 * fire_lasting.duration,
+                                        fire_threshold=volume_relative_threshold,
+                                        clear_threshold=volume_relative_threshold,
+                                        exclude_errors=exclude_errors,
+                                        group_by=group_by, custom_filter=custom_filter,
+                                        use_kind_filter=use_kind_filter,
+                                        kind_filter=kind_filter,
+                                        exclude_errors_filter=exclude_errors_filter,
+                                        default_group_by=default_group_by,
+                                        default_allow_missing=default_allow_missing,
+                                        metric_names=metric_names)['on']
+        on_ = static_ and relative and non_empty_cond
+        off_ = relative and non_empty_cond
+    elif volume_static_threshold is not None:
+        static_ = conditions.static_on_volume_histograms(fire_lasting.duration,
+                                              volume_static_threshold, filter_=filter_,
+                                              exclude_errors=exclude_errors,
+                                              group_by=group_by, custom_filter=custom_filter,
+                                              use_kind_filter=use_kind_filter,
+                                              kind_filter=kind_filter,
+                                              exclude_errors_filter=exclude_errors_filter,
+                                              default_group_by=default_group_by,
+                                              default_allow_missing=default_allow_missing,
+                                              metric_names=metric_names)
+        on_ = static_ and non_empty_cond
+        off_ = non_empty_cond
+    elif volume_relative_threshold is not None:
+        relative = conditions.volume_sc_histograms(filter_=filter_, current_window=fire_lasting.duration,
+                                        historical_window=5 * fire_lasting.duration,
+                                        fire_threshold=volume_relative_threshold,
+                                        clear_threshold=volume_relative_threshold,
+                                        exclude_errors=exclude_errors,
+                                        group_by=group_by, custom_filter=custom_filter,
+                                        use_kind_filter=use_kind_filter,
+                                        kind_filter=kind_filter,
+                                        exclude_errors_filter=exclude_errors_filter,
+                                        default_group_by=default_group_by,
+                                        default_allow_missing=default_allow_missing,
+                                        metric_names=metric_names)['on']
+        on_ = relative and non_empty_cond
+        off_ = relative and non_empty_cond
+    else:
+        on_ = non_empty_cond
+        off_ = non_empty_cond
+    return detect(when(d > fire_threshold_stream, fire_lasting) and on_,
+                  off=when(d < clear_threshold_stream, clear_lasting) and off_,
+                  annotations=ann, event_annotations=event_ann,
+                  auto_resolve_after=auto_resolve_after)

@@ -19,7 +19,7 @@ The `growth_rate` function detects when latency grows by a specified amount rela
 |volume_relative_threshold|number|require request rate on window being evaluated to be at least this proportion of request rate on preceding window (used for trigger and clear)|None|
 |vol_pctile_req_pos|number (percentage)|percentage of historical window permitted to have request rate 0|90|
 |custom_filter|filter|specifies dimensional scope of the detector (on custom dimensions)|None|
-|resource_type|string|key from [RESOURCE_TYPE_MAPPING](../../utils.flow), determines schema|'service_operation'|
+|resource_type|string|key from [RESOURCE_TYPE_MAPPING_HISTOGRAMS](../../utils.flow), determines schema|'service_operation'|
 |auto_resolve_after|duration|if provided, duration after which to clear when group drops from schema or has value None|None|
 
 It returns a detect block that triggers when the specified percentile of latency, suitably
@@ -27,18 +27,18 @@ filtered and grouped, over the last `current_window` is greater than
 `1 + fire_growth_rate_threshold` times the latency (for the same percentile,
 similarly filtered and grouped) of the preceding `historical_window`, and when volume conditions are met;
 clears when latency is less than `1 + clear_growth_rate_threshold` times the baseline.
-   
-    
+
+
 #### Example usage
 ~~~~~~~~~~~~~~~~~~~~
 from signalfx.detectors.apm.latency.sudden_change_v2 import sudden_change
 
-sudden_change.growth_rate(pctile=50, filter_=filter('sf_service', 'my_svc') and filter('sf_operation', 'my_op')).publish('my_det')
+sudden_change.growth_rate(pctile=50, filter_=filter('service.name', 'my_svc') and filter('sf_operation', 'my_op')).publish('my_det')
 ~~~~~~~~~~~~~~~~~~~~
 
-    
-## Deviations from norm    
-    
+
+## Deviations from norm
+
 The `deviations_from_norm` function detects when latency is too many deviations from the norm established in the preceding window. It has the following parameters.
 
 |Parameter name|Type|Description|Default value|
@@ -54,7 +54,7 @@ The `deviations_from_norm` function detects when latency is too many deviations 
 |volume_relative_threshold|number|require request rate on window being evaluated to be at least this proportion of request rate on preceding window (used for trigger and clear)|None|
 |vol_pctile_req_pos|number (percentage)|percentage of historical window permitted to have request rate 0|90|
 |custom_filter|filter|specifies dimensional scope of the detector (on custom dimensions)|None|
-|resource_type|string|key from [RESOURCE_TYPE_MAPPING](../../utils.flow), determines schema|'service_operation'|
+|resource_type|string|key from [RESOURCE_TYPE_MAPPING_HISTOGRAMS](../../utils.flow), determines schema|'service_operation'|
 |auto_resolve_after|duration|if provided, duration after which to clear when group drops from schema or has value None|None|
 
 
@@ -69,7 +69,7 @@ clears when latency is less than `clear_num_dev_threshold` deviations from the n
 ~~~~~~~~~~~~~~~~~~~~
 from signalfx.detectors.apm.latency.sudden_change_v2 import sudden_change
 
-sudden_change.deviations_from_norm(filter_=filter('sf_service', 'my_svc') and filter('sf_operation', 'my_op')).publish('my_det')
+sudden_change.deviations_from_norm(filter_=filter('service.name', 'my_svc') and filter('sf_operation', 'my_op')).publish('my_det')
 ~~~~~~~~~~~~~~~~~~~~
 
 

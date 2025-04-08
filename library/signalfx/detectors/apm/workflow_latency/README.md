@@ -1,3 +1,3 @@
-The `workflow_latency` submodule of `apm` facilitates the creation of latency detectors for workflows. Basically it supplies `'workflow'` for the keyword argument `resource_type` in several places, which replaces the `spans.*` metrics with their `workflows.*` counterparts (see [apm/utils](../utils.flow) for details).
+The `workflow_latency` submodule of `apm` facilitates the creation of latency detectors for workflows. Basically it supplies `'workflow'` for the keyword argument `resource_type` in several places, which replaces the `spans` metric with its `workflows` counterpart (see [apm/utils](../utils.flow) for details).
 
 For more detailed documentation see the [latency](../../apm/latency/README.md) module, in particular the [static threshold](../../apm/latency/static_v2/README.md), [sudden change](../../apm/latency/sudden_change_v2/README.md), and [historical anomaly](../../apm/latency/historical_anomaly_v2/README.md) alerts.

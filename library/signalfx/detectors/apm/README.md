@@ -7,9 +7,9 @@ The functions in the `apm` module operate on metrics with a known meaning and me
 
 Some of the principal differences are as follows:
 
-- Whereas the functions appearing in `against_recent`, `against_periods`, `aperiodic`, `countdown`, and `not_reporting` generally take an input stream as an argument, the functions in the `apm` module do not take input streams. Rather, they take filters and other parameters, and these produce data blocks that are passed to statistically-oriented procedures.
-- Since the APM metrics consist of percentiles and counts, the patterns do not have the same general applicability as those captured in the modules mentioned above. For example, an estimate of the spread of a distribution can be obtained by taking the difference between percentiles, and an alert can be conditioned on the volume of traffic (captured in the metric `spans.count`) via a compound condition. Of course, the patterns do apply to other scenarios in which percentiles are emitted as metrics (replacing the metrics `spans.duration.ns.*` and `spans.count` as appropriate), and indeed the modules for workflows and RUM metrics utilize the same code.
-- In this setting the schema is somewhat known, so the `apm` module engages in metadata manipulation (error ratios are calculated using the `sf_error` dimension, and the dimensions `sf_environment`, `sf_service`, `sf_operation` are assumed present throughout), whereas the more generic modules do not. Similarly, rollups are specified since the metric types are known.
+- Whereas the functions appearing in `against_recent`, `against_periods`, `aperiodic`, `countdown`, and `not_reporting` generally take an input stream as an argument, the functions in the `apm` module do not take input streams. Rather, they take filters and other parameters, and these produce data or histogram blocks that are passed to statistically-oriented procedures.
+- Since the APM metrics consist of percentiles and counts, the patterns do not have the same general applicability as those captured in the modules mentioned above. For example, an estimate of the spread of a distribution can be obtained by taking the difference between percentiles, and an alert can be conditioned on the volume of traffic (captured in the metric `spans.count` or histogram metric `spans`) via a compound condition. Of course, the patterns do apply to other scenarios in which percentiles are emitted as metrics (replacing the metrics `spans.duration.ns.*` and `spans.count` as appropriate), and indeed the modules for workflows and RUM metrics utilize the same code.
+- In this setting the schema is somewhat known, so the `apm` module engages in metadata manipulation (error ratios are calculated using the `sf_error` dimension, and the dimensions `sf_environment`/`deployment.environment`, `sf_service`/`service.name`, `sf_operation` are assumed present throughout), whereas the more generic modules do not. Similarly, rollups are specified since the metric types are known.
 
 
 #### Terminology
@@ -24,15 +24,41 @@ The `apm` module contains functions for "Static Threshold" detectors, whereas th
 Splunk APM reports various percentiles as metrics. One can form estimates of other percentiles via weighted averages of the reported percentiles. Since latency distributions are often closer to log-uniform than uniform, it is advisable to use the (weighted) geometric rather than the arithmetic mean, especially for percentiles above 90 (presumably the main ones of interest). For example, to estimate the 95th percentile, one can use the following.
 
 ```
+# Old
 p90 = data('spans.duration.ns.p90')
 p99 = data('spans.duration.ns.p99')
 
 est_p95 = (pow(p90, 4/9) * pow(p99, 5/9)).publish('estimated_p95')
+
+# New
+p95 = histogram('spans').percentile(pct=95)
 ```
 
-
-
 Note that the same logic could be applied in a scenario in which `p90` and `p99` are themselves the results of some computations (e.g., aggregating and/or transforming the input metrics).
+
+#### Histograms for percentiles
+
+With the introduction of [histograms](https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/metrics/data-model.md#histogram), APM Monitoring Metricsets are now emitted as histograms. The new metrics emitted are as follows:
+- `spans.*` metrics are now replaced with `spans`
+- `service.request.*` is now replaced with `service.request`
+- `traces.*` is now replaced with `traces`
+- `workflows.*` is now replaced with `workflows`
+
+Histogram metric usage:
+```
+
+# Old
+count = data('spans.count')
+p50 = data('spans.duration.ns.median')
+p90 = data('spans.duration.ns.p90')
+p99 = data('spans.duration.ns.p99')
+
+# New
+count = histogram('spans').count()
+p50 = histogram('spans').percentile(pct=50)
+p90 = histogram('spans').percentile(pct=90)
+p99 = histogram('spans').percentile(pct=99)
+```
 
 
 #### Usage note

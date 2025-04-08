@@ -1,36 +1,186 @@
 from signalfx.detectors.apm.latency.historical_anomaly import historical_anomaly
+from signalfx.detectors.apm.latency import streams, conditions
 from signalfx.detectors.apm import utils
-
 
 def growth_rate(pctile=90, filter_=None, current_window=duration('5m'),
                 historical_window=duration('1h'), cycle_length=duration('1w'), num_cycles=4,
                 fire_growth_rate_threshold=0.2, clear_growth_rate_threshold=0.1,
                 exclude_errors=True, group_by=None, volume_static_threshold=None,
                 volume_relative_threshold=None, vol_pctile_req_pos=95, custom_filter=None,
-                resource_type='service_operation', auto_resolve_after=None):
-    return historical_anomaly.growth_rate(pctile=pctile, filter_=filter_,
-                                          current_window=current_window,
-                                          historical_window=historical_window,
-                                          cycle_length=cycle_length, num_cycles=num_cycles,
-                                          fire_growth_rate_threshold=fire_growth_rate_threshold,
-                                          clear_growth_rate_threshold=clear_growth_rate_threshold,
-                                          exclude_errors=exclude_errors, group_by=group_by,
-                                          volume_static_threshold=volume_static_threshold,
-                                          volume_relative_threshold=volume_relative_threshold,
-                                          vol_pctile_req_pos=vol_pctile_req_pos,
-                                          custom_filter=custom_filter,
-                                          use_kind_filter=False, kind_filter=utils.V2_KIND_FILTER,
-                                          exclude_errors_filter=not
-                                          utils.RESOURCE_TYPE_MAPPING[resource_type]['error'][
-                                              'true'],
-                                          default_group_by=
-                                          utils.RESOURCE_TYPE_MAPPING[resource_type]['group_by'],
-                                          default_allow_missing=
-                                          utils.RESOURCE_TYPE_MAPPING[resource_type][
-                                              'allow_missing'],
-                                          metric_names=utils.RESOURCE_TYPE_MAPPING[resource_type][
-                                              'metric_names'], auto_resolve_after=auto_resolve_after)
-
+                resource_type='service_operation', auto_resolve_after=None,
+                _alert_type='latency', _detector_type='apm'):
+    # Detect when latency grows by a specified amount relative to its historical baseline
+    # :param pctile (number): percentile to monitor, one of 50, 90, 99, default=90
+    # :param filter_ (filter): specifies dimensional scope of the detector, default=None
+    # :param current_window (duration): window whose latency is evaluated for being too high,
+    #                                      default=duration('5m')
+    # :param historical_window (duration): historical window length, whose latency is used to define
+    #                                       the baseline, default=duration('1h')
+    # :param cycle_length (duration): space between historical windows, default=duration('1w')
+    # :param num_cycles (positive integer): number of historical windows used to define the baseline,
+    #                                       default=4
+    # :param fire_growth_rate_threshold (number): latency growth required to trigger, default=0.2
+    # :param clear_growth_rate_threshold (number): latency growth required to clear, default=0.1
+    # :param exclude_errors (boolean): whether to exclude error spans from latency metric, default=True
+    # :param group_by (list of strings): average latency by these (in addition to default grouping
+    #                    by cluster, service, operation), default=None
+    # :param volume_static_threshold (number): threshold on request rate (per second) required for
+    #                    alert to trigger, default=None
+    # :param volume_relative_threshold (number): require request rate on window being evaluated to be
+    #                    at least this proportion of request rate on preceding window (used for
+    #                    trigger and clear), default=None
+    # :param vol_pctile_req_pos (number, percentage): percentage of historical window permitted to
+    #                    have request rate 0 (for trigger and clear), default=95
+    # :return: detect block that triggers when the specified percentile of latency, suitably
+    #           filtered and grouped, over the last current_window is greater than
+    #           1 + fire_growth_rate_threshold times the baseline latency (for the same percentile,
+    #           similarly filtered and grouped), calculated on num_cycles windows each of length
+    #           historical_window and spaced cycle_length apart;
+    #           clears when latency is less than 1 + clear_growth_rate_threshold times the baseline;
+    #           plus suitable volume conditions
+    use_kind_filter = False
+    kind_filter = utils.V2_KIND_FILTER
+    exclude_errors_filter = not utils.RESOURCE_TYPE_MAPPING_HISTOGRAMS[resource_type]['error']['true']
+    default_group_by = utils.RESOURCE_TYPE_MAPPING_HISTOGRAMS[resource_type]['group_by']
+    default_allow_missing = utils.RESOURCE_TYPE_MAPPING_HISTOGRAMS[resource_type]['allow_missing']
+    metric_names = utils.RESOURCE_TYPE_MAPPING_HISTOGRAMS[resource_type]['metric_names'] 
+    
+    current_window_ = duration(current_window)
+    historical_window_ = duration(historical_window)
+    cycle_length_ = duration(cycle_length)
+    assert fire_growth_rate_threshold >= clear_growth_rate_threshold, {
+        'fire_growth_rate_threshold': fire_growth_rate_threshold,
+        'clear_growth_rate_threshold': clear_growth_rate_threshold,
+        'sfui_errorKeys': ['fire_growth_rate_threshold', 'clear_growth_rate_threshold'],
+        'sfui_errorTemplate': "{{{fire_growth_rate_threshold}}} must be greater than or equal to {{{clear_growth_rate_threshold}}}."}
+    assert pctile == 50 or pctile == 90 or pctile == 99, {
+        'pctile': pctile,
+        'sfui_errorKeys': ['pctile'],
+        'sfui_errorTemplate': "{{{pctile}}} must be one of 50, 90, 99."}
+    assert num_cycles >= 1, {
+        'num_cycles': num_cycles,
+        'sfui_errorKeys': ['num_cycles'],
+        'sfui_errorTemplate': "{{{num_cycles}}} must be a positive integer."}
+    assert cycle_length_ >= historical_window_, {
+        'cycle_length': cycle_length_,
+        'historical_window': historical_window_,
+        'sfui_errorKeys': ['cycle_length', 'historical_window'],
+        'sfui_errorTemplate': "{{{cycle_length}}} must be greater than or equal to {{{historical_window}}}."}
+    curr = streams.pctile_over_window_histograms(pctile=pctile, filter_=filter_, window=current_window_,
+                                      exclude_errors=exclude_errors, group_by=group_by,
+                                      custom_filter=custom_filter,
+                                      use_kind_filter=use_kind_filter,
+                                      kind_filter=kind_filter,
+                                      exclude_errors_filter=exclude_errors_filter,
+                                      default_group_by=default_group_by,
+                                      default_allow_missing=default_allow_missing,
+                                      metric_names=metric_names)
+    hist = median(*[
+        streams.pctile_over_window_histograms(pctile=pctile, filter_=filter_, window=historical_window_,
+                                   exclude_errors=exclude_errors, group_by=group_by,
+                                   custom_filter=custom_filter, use_kind_filter=use_kind_filter,
+                                   kind_filter=kind_filter,
+                                   exclude_errors_filter=exclude_errors_filter,
+                                   default_group_by=default_group_by,
+                                   default_allow_missing=default_allow_missing,
+                                   metric_names=metric_names).timeshift(
+            cycle_length_ * i) for i in range(1, num_cycles + 1)])
+    fire_threshold = hist * (1 + fire_growth_rate_threshold)
+    clear_threshold = hist * (1 + clear_growth_rate_threshold)
+    ann = [annotate(curr, 'current window', {'sfui_streamType': 'signal'}),
+           annotate(hist, 'baseline',
+                    {'sfui_config': '{"signal_baseline": {"sfui_streamType":"signal"}}'}),
+           annotate(fire_threshold, 'fire threshold', {
+               'sfui_config': '{"signal_baseline": {"sfui_streamType":"threshold","sfui_state":"fire","sfui_orientation":"above"}}'})]
+    event_ann = {'percentile': str(pctile),
+                 'current_window': str(current_window_),
+                 'historical_window': str(historical_window_),
+                 'cycle_length': str(cycle_length_),
+                 'num_cycles': str(num_cycles),
+                 'fire_growth_rate_threshold': str(fire_growth_rate_threshold),
+                 'clear_growth_rate_threshold': str(clear_growth_rate_threshold),
+                 'alert_type': str(_alert_type),
+                 'detector_type': str(_detector_type),
+                 'sfui_incidentInformation': '[{"selectedIdentifiers":["curr","hist", "fire_threshold"], "conditionIdentifier":"signal_baseline"}]'}
+    non_empty_cond = conditions.volume_ha_nonempty_histograms(filter_=filter_, current_window=current_window_,
+                                                   historical_window=historical_window_,
+                                                   cycle_length=cycle_length_,
+                                                   num_cycles=num_cycles,
+                                                   exclude_errors=exclude_errors,
+                                                   pctile=vol_pctile_req_pos, group_by=group_by,
+                                                   custom_filter=custom_filter,
+                                                   use_kind_filter=use_kind_filter,
+                                                   kind_filter=kind_filter,
+                                                   exclude_errors_filter=exclude_errors_filter,
+                                                   default_group_by=default_group_by,
+                                                   default_allow_missing=default_allow_missing,
+                                                   metric_names=metric_names)
+    if volume_static_threshold is not None and volume_relative_threshold is not None:
+        static = conditions.static_on_volume_histograms(current_window_,
+                                             volume_static_threshold,
+                                             filter_=filter_,
+                                             exclude_errors=exclude_errors, group_by=group_by,
+                                             custom_filter=custom_filter,
+                                             use_kind_filter=use_kind_filter,
+                                             kind_filter=kind_filter,
+                                             exclude_errors_filter=exclude_errors_filter,
+                                             default_group_by=default_group_by,
+                                             default_allow_missing=default_allow_missing,
+                                             metric_names=metric_names)
+        relative = conditions.volume_ha_histograms(filter_=filter_, current_window=current_window_,
+                                        historical_window=historical_window_,
+                                        cycle_length=cycle_length_, num_cycles=num_cycles,
+                                        fire_threshold=volume_relative_threshold,
+                                        clear_threshold=volume_relative_threshold,
+                                        exclude_errors=exclude_errors, group_by=group_by,
+                                        custom_filter=custom_filter,
+                                        use_kind_filter=use_kind_filter,
+                                        kind_filter=kind_filter,
+                                        exclude_errors_filter=exclude_errors_filter,
+                                        default_group_by=default_group_by,
+                                        default_allow_missing=default_allow_missing,
+                                        metric_names=metric_names)
+        on_ = static and relative['on'] and non_empty_cond
+        off_ = relative['off'] and non_empty_cond
+    elif volume_static_threshold is not None:
+        static = conditions.static_on_volume_histograms(current_window_,
+                                             volume_static_threshold,
+                                             filter_=filter_,
+                                             exclude_errors=exclude_errors,
+                                             group_by=group_by, custom_filter=custom_filter,
+                                             use_kind_filter=use_kind_filter,
+                                             kind_filter=kind_filter,
+                                             exclude_errors_filter=exclude_errors_filter,
+                                             default_group_by=default_group_by,
+                                             default_allow_missing=default_allow_missing,
+                                             metric_names=metric_names)
+        on_ = static and non_empty_cond
+        off_ = non_empty_cond
+    elif volume_relative_threshold is not None:
+        relative = conditions.volume_ha_histograms(filter_=filter_, current_window=current_window_,
+                                        historical_window=historical_window_,
+                                        cycle_length=cycle_length_, num_cycles=num_cycles,
+                                        fire_threshold=volume_relative_threshold,
+                                        clear_threshold=volume_relative_threshold,
+                                        exclude_errors=exclude_errors, group_by=group_by,
+                                        custom_filter=custom_filter,
+                                        use_kind_filter=use_kind_filter,
+                                        kind_filter=kind_filter,
+                                        exclude_errors_filter=exclude_errors_filter,
+                                        default_group_by=default_group_by,
+                                        default_allow_missing=default_allow_missing,
+                                        metric_names=metric_names)
+        on_ = relative['on'] and non_empty_cond
+        off_ = relative['off'] and non_empty_cond
+    else:
+        on_ = non_empty_cond
+        off_ = non_empty_cond
+    # "hist is not None" has no effect on the detection, but does allow for the stream
+    # hist to participate in event details, e.g., the alert modal
+    return detect(when(curr > fire_threshold) and on_ and hist is not None,
+                  off=when(curr < clear_threshold) and off_,
+                  annotations=ann,
+                  event_annotations=event_ann, auto_resolve_after=auto_resolve_after)
 
 def deviations_from_norm(filter_=None, current_window=duration('5m'),
                          historical_window=duration('1h'),
@@ -39,30 +189,181 @@ def deviations_from_norm(filter_=None, current_window=duration('5m'),
                          fire_num_dev_threshold=3.5, clear_num_dev_threshold=3,
                          volume_static_threshold=None, volume_relative_threshold=None,
                          vol_pctile_req_pos=95, custom_filter=None, resource_type='service_operation',
-                         auto_resolve_after=None):
-    return historical_anomaly.deviations_from_norm(filter_=filter_, current_window=current_window,
-                                                   historical_window=historical_window,
-                                                   cycle_length=cycle_length, num_cycles=num_cycles,
+                         auto_resolve_after=None, _alert_type='latency', _detector_type='apm'):
+    # Detect when latency is too many deviations from its historical norm
+    # :param filter_ (filter): specifies dimensional scope of the detector, default=None
+    # :param current_window (duration): window whose latency is evaluated for being too high,
+    #                                      default=duration('5m')
+    # :param historical_window (duration): historical window length, whose latency is used to define
+    #                                       the baseline, default=duration('1h')
+    # :param cycle_length (duration): space between historical windows, default=duration('1w')
+    # :param num_cycles (positive integer): number of historical windows used to define the baseline,
+    #                                       default=4
+    # :param exclude_errors (boolean): whether to exclude error spans from latency metric, default=True
+    # :param group_by (list of strings): average latency by these (in addition to default grouping
+    #                    by cluster, service, operation), default=None
+    # :param fire_num_dev_threshold (number): number of historical (P90 - P50)'s from the historical P50
+    #                                the current P50 must be in order to trigger, default=3.5
+    # :param clear_num_dev_threshold (number): number of historical (P90 - P50)'s from the historical P50
+    #                                the current P50 must be in order to clear, default=3
+    # :param volume_static_threshold (number): threshold on request rate (per second) required for
+    #                    alert to trigger, default=None
+    # :param volume_relative_threshold (number): require request rate on window being evaluated to be
+    #                    at least this proportion of request rate on preceding window (used for
+    #                    trigger and clear), default=None
+    # :param vol_pctile_req_pos (number, percentage): percentage of historical window permitted to
+    #                    have request rate 0 (for trigger and clear), default=95
+    # :return: detect block that triggers when the latency, suitably filtered and grouped,
+    #           over the last current_window is more than
+    #           fire_num_dev_threshold deviations from the norm (similarly filtered and grouped),
+    #           calculated on num_cycles windows each of length
+    #           historical_window and spaced cycle_length apart;
+    #           clears when latency is less than clear_num_dev_threshold deviations from the norm;
+    #           plus suitable volume conditions
+    use_kind_filter = False
+    kind_filter = utils.V2_KIND_FILTER
+    exclude_errors_filter = not utils.RESOURCE_TYPE_MAPPING_HISTOGRAMS[resource_type]['error']['true']
+    default_group_by = utils.RESOURCE_TYPE_MAPPING_HISTOGRAMS[resource_type]['group_by']
+    default_allow_missing = utils.RESOURCE_TYPE_MAPPING_HISTOGRAMS[resource_type]['allow_missing']
+    metric_names = utils.RESOURCE_TYPE_MAPPING_HISTOGRAMS[resource_type]['metric_names']
+
+    current_window_ = duration(current_window)
+    historical_window_ = duration(historical_window)
+    cycle_length_ = duration(cycle_length)
+    assert fire_num_dev_threshold >= clear_num_dev_threshold, {
+        'fire_num_dev_threshold': fire_num_dev_threshold,
+        'clear_num_dev_threshold': clear_num_dev_threshold,
+        'sfui_errorKeys': ['fire_num_dev_threshold', 'clear_num_dev_threshold'],
+        'sfui_errorTemplate': "{{{fire_num_dev_threshold}}} must be greater than or equal to {{{clear_num_dev_threshold}}}."}
+    assert num_cycles >= 1, {
+        'num_cycles': num_cycles,
+        'sfui_errorKeys': ['num_cycles'],
+        'sfui_errorTemplate': "{{{num_cycles}}} must be a positive integer."}
+    assert cycle_length_ >= historical_window_, {
+        'cycle_length': cycle_length_,
+        'historical_window': historical_window_,
+        'sfui_errorKeys': ['cycle_length', 'historical_window'],
+        'sfui_errorTemplate': "{{{cycle_length}}} must be greater than or equal to {{{historical_window}}}."}
+    current_p50 = streams.pctile_over_window_histograms(pctile=50, filter_=filter_, window=current_window_,
+                                             exclude_errors=exclude_errors, group_by=group_by,
+                                             custom_filter=custom_filter, use_kind_filter=use_kind_filter,
+                                             kind_filter=kind_filter,
+                                             exclude_errors_filter=exclude_errors_filter,
+                                             default_group_by=default_group_by,
+                                             default_allow_missing=default_allow_missing,
+                                             metric_names=metric_names)
+    historical_p50 = median(
+        *[streams.pctile_over_window_histograms(pctile=50, filter_=filter_, window=historical_window_,
+                                     exclude_errors=exclude_errors, group_by=group_by,
+                                     custom_filter=custom_filter, use_kind_filter=use_kind_filter,
+                                     kind_filter=kind_filter,
+                                     exclude_errors_filter=exclude_errors_filter,
+                                     default_group_by=default_group_by,
+                                     default_allow_missing=default_allow_missing,
+                                     metric_names=metric_names).timeshift(
+            cycle_length_ * i) for i in range(1, num_cycles + 1)])
+    historical_p90 = median(
+        *[streams.pctile_over_window_histograms(pctile=90, filter_=filter_, window=historical_window_,
+                                     exclude_errors=exclude_errors, group_by=group_by,
+                                     custom_filter=custom_filter, use_kind_filter=use_kind_filter,
+                                     kind_filter=kind_filter,
+                                     exclude_errors_filter=exclude_errors_filter,
+                                     default_group_by=default_group_by,
+                                     default_allow_missing=default_allow_missing,
+                                     metric_names=metric_names).timeshift(
+            cycle_length_ * i) for i in range(1, num_cycles + 1)])
+    hist_spread = historical_p90 - historical_p50
+    fire_threshold = historical_p50 + fire_num_dev_threshold * hist_spread
+    clear_threshold = historical_p50 + clear_num_dev_threshold * hist_spread
+    ann = [annotate(current_p50, 'current window', {'sfui_streamType': 'signal'}),
+           annotate(historical_p50, 'baseline',
+                    {'sfui_config': '{"signal_baseline": {"sfui_streamType":"signal"}}'}),
+           annotate(fire_threshold, 'fire threshold', {
+               'sfui_config': '{"signal_baseline": {"sfui_streamType":"threshold","sfui_state":"fire","sfui_orientation":"above"}}'})]
+    event_ann = {'current_window': str(current_window_),
+                 'historical_window': str(historical_window_),
+                 'cycle_length': str(cycle_length_),
+                 'num_cycles': str(num_cycles),
+                 'fire_num_dev_threshold': str(fire_num_dev_threshold),
+                 'clear_num_dev_threshold': str(clear_num_dev_threshold),
+                 'alert_type': str(_alert_type),
+                 'detector_type': str(_detector_type),
+                 'sfui_incidentInformation': '[{"selectedIdentifiers":["current_p50","historical_p50", "fire_threshold"], "conditionIdentifier":"signal_baseline"}]'}
+    non_empty_cond = conditions.volume_ha_nonempty_histograms(filter_=filter_, current_window=current_window_,
+                                                   historical_window=historical_window_,
+                                                   cycle_length=cycle_length_,
+                                                   num_cycles=num_cycles,
                                                    exclude_errors=exclude_errors,
-                                                   group_by=group_by,
-                                                   fire_num_dev_threshold=fire_num_dev_threshold,
-                                                   clear_num_dev_threshold=clear_num_dev_threshold,
-                                                   volume_static_threshold=volume_static_threshold,
-                                                   volume_relative_threshold=volume_relative_threshold,
-                                                   vol_pctile_req_pos=vol_pctile_req_pos,
-                                                   custom_filter=custom_filter,
-                                                   use_kind_filter=False,
-                                                   kind_filter=utils.V2_KIND_FILTER,
-                                                   exclude_errors_filter=not
-                                                   utils.RESOURCE_TYPE_MAPPING[resource_type][
-                                                       'error'][
-                                                       'true'],
-                                                   default_group_by=
-                                                   utils.RESOURCE_TYPE_MAPPING[resource_type][
-                                                       'group_by'],
-                                                   default_allow_missing=
-                                                   utils.RESOURCE_TYPE_MAPPING[resource_type][
-                                                       'allow_missing'],
-                                                   metric_names=
-                                                   utils.RESOURCE_TYPE_MAPPING[resource_type][
-                                                       'metric_names'], auto_resolve_after=auto_resolve_after)
+                                                   pctile=vol_pctile_req_pos,
+                                                   group_by=group_by, custom_filter=custom_filter,
+                                                   use_kind_filter=use_kind_filter,
+                                                   kind_filter=kind_filter,
+                                                   exclude_errors_filter=exclude_errors_filter,
+                                                   default_group_by=default_group_by,
+                                                   default_allow_missing=default_allow_missing,
+                                                   metric_names=metric_names)
+    if volume_static_threshold is not None and volume_relative_threshold is not None:
+        static = conditions.static_on_volume_histograms(current_window_,
+                                             volume_static_threshold,
+                                             filter_=filter_,
+                                             exclude_errors=exclude_errors,
+                                             group_by=group_by, custom_filter=custom_filter,
+                                             use_kind_filter=use_kind_filter,
+                                             kind_filter=kind_filter,
+                                             exclude_errors_filter=exclude_errors_filter,
+                                             default_group_by=default_group_by,
+                                             default_allow_missing=default_allow_missing,
+                                             metric_names=metric_names)
+        relative = conditions.volume_ha_histograms(filter_=filter_, current_window=current_window_,
+                                        historical_window=historical_window_,
+                                        cycle_length=cycle_length_, num_cycles=num_cycles,
+                                        fire_threshold=volume_relative_threshold,
+                                        clear_threshold=volume_relative_threshold,
+                                        exclude_errors=exclude_errors, group_by=group_by,
+                                        custom_filter=custom_filter,
+                                        use_kind_filter=use_kind_filter,
+                                        kind_filter=kind_filter,
+                                        exclude_errors_filter=exclude_errors_filter,
+                                        default_group_by=default_group_by,
+                                        default_allow_missing=default_allow_missing,
+                                        metric_names=metric_names)
+        on_ = static and relative['on'] and non_empty_cond
+        off_ = relative['off'] and non_empty_cond
+    elif volume_static_threshold is not None:
+        static = conditions.static_on_volume_histograms(current_window_,
+                                             volume_static_threshold,
+                                             filter_=filter_,
+                                             exclude_errors=exclude_errors,
+                                             group_by=group_by, custom_filter=custom_filter,
+                                             use_kind_filter=use_kind_filter,
+                                             kind_filter=kind_filter,
+                                             exclude_errors_filter=exclude_errors_filter,
+                                             default_group_by=default_group_by,
+                                             default_allow_missing=default_allow_missing,
+                                             metric_names=metric_names)
+        on_ = static and non_empty_cond
+        off_ = non_empty_cond
+    elif volume_relative_threshold is not None:
+        relative = conditions.volume_ha_histograms(filter_=filter_, current_window=current_window_,
+                                        historical_window=historical_window_,
+                                        cycle_length=cycle_length_, num_cycles=num_cycles,
+                                        fire_threshold=volume_relative_threshold,
+                                        clear_threshold=volume_relative_threshold,
+                                        exclude_errors=exclude_errors, group_by=group_by,
+                                        custom_filter=custom_filter,
+                                        use_kind_filter=use_kind_filter,
+                                        kind_filter=kind_filter,
+                                        exclude_errors_filter=exclude_errors_filter,
+                                        default_group_by=default_group_by,
+                                        default_allow_missing=default_allow_missing,
+                                        metric_names=metric_names)
+        on_ = relative['on'] and non_empty_cond
+        off_ = relative['off'] and non_empty_cond
+    else:
+        on_ = non_empty_cond
+        off_ = non_empty_cond
+    # "historical_p50 is not None" has no effect on the detection, but does allow for the stream
+    # historical_p50 to participate in event details, e.g., the alert modal
+    return detect(when(current_p50 > fire_threshold) and on_ and historical_p50 is not None,
+                  off=when(current_p50 < clear_threshold) and off_, annotations=ann,
+                  event_annotations=event_ann, auto_resolve_after=auto_resolve_after)

@@ -1,4 +1,4 @@
-from signalfx.detectors.apm.errors.static_v2 import static
+from signalfx.detectors.apm.errors.static import static
 from signalfx.detectors.apm import utils as apm_utils
 from signalfx.detectors.rum import utils as rum_utils
 
@@ -18,6 +18,12 @@ def detector(current_window=duration('5m'),
                            fire_rate_threshold=fire_rate_threshold,
                            clear_rate_threshold=clear_rate_threshold,
                            attempt_threshold=attempt_threshold, filter_=filter_, group_by=group_by,
-                           custom_filter=custom_filter, resource_type=_key,
+                           custom_filter=custom_filter,
+                           use_kind_filter=False, kind_filter=apm_utils.V2_KIND_FILTER, r_up='sum',
+                           error_true=apm_utils.RESOURCE_TYPE_MAPPING[_key]['error']['true'],
+                           error_false=apm_utils.RESOURCE_TYPE_MAPPING[_key]['error']['false'],
+                           default_group_by=apm_utils.RESOURCE_TYPE_MAPPING[_key]['group_by'],
+                           default_allow_missing=apm_utils.RESOURCE_TYPE_MAPPING[_key]['allow_missing'],
+                           metric_names=apm_utils.RESOURCE_TYPE_MAPPING[_key]['metric_names'],
                            auto_resolve_after=auto_resolve_after, _alert_type='error.count',
                            _detector_type='rum', _resource_type=resource_type)

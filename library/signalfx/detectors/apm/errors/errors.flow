@@ -7,13 +7,13 @@ def detector(current_window=duration('5m'), preceding_window=duration('1h'),
              custom_filter=None):
     current_window_ = duration(current_window)
     preceding_window_ = duration(preceding_window)
-    growth_conditions = conditions.percentage_growth(current_window=current_window_,
+    growth_conditions = conditions.percentage_growth_histograms(current_window=current_window_,
                                                      preceding_window=preceding_window_,
                                                      fire_growth_threshold=fire_growth_threshold,
                                                      clear_growth_threshold=clear_growth_threshold,
                                                      filter_=filter_, group_by=group_by,
                                                      custom_filter=custom_filter)
-    static_conditions = conditions.error_rate_static(current_window=current_window_,
+    static_conditions = conditions.error_rate_static_histograms(current_window=current_window_,
                                                      filter_=filter_, group_by=group_by,
                                                      fire_rate_threshold=fire_rate_threshold,
                                                      clear_rate_threshold=clear_rate_threshold,

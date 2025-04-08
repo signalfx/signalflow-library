@@ -45,7 +45,7 @@ def ewma_plus_stddev(stream, duration_, num_stddev):
 
 def detector_median_iqr(stream, current_window=duration('5m'), historical_window=duration('1h'),
                         fire_num_iqr=2.2, clear_num_iqr=1.8, orientation='above',
-                        auto_resolve_after=None):
+                        auto_resolve_after=None, _alert_type='against-recent', _detector_type=None):
     # Args:
     #       stream: data stream
     #       current_window (duration) : the window whose behavior is being tested for abnormality
@@ -103,7 +103,9 @@ def detector_median_iqr(stream, current_window=duration('5m'), historical_window
                              'sfui_orientation':'above',
                              'sfui_trigger':'outside',
                              'influencedBy': 'clear_num_iqr'})]
-    event_annotations = {'current_window': str(current_window_)}
+    event_annotations = {'current_window': str(current_window_),
+                         'alert_type': str(_alert_type),
+                         'detector_type': str(_detector_type)}
     return detector_helper(recent_min, recent_max, fb, cb, ct, ft, orientation, annotations,
                            event_annotations=event_annotations, auto_resolve_after=auto_resolve_after)
 
@@ -112,11 +114,11 @@ def detector_mean_std(stream, current_window=duration('5m'),
                       historical_window=duration('1h'),
                       fire_num_stddev=3, clear_num_stddev=2.5,
                       orientation='above', ignore_extremes=True, calculation_mode='vanilla',
-                      auto_resolve_after=None):
+                      auto_resolve_after=None, _alert_type='against-recent', _detector_type=None):
     current_window_ = duration(current_window)
     historical_window_ = duration(historical_window)
     # Args:
-    #       stream: data stream
+    #       stream: data/histogram stream
     #       current_window (duration) : the window whose behavior is being tested for abnormality
     #           (optional, default=duration('5m'))
     #       historical_window (duration): the window whose behavior is used to define normality
@@ -173,7 +175,9 @@ def detector_mean_std(stream, current_window=duration('5m'),
                              'sfui_orientation':'above',
                              'sfui_trigger':'outside',
                              'influencedBy': 'clear_num_stddev'})]
-    event_annotations = {'current_window': str(current_window_)}
+    event_annotations = {'current_window': str(current_window_),
+                         'alert_type': str(_alert_type),
+                         'detector_type': str(_detector_type)}
     return detector_helper(recent_min, recent_max, fb, cb, ct, ft, orientation, annotations,
                            event_annotations=event_annotations, auto_resolve_after=auto_resolve_after)
 
@@ -181,7 +185,7 @@ def detector_mean_std(stream, current_window=duration('5m'),
 def detector_percentile(stream, current_window=duration('5m'),
                         historical_window=duration('1h'),
                         fire_percentile_threshold=99, clear_percentile_threshold=95,
-                        orientation='above', auto_resolve_after=None):
+                        orientation='above', auto_resolve_after=None, _alert_type='against-recent', _detector_type=None):
     # Args:
     #       stream: data stream
     #       current_window (duration) : the window whose behavior is being tested for abnormality
@@ -237,7 +241,9 @@ def detector_percentile(stream, current_window=duration('5m'),
                              'sfui_orientation':'above',
                              'sfui_trigger':'outside' ,
                              'influencedBy': 'clear_percentile_threshold'})]
-    event_annotations = {'current_window': str(current_window_)}
+    event_annotations = {'current_window': str(current_window_),
+                         'alert_type': str(_alert_type),
+                         'detector_type': str(_detector_type)}
     return detector_helper(recent_min, recent_max, fb, cb, ct, ft, orientation, annotations,
                            event_annotations=event_annotations, auto_resolve_after=auto_resolve_after)
 
@@ -245,9 +251,9 @@ def detector_percentile(stream, current_window=duration('5m'),
 def generic_detector_growth_rate(stream, current_window=duration('5m'),
                       historical_window=duration('1h'),
                       fire_growth_rate_threshold=0.2, clear_growth_rate_threshold=0.1,
-                      orientation='above', calculation_mode='vanilla', auto_resolve_after=None):
+                      orientation='above', calculation_mode='vanilla', auto_resolve_after=None, _alert_type='against-recent', _detector_type=None):
     # Args:
-    #       stream: data stream
+    #       stream: data/histogram stream
     #       current_window (duration) : the window whose behavior is being tested for abnormality
     #           (optional, default=duration('5m'))
     #       historical_window (duration): the window whose behavior is used to define normality
@@ -304,7 +310,9 @@ def generic_detector_growth_rate(stream, current_window=duration('5m'),
                              'sfui_orientation':'above',
                              'sfui_trigger':'outside' ,
                              'influencedBy': 'clear_growth_rate_threshold'})]
-    event_annotations = {'current_window': str(current_window_)}
+    event_annotations = {'current_window': str(current_window_),
+                         'alert_type': str(_alert_type),
+                         'detector_type': str(_detector_type)}
     return detector_helper(recent_min, recent_max, fb, cb, ct, ft, orientation, annotations,
                            event_annotations=event_annotations, auto_resolve_after=auto_resolve_after)
 

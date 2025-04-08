@@ -1,7 +1,7 @@
 DEFAULT_RESOLUTION = 60000
-AUTO_RESOLVE_AFTER = duration('1d')
 
 DEFAULT_ALLOW_MISSING = ['test', 'location']
+MAX_ALLOWED_CONSECUTIVE=10
 
 
 def get_group_by(use_location=False):
@@ -76,6 +76,11 @@ def assert_threshold(fire_threshold, clear_threshold, orientation):
             'sfui_errorTemplate': '{{{orientation}}} threshold orientation is not supported'
         }
 
+def assert_consecutive(consecutive):
+    assert consecutive <= 10, {
+            'consecutive': consecutive, 'max_allowed_consecutive': MAX_ALLOWED_CONSECUTIVE,
+            'sfui_errorKeys': ['consecutive', 'max_allowed_consecutive'],
+            'sfui_errorTemplate': '{{{consecutive}}} must be less than or equal to {{{max_allowed_consecutive}}}.'}
 
 def directional_condition(stream, fire_threshold_stream, orientation):
     if orientation == 'above':
@@ -90,14 +95,7 @@ def shift_resolution_condition(stream, fire_threshold_stream, orientation, shift
     if shifts_num < 1:
         return when(const(1) > 0)
 
-    first_shift = stream - stream.delta()
-    first_cond = directional_condition(first_shift, fire_threshold_stream, orientation)
+    shift = stream - stream.delta()
+    condition = directional_condition(shift, fire_threshold_stream, orientation)
 
-    if shifts_num == 1:
-        return first_cond
-    elif shifts_num == 2:
-        second_shift = first_shift - first_shift.delta()
-        return first_cond and directional_condition(second_shift, fire_threshold_stream, orientation)
-    else:
-        assert 0 > 1
-
+    return condition and shift_resolution_condition(shift, fire_threshold_stream, orientation, shifts_num=shifts_num - 1)

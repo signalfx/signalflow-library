@@ -7,7 +7,7 @@ def detector_mean_std(filter_=None, exclude_errors=False, group_by=None, custom_
                       num_windows=4, fire_num_stddev=3, clear_num_stddev=2.5,
                       discard_historical_outliers=True, orientation='above',
                       calculation_mode='across',
-                      auto_resolve_after=None):
+                      auto_resolve_after=None, _alert_type='requests', _detector_type='apm'):
     #
     # :param filter_:
     # :param exclude_errors:
@@ -34,7 +34,9 @@ def detector_mean_std(filter_=None, exclude_errors=False, group_by=None, custom_
                                                 discard_historical_outliers=discard_historical_outliers,
                                                 orientation=orientation,
                                                 calculation_mode=calculation_mode,
-                                                auto_resolve_after=auto_resolve_after)
+                                                auto_resolve_after=auto_resolve_after,
+                                                _alert_type=_alert_type,
+                                                _detector_type=_detector_type)
 
 
 def detector_growth_rate(filter_=None, exclude_errors=False, group_by=None, custom_filter=None,
@@ -43,7 +45,7 @@ def detector_growth_rate(filter_=None, exclude_errors=False, group_by=None, cust
                          num_windows=4, fire_growth_rate_threshold=0.2,
                          clear_growth_rate_threshold=0.1,
                          discard_historical_outliers=True, orientation='above',
-                         auto_resolve_after=None):
+                         auto_resolve_after=None, _alert_type='requests', _detector_type='apm'):
     #
     # :param filter_:
     # :param exclude_errors:
@@ -68,4 +70,6 @@ def detector_growth_rate(filter_=None, exclude_errors=False, group_by=None, cust
                                                    clear_growth_rate_threshold=clear_growth_rate_threshold,
                                                    discard_historical_outliers=discard_historical_outliers,
                                                    orientation=orientation,
-                                                   auto_resolve_after=auto_resolve_after)
+                                                   auto_resolve_after=auto_resolve_after,
+                                                   _alert_type=_alert_type,
+                                                   _detector_type=_detector_type)

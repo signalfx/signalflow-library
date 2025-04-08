@@ -1,10 +1,10 @@
 from signalfx.detectors.apm.requests import streams
-
+from signalfx.detectors.apm import utils as apm_utils
 
 def detector(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear_lasting=None,
              orientation='above', filter_=None, exclude_errors=False, group_by=None,
              custom_filter=None, resource_type='service_operation', auto_resolve_after=None,
-             _alert_type=None, _detector_type=None, _resource_type=None):
+             _alert_type='requests', _detector_type='apm', _resource_type=None):
     #
     # :param fire_threshold:
     # :param fire_lasting:
@@ -18,8 +18,12 @@ def detector(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear
     # :param resource_type:
     # :param auto_resolve_after:
     # :return:
-    d = streams.request_rate(filter_=filter_, exclude_errors=exclude_errors, group_by=group_by,
-                             custom_filter=custom_filter, resource_type=resource_type)
+    if apm_utils.is_apm_resource(resource_type):
+            d = streams.request_rate_histograms(filter_=filter_, exclude_errors=exclude_errors, group_by=group_by,
+                                 custom_filter=custom_filter, resource_type=resource_type)
+        else:
+            d = streams.request_rate(filter_=filter_, exclude_errors=exclude_errors, group_by=group_by,
+                                 custom_filter=custom_filter, resource_type=resource_type)
 
     fire_threshold_stream = const(fire_threshold)
     clear_threshold_stream = const(clear_threshold)

@@ -8,7 +8,8 @@ def detector_mean_std(filter_=None, exclude_errors=False, group_by=None, custom_
                       space_between_windows=duration('1w'),
                       num_windows=4, fire_num_stddev=3, clear_num_stddev=2.5,
                       discard_historical_outliers=True, orientation='above',
-                      calculation_mode='across', auto_resolve_after=None):
+                      calculation_mode='across', auto_resolve_after=None,
+                      _alert_type='requests', _detector_type='apm'):
     # :param filter_:
     # :param exclude_errors:
     # :param group_by:
@@ -24,7 +25,7 @@ def detector_mean_std(filter_=None, exclude_errors=False, group_by=None, custom_
     # :param calculation_mode:
     # :param auto_resolve_after:
     # :return:
-    d = streams.request_rate(filter_=filter_, exclude_errors=exclude_errors, group_by=group_by,
+    d = streams.request_rate_histograms(filter_=filter_, exclude_errors=exclude_errors, group_by=group_by,
                              custom_filter=custom_filter, resource_type=resource_type)
     return against_periods.detector_mean_std(d, window_to_compare=window_to_compare,
                                              space_between_windows=space_between_windows,
@@ -34,7 +35,9 @@ def detector_mean_std(filter_=None, exclude_errors=False, group_by=None, custom_
                                              discard_historical_outliers=discard_historical_outliers,
                                              orientation=orientation,
                                              calculation_mode=calculation_mode,
-                                             auto_resolve_after=auto_resolve_after)
+                                             auto_resolve_after=auto_resolve_after,
+                                             _alert_type=_alert_type,
+                                             _detector_type=_detector_type)
 
 
 def detector_growth_rate(filter_=None, exclude_errors=False, group_by=None, custom_filter=None,
@@ -43,7 +46,7 @@ def detector_growth_rate(filter_=None, exclude_errors=False, group_by=None, cust
                          num_windows=4, fire_growth_rate_threshold=0.2,
                          clear_growth_rate_threshold=0.1,
                          discard_historical_outliers=True, orientation='above',
-                         auto_resolve_after=None):
+                         auto_resolve_after=None, _alert_type='requests', _detector_type='apm'):
     #
     # :param filter_:
     # :param exclude_errors:
@@ -59,7 +62,7 @@ def detector_growth_rate(filter_=None, exclude_errors=False, group_by=None, cust
     # :param orientation:
     # :param auto_resolve_after:
     # :return:
-    d = streams.request_rate(filter_=filter_, exclude_errors=exclude_errors, group_by=group_by,
+    d = streams.request_rate_histograms(filter_=filter_, exclude_errors=exclude_errors, group_by=group_by,
                              custom_filter=custom_filter, resource_type=resource_type)
     return against_periods.detector_growth_rate(d, window_to_compare=window_to_compare,
                                                 space_between_windows=space_between_windows,
@@ -68,4 +71,6 @@ def detector_growth_rate(filter_=None, exclude_errors=False, group_by=None, cust
                                                 clear_growth_rate_threshold=clear_growth_rate_threshold,
                                                 discard_historical_outliers=discard_historical_outliers,
                                                 orientation=orientation,
-                                                auto_resolve_after=auto_resolve_after)
+                                                auto_resolve_after=auto_resolve_after,
+                                                _alert_type=_alert_type,
+                                                _detector_type=_detector_type)

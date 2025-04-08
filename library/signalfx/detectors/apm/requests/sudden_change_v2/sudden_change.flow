@@ -7,7 +7,7 @@ def detector_mean_std(filter_=None, exclude_errors=False, group_by=None, custom_
                       historical_window=duration('1h'),
                       fire_num_stddev=3, clear_num_stddev=2.5,
                       orientation='above', ignore_extremes=True, calculation_mode='ewma',
-                      auto_resolve_after=None):
+                      auto_resolve_after=None, _alert_type='requests', _detector_type='apm'):
     #
     # :param filter_:
     # :param exclude_errors:
@@ -23,7 +23,7 @@ def detector_mean_std(filter_=None, exclude_errors=False, group_by=None, custom_
     # :param calculation_mode:
     # :param auto_resolve_after:
     # :return:
-    d = streams.request_rate(filter_=filter_, exclude_errors=exclude_errors, group_by=group_by,
+    d = streams.request_rate_histograms(filter_=filter_, exclude_errors=exclude_errors, group_by=group_by,
                              custom_filter=custom_filter, resource_type=resource_type)
     return against_recent.detector_mean_std(d, current_window=current_window,
                                             historical_window=historical_window,
@@ -32,14 +32,17 @@ def detector_mean_std(filter_=None, exclude_errors=False, group_by=None, custom_
                                             orientation=orientation,
                                             ignore_extremes=ignore_extremes,
                                             calculation_mode=calculation_mode,
-                                            auto_resolve_after=auto_resolve_after)
+                                            auto_resolve_after=auto_resolve_after,
+                                            _alert_type=_alert_type,
+                                            _detector_type=_detector_type)
 
 
 def detector_growth_rate(filter_=None, exclude_errors=False, group_by=None, custom_filter=None,
                          resource_type='service_operation', current_window=duration('5m'),
                          historical_window=duration('1h'),
                          fire_growth_rate_threshold=0.2, clear_growth_rate_threshold=0.1,
-                         orientation='above', calculation_mode='ewma', auto_resolve_after=None):
+                         orientation='above', calculation_mode='ewma', auto_resolve_after=None,
+                         _alert_type='requests', _detector_type='apm'):
     #
     # :param filter_:
     # :param exclude_errors:
@@ -54,7 +57,7 @@ def detector_growth_rate(filter_=None, exclude_errors=False, group_by=None, cust
     # :param calculation_mode:
     # :param auto_resolve_after:
     # :return:
-    d = streams.request_rate(filter_=filter_, exclude_errors=exclude_errors, group_by=group_by,
+    d = streams.request_rate_histograms(filter_=filter_, exclude_errors=exclude_errors, group_by=group_by,
                              custom_filter=custom_filter, resource_type=resource_type)
     return against_recent.generic_detector_growth_rate(d, current_window=current_window,
                                                        historical_window=historical_window,
@@ -62,4 +65,6 @@ def detector_growth_rate(filter_=None, exclude_errors=False, group_by=None, cust
                                                        clear_growth_rate_threshold=clear_growth_rate_threshold,
                                                        orientation=orientation,
                                                        calculation_mode=calculation_mode,
-                                                       auto_resolve_after=auto_resolve_after)
+                                                       auto_resolve_after=auto_resolve_after,
+                                                       _alert_type=_alert_type,
+                                                       _detector_type=_detector_type)

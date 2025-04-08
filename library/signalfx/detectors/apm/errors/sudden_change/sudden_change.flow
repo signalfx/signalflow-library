@@ -10,7 +10,7 @@ def detector(current_window=duration('5m'), preceding_window=duration('1h'),
              default_group_by=utils.DEFAULT_GROUPBY,
              default_allow_missing=utils.DEFAULT_ALLOW_MISSING, r_up='delta',
              metric_names=utils.PCTILE_TO_METRIC,
-             auto_resolve_after=None):
+             auto_resolve_after=None, _alert_type='errors', _detector_type='apm'):
     # Detect when error rate grows by a specified percentage
     # :param current_window (duration): window whose error rate is evaluated for being too high,
     #                                      default=duration('5m')
@@ -18,7 +18,7 @@ def detector(current_window=duration('5m'), preceding_window=duration('1h'),
     #                                        default=duration('1h')
     # :param fire_growth_threshold (number): error rate growth required to trigger
     # :param clear_growth_threshold (number): error rate growth required to clear
-    # :param attempt_threshold (?integer?) : threshold on number of attempts (errors + non-errors)
+    # :param attempt_threshold (number) : threshold on number of attempts (errors + non-errors)
     #                    in the window being evaluated in order to trigger, default=1
     # :param filter_ (filter): specifies dimensional scope of the detector, default=None
     # :param group_by (list of strings): group errors and non-errors by these (in addition to default grouping
@@ -61,6 +61,8 @@ def detector(current_window=duration('5m'), preceding_window=duration('1h'),
                'sfui_config': '{"ep_above_ft": {"sfui_streamType":"threshold","sfui_state":"fire","sfui_orientation":"above"}}'})]
     event_ann = {'current_window': str(current_window_),
                  'preceding_window': str(preceding_window_),
+                 'alert_type': str(_alert_type),
+                 'detector_type': str(_detector_type),
                  'sfui_incidentInformation': '[{"selectedIdentifiers":["fire_threshold","current_error_pct","preceding_error_pct"], "conditionIdentifier":"ep_above_ft"}]'}
     attempt_condition = conditions.volume(duration_=current_window_, shift=duration(0),
                                           filter_=filter_, group_by=group_by, num_error_threshold=0,

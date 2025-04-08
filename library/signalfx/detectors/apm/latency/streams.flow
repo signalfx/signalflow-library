@@ -36,6 +36,40 @@ def pctile_over_window(pctile=90, filter_=None, window=duration('5m'), exclude_e
             scale(scale_by).percentile(50, over=duration(window))
 
 
+def pctile_over_window_histograms(pctile=90, filter_=None, window=duration('5m'), exclude_errors=True,
+                       group_by=None, use_ms=True, custom_filter=None, use_kind_filter=True,
+                       kind_filter=utils.V2_KIND_FILTER,
+                       exclude_errors_filter=utils.V2_EXCLUDE_ERRORS_FILTER,
+                       default_group_by=utils.V2_DEFAULT_GROUPBY,
+                       default_allow_missing=utils.V2_DEFAULT_ALLOW_MISSING,
+                       metric_names=utils.RESOURCE_TYPE_MAPPING_HISTOGRAMS['service_operation']['metric_names']):
+    #
+    #:param filter_:
+    #:param pctile:
+    #:return: (stream) representing specified percentile over specified window
+    #  NB   if errors are included, the error and non-error streams will simply be averaged
+    #           (unless of course 'error' is part of the group_by ..)
+    #
+    assert pctile == 50 or pctile == 75 or pctile == 90 or pctile == 99
+    filter__ = utils.merge_filters(filter_, exclude_errors, use_kind_filter=use_kind_filter,
+                                   custom_filter=custom_filter, kind_filter=kind_filter,
+                                   exclude_errors_filter=exclude_errors_filter)
+    gp_by = utils.merge_group_by_with_default(group_by, default=default_group_by)
+
+    if use_ms is True:
+        scale_by = 0.000001
+    else:
+        scale_by = 1.0
+    if window is None:
+        return histogram(metric_names, filter=filter__, resolution=utils.V2_DATA_RESOLUTION_TEN_SECONDS)\
+                    .percentile(pct=pctile, by=gp_by, allow_missing=default_allow_missing)\
+                    .scale(scale_by)
+    else:
+        return histogram(metric_names, filter=filter__, resolution=utils.V2_DATA_RESOLUTION_TEN_SECONDS)\
+                    .percentile(pct=pctile, by=gp_by, allow_missing=default_allow_missing, over=duration(window))\
+                    .scale(scale_by)
+
+
 def growth_rate_thresholds_sc(pctile=90, filter_=None, current_window=duration('5m'),
                               historical_window=duration('1h'),
                               fire_growth_rate_threshold=0.2, clear_growth_rate_threshold=0.1,
@@ -46,6 +80,26 @@ def growth_rate_thresholds_sc(pctile=90, filter_=None, current_window=duration('
                               default_allow_missing=utils.DEFAULT_ALLOW_MISSING,
                               metric_names=utils.PCTILE_TO_METRIC):
     hist = pctile_over_window(pctile=pctile, filter_=filter_, window=duration(historical_window),
+                              exclude_errors=exclude_errors, group_by=group_by,
+                              custom_filter=custom_filter, use_kind_filter=use_kind_filter,
+                              kind_filter=kind_filter, exclude_errors_filter=exclude_errors_filter,
+                              default_group_by=default_group_by,
+                              default_allow_missing=default_allow_missing,
+                              metric_names=metric_names).timeshift(duration(current_window))
+    return {'fire_threshold': hist * (1 + fire_growth_rate_threshold),
+            'clear_threshold': hist * (1 + clear_growth_rate_threshold)}
+
+
+def growth_rate_thresholds_sc_histograms(pctile=90, filter_=None, current_window=duration('5m'),
+                              historical_window=duration('1h'),
+                              fire_growth_rate_threshold=0.2, clear_growth_rate_threshold=0.1,
+                              exclude_errors=True, group_by=None, custom_filter=None,
+                              use_kind_filter=True, kind_filter=utils.V2_KIND_FILTER,
+                              exclude_errors_filter=utils.V2_EXCLUDE_ERRORS_FILTER,
+                              default_group_by=utils.V2_DEFAULT_GROUPBY,
+                              default_allow_missing=utils.V2_DEFAULT_ALLOW_MISSING,
+                              metric_names=utils.RESOURCE_TYPE_MAPPING_HISTOGRAMS['service_operation']['metric_names']):
+    hist = pctile_over_window_histograms(pctile=pctile, filter_=filter_, window=duration(historical_window),
                               exclude_errors=exclude_errors, group_by=group_by,
                               custom_filter=custom_filter, use_kind_filter=use_kind_filter,
                               kind_filter=kind_filter, exclude_errors_filter=exclude_errors_filter,
@@ -67,6 +121,29 @@ def growth_rate_thresholds_ha(pctile=90, filter_=None,
                               default_allow_missing=utils.DEFAULT_ALLOW_MISSING,
                               metric_names=utils.PCTILE_TO_METRIC):
     hist = median(*[pctile_over_window(pctile=pctile, filter_=filter_, window=duration(
+        historical_window), exclude_errors=exclude_errors, group_by=group_by,
+                                       custom_filter=custom_filter, use_kind_filter=use_kind_filter,
+                                       kind_filter=kind_filter,
+                                       exclude_errors_filter=exclude_errors_filter,
+                                       default_group_by=default_group_by,
+                                       default_allow_missing=default_allow_missing,
+                                       metric_names=metric_names).timeshift(
+        duration(cycle_length) * i) for i in range(1, num_cycles + 1)])
+    return {'fire_threshold': hist * (1 + fire_growth_rate_threshold),
+            'clear_threshold': hist * (1 + clear_growth_rate_threshold)}
+
+
+def growth_rate_thresholds_ha_histograms(pctile=90, filter_=None,
+                              historical_window=duration('1h'),
+                              cycle_length=duration('1w'), num_cycles=4,
+                              fire_growth_rate_threshold=0.2, clear_growth_rate_threshold=0.1,
+                              exclude_errors=True, group_by=None, custom_filter=None,
+                              use_kind_filter=True, kind_filter=utils.V2_KIND_FILTER,
+                              exclude_errors_filter=utils.V2_EXCLUDE_ERRORS_FILTER,
+                              default_group_by=utils.V2_DEFAULT_GROUPBY,
+                              default_allow_missing=utils.V2_DEFAULT_ALLOW_MISSING,
+                              metric_names=utils.RESOURCE_TYPE_MAPPING_HISTOGRAMS['service_operation']['metric_names']):
+    hist = median(*[pctile_over_window_histograms(pctile=pctile, filter_=filter_, window=duration(
         historical_window), exclude_errors=exclude_errors, group_by=group_by,
                                        custom_filter=custom_filter, use_kind_filter=use_kind_filter,
                                        kind_filter=kind_filter,
@@ -121,6 +198,45 @@ def deviations_from_norm_sc(filter_=None, current_window=duration('5m'),
     return (current_p50 - historical_p50) / hist_spread
 
 
+def deviations_from_norm_sc_histograms(filter_=None, current_window=duration('5m'),
+                            historical_window=duration('1h'),
+                            exclude_errors=True, group_by=None, custom_filter=None,
+                            use_kind_filter=True, kind_filter=utils.V2_KIND_FILTER,
+                            exclude_errors_filter=utils.V2_EXCLUDE_ERRORS_FILTER,
+                            default_group_by=utils.V2_DEFAULT_GROUPBY,
+                            default_allow_missing=utils.V2_DEFAULT_ALLOW_MISSING,
+                            metric_names=utils.RESOURCE_TYPE_MAPPING_HISTOGRAMS['service_operation']['metric_names']):
+    current_p50 = pctile_over_window_histograms(pctile=50, filter_=filter_, window=duration(current_window),
+                                     exclude_errors=exclude_errors, group_by=group_by,
+                                     custom_filter=custom_filter, use_kind_filter=use_kind_filter,
+                                     kind_filter=kind_filter,
+                                     exclude_errors_filter=exclude_errors_filter,
+                                     default_group_by=default_group_by,
+                                     default_allow_missing=default_allow_missing,
+                                     metric_names=metric_names)
+    historical_p50 = pctile_over_window_histograms(pctile=50, filter_=filter_,
+                                        window=duration(historical_window),
+                                        exclude_errors=exclude_errors, group_by=group_by,
+                                        custom_filter=custom_filter,
+                                        use_kind_filter=use_kind_filter,
+                                        kind_filter=kind_filter,
+                                        exclude_errors_filter=exclude_errors_filter,
+                                        default_group_by=default_group_by,
+                                        default_allow_missing=default_allow_missing,
+                                        metric_names=metric_names).timeshift(duration(current_window))
+    historical_p90 = pctile_over_window_histograms(pctile=90, filter_=filter_,
+                                        window=duration(historical_window),
+                                        exclude_errors=exclude_errors, group_by=group_by,
+                                        custom_filter=custom_filter,
+                                        use_kind_filter=use_kind_filter,
+                                        kind_filter=kind_filter,
+                                        exclude_errors_filter=exclude_errors_filter,
+                                        default_group_by=default_group_by,
+                                        default_allow_missing=default_allow_missing,
+                                        metric_names=metric_names).timeshift(duration(current_window))
+    hist_spread = historical_p90 - historical_p50
+    return (current_p50 - historical_p50) / hist_spread
+
 def deviations_from_norm_ha(filter_, current_window=duration('5m'),
                             historical_window=duration('1h'),
                             cycle_length=duration('1w'),
@@ -151,6 +267,48 @@ def deviations_from_norm_ha(filter_, current_window=duration('5m'),
             duration(cycle_length) * i) for i in range(1, num_cycles + 1)])
     historical_p90 = median(
         *[pctile_over_window(pctile=90, filter_=filter_, window=duration(historical_window),
+                             exclude_errors=exclude_errors, group_by=group_by,
+                             custom_filter=custom_filter, use_kind_filter=use_kind_filter,
+                             kind_filter=kind_filter,
+                             exclude_errors_filter=exclude_errors_filter,
+                             default_group_by=default_group_by,
+                             default_allow_missing=default_allow_missing,
+                             metric_names=metric_names).timeshift(
+            duration(cycle_length) * i) for i in range(1, num_cycles + 1)])
+    hist_spread = historical_p90 - historical_p50
+    return (current_p50 - historical_p50) / hist_spread
+
+
+def deviations_from_norm_ha_histograms(filter_, current_window=duration('5m'),
+                            historical_window=duration('1h'),
+                            cycle_length=duration('1w'),
+                            num_cycles=4,
+                            exclude_errors=True, group_by=None, custom_filter=None,
+                            use_kind_filter=True, kind_filter=utils.V2_KIND_FILTER,
+                            exclude_errors_filter=utils.V2_EXCLUDE_ERRORS_FILTER,
+                            default_group_by=utils.V2_DEFAULT_GROUPBY,
+                            default_allow_missing=utils.V2_DEFAULT_ALLOW_MISSING,
+                            metric_names=utils.RESOURCE_TYPE_MAPPING_HISTOGRAMS['service_operation']['metric_names']):
+    current_p50 = pctile_over_window_histograms(pctile=50, filter_=filter_, window=duration(current_window),
+                                     exclude_errors=exclude_errors, group_by=group_by,
+                                     custom_filter=custom_filter, use_kind_filter=use_kind_filter,
+                                     kind_filter=kind_filter,
+                                     exclude_errors_filter=exclude_errors_filter,
+                                     default_group_by=default_group_by,
+                                     default_allow_missing=default_allow_missing,
+                                     metric_names=metric_names)
+    historical_p50 = median(
+        *[pctile_over_window_histograms(pctile=50, filter_=filter_, window=duration(historical_window),
+                             exclude_errors=exclude_errors, group_by=group_by,
+                             custom_filter=custom_filter, use_kind_filter=use_kind_filter,
+                             kind_filter=kind_filter,
+                             exclude_errors_filter=exclude_errors_filter,
+                             default_group_by=default_group_by,
+                             default_allow_missing=default_allow_missing,
+                             metric_names=metric_names).timeshift(
+            duration(cycle_length) * i) for i in range(1, num_cycles + 1)])
+    historical_p90 = median(
+        *[pctile_over_window_histograms(pctile=90, filter_=filter_, window=duration(historical_window),
                              exclude_errors=exclude_errors, group_by=group_by,
                              custom_filter=custom_filter, use_kind_filter=use_kind_filter,
                              kind_filter=kind_filter,
@@ -198,6 +356,42 @@ def volume(filter_=None, window=duration('5m'), exclude_errors=True, use_trimmed
         return vol.percentile(pctile, over=duration(window))
 
 
+def volume_histograms(filter_=None, window=duration('5m'), exclude_errors=True,
+           use_trimmed_mean=True, pctile=95, group_by=None, custom_filter=None,
+           use_kind_filter=True, kind_filter=utils.V2_KIND_FILTER,
+           exclude_errors_filter=utils.V2_EXCLUDE_ERRORS_FILTER,
+           default_group_by=utils.V2_DEFAULT_GROUPBY,
+           default_allow_missing=utils.V2_DEFAULT_ALLOW_MISSING,
+           metric_names=utils.RESOURCE_TYPE_MAPPING_HISTOGRAMS['service_operation']['metric_names']):
+    #
+    # :param filter_:
+    # :param window:
+    # :param exclude_errors:
+    # :param use_trimmed_mean (boolean): if True, use trimmed mean; else use percentile specified
+    # :param pctile (number): percentile to use, expressed as number between 0 and 100; only in
+    #       effect when use_trimmed_mean is not True
+    # :return:
+    filter__ = utils.merge_filters(filter_, exclude_errors, use_kind_filter=use_kind_filter,
+                                   custom_filter=custom_filter, kind_filter=kind_filter,
+                                   exclude_errors_filter=exclude_errors_filter)
+    gp_by = utils.merge_group_by_with_default(group_by, default=default_group_by)
+    if metric_names is not None:
+        vol = histogram(metric_names, filter=filter__, resolution=utils.V2_DATA_RESOLUTION_TEN_SECONDS)\
+                        .count(by=gp_by, allow_missing=default_allow_missing)\
+                        .rate(by=gp_by, allow_missing=default_allow_missing)
+    else:
+        # adding this so non_empty_cond has no effect for resource_type schemas missing "count" metric
+        vol = const(1)
+    if window is None:
+        return vol
+    elif use_trimmed_mean is True:
+        window_ = duration(window)
+        return a_r_streams.clamper(vol, window_, 2, 'vanilla').mean(over=window_)
+    else:
+        assert pctile >= 0 and pctile <= 100
+        return vol.percentile(pct=pctile, over=duration(window))
+
+
 def volumes_sc(filter_=None, current_window=duration('5m'), historical_window=duration('1h'),
                exclude_errors=True, use_trimmed_mean=True, pctile=95, group_by=None,
                custom_filter=None,
@@ -216,6 +410,36 @@ def volumes_sc(filter_=None, current_window=duration('5m'), historical_window=du
                               default_allow_missing=default_allow_missing,
                               metric_names=metric_names),
             'historical': volume(filter_=filter_, window=duration(historical_window),
+                                 exclude_errors=exclude_errors, use_trimmed_mean=use_trimmed_mean,
+                                 pctile=pctile, group_by=group_by,
+                                 custom_filter=custom_filter,
+                                 use_kind_filter=use_kind_filter,
+                                 kind_filter=kind_filter,
+                                 exclude_errors_filter=exclude_errors_filter,
+                                 default_group_by=default_group_by,
+                                 default_allow_missing=default_allow_missing,
+                                 metric_names=metric_names).timeshift(
+                duration(current_window))}
+
+
+def volumes_sc_histograms(filter_=None, current_window=duration('5m'), historical_window=duration('1h'),
+               exclude_errors=True, use_trimmed_mean=True, pctile=95, group_by=None,
+               custom_filter=None,
+               use_kind_filter=True, kind_filter=utils.V2_KIND_FILTER,
+               exclude_errors_filter=utils.V2_EXCLUDE_ERRORS_FILTER,
+               default_group_by=utils.V2_DEFAULT_GROUPBY,
+               default_allow_missing=utils.V2_DEFAULT_ALLOW_MISSING,
+               metric_names=utils.RESOURCE_TYPE_MAPPING_HISTOGRAMS['service_operation']['metric_names']):
+    return {'current': volume_histograms(filter_=filter_, window=duration(current_window),
+                              exclude_errors=exclude_errors, use_trimmed_mean=use_trimmed_mean,
+                              pctile=pctile, group_by=group_by, custom_filter=custom_filter,
+                              use_kind_filter=use_kind_filter,
+                              kind_filter=kind_filter,
+                              exclude_errors_filter=exclude_errors_filter,
+                              default_group_by=default_group_by,
+                              default_allow_missing=default_allow_missing,
+                              metric_names=metric_names),
+            'historical': volume_histograms(filter_=filter_, window=duration(historical_window),
                                  exclude_errors=exclude_errors, use_trimmed_mean=use_trimmed_mean,
                                  pctile=pctile, group_by=group_by,
                                  custom_filter=custom_filter,
@@ -257,3 +481,35 @@ def volumes_ha(filter_=None, current_window=duration('5m'), historical_window=du
                               default_allow_missing=default_allow_missing,
                               metric_names=metric_names),
             'historical': h}
+
+
+def volumes_ha_histograms(filter_=None, current_window=duration('5m'), historical_window=duration('1h'),
+               cycle_length=duration('1w'), num_cycles=4, exclude_errors=True,
+               use_trimmed_mean=True, pctile=95, group_by=None, custom_filter=None,
+               use_kind_filter=True, kind_filter=utils.V2_KIND_FILTER,
+               exclude_errors_filter=utils.V2_EXCLUDE_ERRORS_FILTER,
+               default_group_by=utils.V2_DEFAULT_GROUPBY,
+               default_allow_missing=utils.V2_DEFAULT_ALLOW_MISSING,
+               metric_names=utils.RESOURCE_TYPE_MAPPING_HISTOGRAMS['service_operation']['metric_names']):
+    h = median(*[
+        volume_histograms(filter_=filter_, window=duration(historical_window),
+               exclude_errors=exclude_errors, use_trimmed_mean=use_trimmed_mean,
+               pctile=pctile, group_by=group_by, custom_filter=custom_filter,
+               use_kind_filter=use_kind_filter,
+               kind_filter=kind_filter,
+               exclude_errors_filter=exclude_errors_filter,
+               default_group_by=default_group_by,
+               default_allow_missing=default_allow_missing,
+               metric_names=metric_names).timeshift(
+            duration(cycle_length) * i) for i in range(1, num_cycles + 1)])
+    return {'current': volume_histograms(filter_=filter_, window=duration(current_window),
+                              exclude_errors=exclude_errors, use_trimmed_mean=use_trimmed_mean,
+                              pctile=pctile, group_by=group_by, custom_filter=custom_filter,
+                              use_kind_filter=use_kind_filter,
+                              kind_filter=kind_filter,
+                              exclude_errors_filter=exclude_errors_filter,
+                              default_group_by=default_group_by,
+                              default_allow_missing=default_allow_missing,
+                              metric_names=metric_names),
+            'historical': h}
+

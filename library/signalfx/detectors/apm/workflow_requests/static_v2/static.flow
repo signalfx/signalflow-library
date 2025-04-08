@@ -3,7 +3,7 @@ from signalfx.detectors.apm.requests.static_v2 import static
 
 def detector(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear_lasting=None,
              orientation='above', filter_=None, exclude_errors=False, group_by=None,
-             custom_filter=None, auto_resolve_after=None):
+             custom_filter=None, auto_resolve_after=None, _alert_type='requests', _detector_type='apm'):
     #
     # :param fire_threshold:
     # :param fire_lasting:
@@ -20,4 +20,4 @@ def detector(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear
                            clear_threshold=clear_threshold, clear_lasting=clear_lasting,
                            orientation=orientation, filter_=filter_, exclude_errors=exclude_errors,
                            group_by=group_by, custom_filter=custom_filter, resource_type='workflow',
-                           auto_resolve_after=auto_resolve_after)
+                           auto_resolve_after=auto_resolve_after, _alert_type=_alert_type, _detector_type=_detector_type)

@@ -11,7 +11,7 @@ def detector(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear
              default_group_by=utils.DEFAULT_GROUPBY,
              default_allow_missing=utils.DEFAULT_ALLOW_MISSING,
              metric_names=utils.PCTILE_TO_METRIC, auto_resolve_after=None,
-             _alert_type=None, _detector_type=None, _resource_type=None):
+             _alert_type='latency', _detector_type='apm', _resource_type=None):
     # Detect when latency exceeds a specified static threshold for a specified percent of duration
     # :param fire_threshold (number): latency threshold required to trigger, expressed in
     #                   nanoseconds or milliseconds (see use_ms)

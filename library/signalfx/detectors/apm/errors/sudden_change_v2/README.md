@@ -15,9 +15,9 @@ The `detector` function detect when the error ratio grows by a specified amount 
 |filter_|filter|specifies dimensional scope of the detector (on built-in dimensions)|None|
 |group_by|list of strings|group both errors and non-errors by these (in addition to default grouping associated with resource type)|None|
 |custom_filter|filter|specifies dimensional scope of the detector (on custom dimensions)|None|
-|resource_type|string|key from [RESOURCE_TYPE_MAPPING](../../utils.flow), determines schema|'service_operation'|
+|resource_type|string|key from [RESOURCE_TYPE_MAPPING_HISTOGRAMS](../../utils.flow), determines schema|'service_operation'|
 |auto_resolve_after|duration|if provided, duration after which to clear when group drops from schema or has value None|None|             
-             
+
 
 It returns a detect block that triggers when the error ratio for`filter_ and custom_filter`, grouped by `group_by` (and the default), over the last `current_window` is greater than `1 + fire_growth_threshold` times the error ratio of the preceding `preceding_window`, and when at least `attempt_threshold` requests were made over the last `current_window`; clears when the error ratio is less than `1 + clear_growth_threshold` times the baseline error ratio.
 
@@ -26,7 +26,7 @@ It returns a detect block that triggers when the error ratio for`filter_ and cus
 ~~~~~~~~~~~~~~~~~~~~
 from signalfx.detectors.apm.errors.sudden_change_v2 import sudden_change
 
-sudden_change.detector(filter_=filter('sf_service', 'my_svc') and filter('sf_operation', 'my_op')).publish('my_det')
+sudden_change.detector(filter_=filter('service.name', 'my_svc') and filter('sf_operation', 'my_op')).publish('my_det')
 ~~~~~~~~~~~~~~~~~~~~
 
 

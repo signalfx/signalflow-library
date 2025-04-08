@@ -1,20 +1,77 @@
 from signalfx.detectors.apm.errors.sudden_change import sudden_change
+from signalfx.detectors.apm.errors import streams, conditions
 from signalfx.detectors.apm import utils
 
 
 def detector(current_window=duration('5m'), preceding_window=duration('1h'),
              fire_growth_threshold=0.5, clear_growth_threshold=0.1,
              attempt_threshold=1, filter_=None, group_by=None, custom_filter=None,
-             resource_type='service_operation', auto_resolve_after=None):
-    return sudden_change.detector(current_window=current_window, preceding_window=preceding_window,
-                                  fire_growth_threshold=fire_growth_threshold,
-                                  clear_growth_threshold=clear_growth_threshold,
-                                  attempt_threshold=attempt_threshold, filter_=filter_,
-                                  group_by=group_by, custom_filter=custom_filter,
-                                  use_kind_filter=False, kind_filter=utils.V2_KIND_FILTER, r_up='sum',
-                                  error_true=utils.RESOURCE_TYPE_MAPPING[resource_type]['error']['true'],
-                                  error_false=utils.RESOURCE_TYPE_MAPPING[resource_type]['error']['false'],
-                                  default_group_by=utils.RESOURCE_TYPE_MAPPING[resource_type]['group_by'],
-                                  default_allow_missing=utils.RESOURCE_TYPE_MAPPING[resource_type]['allow_missing'],
-                                  metric_names=utils.RESOURCE_TYPE_MAPPING[resource_type]['metric_names'],
-                                  auto_resolve_after=auto_resolve_after)
+             resource_type='service_operation', auto_resolve_after=None, _alert_type='errors', _detector_type='apm'):
+    # Detect when error rate grows by a specified percentage
+    # :param current_window (duration): window whose error rate is evaluated for being too high,
+    #                                      default=duration('5m')
+    # :param preceding_window (duration): window whose error rate is used to define a baseline,
+    #                                        default=duration('1h')
+    # :param fire_growth_threshold (number): error rate growth required to trigger
+    # :param clear_growth_threshold (number): error rate growth required to clear
+    # :param attempt_threshold (number) : threshold on number of attempts (errors + non-errors)
+    #                    in the window being evaluated in order to trigger, default=1
+    # :param filter_ (filter): specifies dimensional scope of the detector, default=None
+    # :param group_by (list of strings): group errors and non-errors by these (in addition to default grouping
+    #                    by cluster, service, operation), default=None
+    # :return: detect block that triggers when the error rate for filter_,
+    #    grouped by group_by, over the last current_window is greater than 1 + fire_growth_threshold
+    #    times the error rate of the preceding preceding_window,
+    #    and when at least attempt_threshold requests were made over the last current_window;
+    # clears when the error rate is less than 1 + clear_growth_threshold times the baseline error rate
+
+    use_kind_filter = False
+    default_group_by = utils.RESOURCE_TYPE_MAPPING_HISTOGRAMS[resource_type]['group_by']
+    default_allow_missing = utils.RESOURCE_TYPE_MAPPING_HISTOGRAMS[resource_type]['allow_missing']
+    metric_names = utils.RESOURCE_TYPE_MAPPING_HISTOGRAMS[resource_type]['metric_names']
+
+    current_window_ = duration(current_window)
+    preceding_window_ = duration(preceding_window)
+    assert fire_growth_threshold >= clear_growth_threshold, {
+        'fire_growth_threshold': fire_growth_threshold,
+        'clear_growth_threshold': clear_growth_threshold,
+        'sfui_errorKeys': ['fire_growth_threshold', 'clear_growth_threshold'],
+        'sfui_errorTemplate': "{{{fire_growth_threshold}}} must be greater than or equal to {{{clear_growth_threshold}}}."}
+    current_error_pct = streams.error_rate_histograms(duration_=current_window_, filter_=filter_,
+                                           group_by=group_by, custom_filter=custom_filter,
+                                           use_kind_filter=use_kind_filter,
+                                           default_group_by=default_group_by,
+                                           default_allow_missing=default_allow_missing,
+                                           metric_names=metric_names) * 100
+    preceding_error_pct = streams.error_rate_histograms(duration_=preceding_window_, filter_=filter_,
+                                             group_by=group_by,
+                                             custom_filter=custom_filter,
+                                             use_kind_filter=use_kind_filter,
+                                             default_group_by=default_group_by,
+                                             default_allow_missing=default_allow_missing,
+                                             metric_names=metric_names).timeshift(current_window_) * 100
+    fire_threshold = (1 + fire_growth_threshold) * preceding_error_pct
+    clear_threshold = (1 + clear_growth_threshold) * preceding_error_pct
+    ann = [annotate(current_error_pct, 'current error percentage', {'sfui_streamType': 'signal'}),
+           annotate(preceding_error_pct, 'preceding error percentage',
+                    {'sfui_config': '{"ep_above_ft": {"sfui_streamType":"signal"}}'}),
+           annotate(fire_threshold, 'fire threshold', {
+               'sfui_config': '{"ep_above_ft": {"sfui_streamType":"threshold","sfui_state":"fire","sfui_orientation":"above"}}'})]
+    event_ann = {'current_window': str(current_window_),
+                 'preceding_window': str(preceding_window_),
+                 'alert_type': str(_alert_type),
+                 'detector_type': str(_detector_type),
+                 'sfui_incidentInformation': '[{"selectedIdentifiers":["fire_threshold","current_error_pct","preceding_error_pct"], "conditionIdentifier":"ep_above_ft"}]'}
+    attempt_condition = conditions.volume_histograms(duration_=current_window_, shift=duration(0),
+                                          filter_=filter_, group_by=group_by, num_error_threshold=0,
+                                          num_attempt_threshold=attempt_threshold,
+                                          custom_filter=custom_filter,
+                                          use_kind_filter=use_kind_filter,
+                                          default_group_by=default_group_by,
+                                          default_allow_missing=default_allow_missing,
+                                          metric_names=metric_names)
+    # "preceding_error_pct is not None" has no effect on the detection, but does allow for the stream
+    # preceding_error_pct to participate in event details, e.g., the alert modal
+    return detect(when(current_error_pct > fire_threshold) and attempt_condition and preceding_error_pct is not None,
+                  off=when(current_error_pct < clear_threshold),
+                  annotations=ann, event_annotations=event_ann, auto_resolve_after=auto_resolve_after)

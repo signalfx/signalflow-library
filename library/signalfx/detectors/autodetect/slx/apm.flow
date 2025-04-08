@@ -78,11 +78,10 @@ def apm_slx_detector(slo: float = 99,
     # :param viz_type allowed_values=sli,sli_slo,events,errors,ErrorRate,burn_rate,error_budget
 
     group_by = get_group_by_dimensions(split_by)
-    total_events_stream = data('service.request.count', filter=filter_).sum(by=group_by)
-
+    total_events_stream = histogram('service.request', filter=filter_).count(by=group_by).sum(by=group_by)
     good_events_filter = get_good_events_filter(filter_)
 
-    good_events_stream = data('service.request.count', filter=good_events_filter).sum(by=group_by)
+    good_events_stream = histogram('service.request', filter=good_events_filter).count(by=group_by).sum(by=group_by)
 
     sli = streams.sli_over_compliance_period_stream(good_events_stream, total_events_stream, compliance_period)
     slo_threshold = const(slo)
@@ -92,5 +91,4 @@ def apm_slx_detector(slo: float = 99,
         visualize_data(good_events_stream, total_events_stream, slo, compliance_period, viz_type)
     ann = []
 
-    return detect(when(sli < slo_threshold and total_events_stream > min_events_number),
-                  annotations=ann)
+    return detect(when(sli < slo_threshold and total_events_stream > min_events_number), annotations=ann)

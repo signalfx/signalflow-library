@@ -9,7 +9,7 @@ from signalfx.detectors.apm.requests.sudden_change_v2 import sudden_change
 from signalfx.detectors.apm.requests.historical_anomaly_v2 import historical_anomaly
 from signalfx.detectors.apm.requests.static_v2 import static
 
-f = filter('sf_service', 'my_svc') and filter('sf_operation', 'do_thing') and filter('sf_environment', 'prod')
+f = filter('service.name', 'my_svc') and filter('sf_operation', 'do_thing') and filter('deployment.environment', 'prod')
 
 sudden_change.detector_mean_std(filter_=f).publish('sudden_change_detector')
 historical_anomaly.growth_rate(filter_=f).publish('historical_anomaly_detector')

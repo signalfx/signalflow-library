@@ -21,13 +21,13 @@ The `growth_rate` function detects when latency grows by a specified amount rela
 |volume_relative_threshold|number|require request rate on window being evaluated to be at least this proportion of request rate on preceding window (used for trigger and clear)|None|
 |vol_pctile_req_pos|number (percentage)|percentage of historical window permitted to have request rate 0|90|
 |custom_filter|filter|specifies dimensional scope of the detector (on custom dimensions)|None|
-|resource_type|string|key from [RESOURCE_TYPE_MAPPING](../../utils.flow), determines schema|'service_operation'|
+|resource_type|string|key from [RESOURCE_TYPE_MAPPING_HISTOGRAMS](../../utils.flow), determines schema|'service_operation'|
 |auto_resolve_after|duration|if provided, duration after which to clear when group drops from schema or has value None|None|
 
 
 It returns a detect block that triggers when the specified percentile of latency, suitably filtered and grouped,
-over the last `current_window `is greater than `1 + fire_growth_rate_threshold` times the baseline latency 
-(for the same percentile,  similarly filtered and grouped), calculated on `num_cycles` windows each of length 
+over the last `current_window `is greater than `1 + fire_growth_rate_threshold` times the baseline latency
+(for the same percentile,  similarly filtered and grouped), calculated on `num_cycles` windows each of length
 `historical_window` and spaced `cycle_length` apart, and when volume conditions are met;
 clears when latency is less than `1 + clear_growth_rate_threshold` times the baseline.
 
@@ -36,7 +36,7 @@ clears when latency is less than `1 + clear_growth_rate_threshold` times the bas
 ~~~~~~~~~~~~~~~~~~~~
 from signalfx.detectors.apm.latency.historical_anomaly_v2 import historical_anomaly
 
-historical_anomaly.growth_rate(pctile=50, filter_=filter('sf_service', 'my_svc') and filter('sf_operation', 'my_op')).publish('my_det')
+historical_anomaly.growth_rate(pctile=50, filter_=filter('service.name', 'my_svc') and filter('sf_operation', 'my_op')).publish('my_det')
 ~~~~~~~~~~~~~~~~~~~~
 
 
@@ -59,13 +59,13 @@ The `deviations_from_norm` function detects when latency is too many deviations 
 |volume_relative_threshold|number|require request rate on window being evaluated to be at least this proportion of request rate on preceding window (used for trigger and clear)|None|
 |vol_pctile_req_pos|number (percentage)|percentage of historical window permitted to have request rate 0|90|
 |custom_filter|filter|specifies dimensional scope of the detector (on custom dimensions)|None|
-|resource_type|string|key from [RESOURCE_TYPE_MAPPING](../../utils.flow), determines schema|'service_operation'|
+|resource_type|string|key from [RESOURCE_TYPE_MAPPING_HISTOGRAMS](../../utils.flow), determines schema|'service_operation'|
 |auto_resolve_after|duration|if provided, duration after which to clear when group drops from schema or has value None|None|
 
 
 It returns a detect block that triggers when the specified percentile of latency, suitably filtered and grouped,
 over the last `current_window `is more than `fire_num_dev_threshold` deviations from the norm
-(similarly filtered and grouped), calculated on `num_cycles` windows each of length 
+(similarly filtered and grouped), calculated on `num_cycles` windows each of length
 `historical_window` and spaced `cycle_length` apart, and when volume conditions are met;
 clears when latency is less than `clear_num_dev_threshold` deviations from the norm.
 
@@ -74,7 +74,7 @@ clears when latency is less than `clear_num_dev_threshold` deviations from the n
 ~~~~~~~~~~~~~~~~~~~~
 from signalfx.detectors.apm.latency.historical_anomaly_v2 import historical_anomaly
 
-historical_anomaly.deviations_from_norm(filter_=filter('sf_service', 'my_svc') and filter('sf_operation', 'my_op')).publish('my_det')
+historical_anomaly.deviations_from_norm(filter_=filter('service.name', 'my_svc') and filter('sf_operation', 'my_op')).publish('my_det')
 ~~~~~~~~~~~~~~~~~~~~
 
 

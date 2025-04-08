@@ -17,11 +17,11 @@ def request_rate_mean_std_detector(current_window: duration = duration('10m'),
     # :param clear_num_stddev label=Clear growth threshold
     # :param clear_num_stddev description=Clear the alert when the current value is less than this number of deviations above historical norm
     # :param filter_ metric_name=service.request.count
-    # :param filter_ dimensions=sf_environment,sf_service
+    # :param filter_ dimensions=deployment.environment,service.name
     # :viz valueSuffix=%
     # :return: detect block that triggers when request rate is too many deviations from the norm established in the preceding window
 
-    streams.request_rate(filter_=filter_, resource_type='service').publish('Request Rate')
+    streams.request_rate_histograms(filter_=filter_, resource_type='service').publish('Request Rate')
     return sudden_change.detector_mean_std(current_window=current_window, historical_window=historical_window,
                                            fire_num_stddev=fire_num_stddev,
                                            clear_num_stddev=clear_num_stddev,

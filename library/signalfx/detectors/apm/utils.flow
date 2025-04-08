@@ -1,8 +1,7 @@
 from signalfx.detectors.rum import utils as rum_utils
 
 KIND_FILTER = filter('kind', 'CONSUMER') or filter('kind', 'SERVER')
-V2_KIND_FILTER = filter('sf_kind', 'CONSUMER') or filter('sf_kind',
-                                                         'SERVER')  # added for completeness
+V2_KIND_FILTER = filter('sf_kind', 'CONSUMER') or filter('sf_kind', 'SERVER')  # added for completeness
 
 EXCLUDE_CUSTOM_DIMS_FILTER = not filter('sf_dimensionalized', 'true')
 
@@ -17,10 +16,11 @@ V2_EXCLUDE_ERRORS_FILTER = not V2_ERROR_TRUE
 
 DEFAULT_GROUPBY = ['cluster', 'service', 'operation', 'httpMethod', 'kind']
 V2_DEFAULT_GROUPBY = ['sf_environment', 'sf_service', 'sf_operation', 'sf_httpMethod', 'sf_kind']
+V3_DEFAULT_GROUPBY = ['deployment.environment', 'service.name', 'sf_operation', 'sf_httpMethod', 'sf_kind']
 
 DEFAULT_ALLOW_MISSING = ['cluster', 'service', 'operation', 'httpMethod', 'kind']
-V2_DEFAULT_ALLOW_MISSING = ['sf_environment', 'sf_service', 'sf_operation', 'sf_httpMethod',
-                            'sf_kind']
+V2_DEFAULT_ALLOW_MISSING = ['sf_environment', 'sf_service', 'sf_operation', 'sf_httpMethod', 'sf_kind']
+V3_DEFAULT_ALLOW_MISSING = ['deployment.environment', 'service.name', 'sf_operation', 'sf_httpMethod', 'sf_kind']
 
 PCTILE_TO_METRIC = {'count': 'spans.count',
                     50: 'spans.duration.ns.median',
@@ -81,6 +81,35 @@ RESOURCE_TYPE_MAPPING = {
     rum_utils.APP_ERROR_NODE_KEY: rum_utils.APP_ERROR_NODE_VALUE
 }
 
+RESOURCE_TYPE_MAPPING_HISTOGRAMS = {
+    'service_operation': {
+        'metric_names': 'spans',
+        'group_by': V2_DEFAULT_GROUPBY,
+        'allow_missing': V2_DEFAULT_ALLOW_MISSING,
+        'error': {
+            'true': V2_ERROR_TRUE,
+            'false': V2_ERROR_FALSE
+        }
+    },
+    'service': {
+        'metric_names': 'service.request',
+        'group_by': ['sf_environment', 'sf_service'],
+        'allow_missing': ['sf_environment', 'sf_service'],
+        'error': {
+            'true': V2_ERROR_TRUE,
+            'false': V2_ERROR_FALSE
+        }
+    },
+    'workflow': {
+        'metric_names': 'workflows',
+        'group_by': ['sf_environment', 'sf_workflow'],
+        'allow_missing': ['sf_environment', 'sf_workflow'],
+        'error': {
+            'true': V2_ERROR_TRUE,
+            'false': V2_ERROR_FALSE
+        }
+    }
+}
 
 def merge_filters(filter_, exclude_errors, use_kind_filter=True, custom_filter=None,
                   kind_filter=KIND_FILTER, exclude_errors_filter=EXCLUDE_ERRORS_FILTER):
@@ -137,3 +166,6 @@ def merge_group_by_with_default(group_by, default=DEFAULT_GROUPBY):
         return default
     else:
         return default + group_by
+
+def is_apm_resource(resource_type):
+    return resource_type == 'service_operation' or resource_type == 'service' or resource_type == 'workflow'

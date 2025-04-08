@@ -15,7 +15,7 @@ The `detector` function has the following parameters.
 |exclude_errors|boolean|whether to exclude error spans from the request rate|False|
 |group_by|list of strings|sum by these (in addition to default grouping associated with resource type)|None|
 |custom_filter|filter|specifies dimensional scope of the detector (on custom dimensions)|None|
-|resource_type|string|key from [RESOURCE_TYPE_MAPPING](../../utils.flow), determines schema|'service_operation'|
+|resource_type|string|key from [RESOURCE_TYPE_MAPPING_HISTOGRAMS](../../utils.flow), determines schema|'service_operation'|
 |auto_resolve_after|duration|if provided, duration after which to clear when group drops from schema or has value None|None|
 
 
@@ -26,7 +26,7 @@ It returns a detect block that triggers when the request rate for `filter_ and c
 ~~~~~~~~~~~~~~~~~~~~
 from signalfx.detectors.apm.requests.static_v2 import static
 
-static.detector(fire_threshold=88, fire_lasting=lasting('2m', 0.9), clear_threshold=71, clear_lasting=lasting('1m', 0.9), filter_=filter('sf_service', 'my_svc') and filter('sf_operation', 'my_op')).publish('my_det')
+static.detector(fire_threshold=88, fire_lasting=lasting('2m', 0.9), clear_threshold=71, clear_lasting=lasting('1m', 0.9), filter_=filter('service.name', 'my_svc') and filter('sf_operation', 'my_op')).publish('my_det')
 ~~~~~~~~~~~~~~~~~~~~
 
 

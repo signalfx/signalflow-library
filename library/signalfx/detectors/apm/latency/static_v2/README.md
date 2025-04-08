@@ -17,13 +17,13 @@ The `detector` function detects when latency exceeds a specified static threshol
 |custom_filter|filter|specifies dimensional scope of the detector (on custom dimensions)|None|
 |exclude_errors|boolean|whether to exclude error spans from latency metric|True|
 |group_by|list of strings|average latency by these (in addition to default grouping associated with resource type)|None|    
-|resource_type|string|key from [RESOURCE_TYPE_MAPPING](../../utils.flow), determines schema|'service_operation'|
+|resource_type|string|key from [RESOURCE_TYPE_MAPPING_HISTOGRAMS](../../utils.flow), determines schema|'service_operation'|
 |volume_static_threshold|number|threshold on request rate (per second) required for alert to trigger|None|
 |volume_relative_threshold|number|require request rate on window being evaluated to be at least this proportion of request rate on preceding window (used for trigger and clear)|None|
 |volume_nonzero_required|number between 0 and 1|require request rate to be nonzero for this proportion of fire_lasting.duration (used for trigger and clear)|0.1|    
 |auto_resolve_after|duration|if provided, duration after which to clear when group drops from schema or has value None|None|
 
-    
+
 It returns detect block that triggers when the specified percentile of latency,
 suitably filtered and grouped, exceeds the specified threshold for the required percent of duration;
 and clears when latency remains below the specified clear threshold for the required percent of duration.

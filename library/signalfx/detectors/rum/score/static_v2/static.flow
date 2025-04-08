@@ -1,4 +1,4 @@
-from signalfx.detectors.apm.latency.static_v2 import static
+from signalfx.detectors.apm.latency.static import static
 from signalfx.detectors.apm import utils as apm_utils
 from signalfx.detectors.rum import utils as rum_utils
 
@@ -30,6 +30,11 @@ def detector(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear
                            volume_static_threshold=_volume_static_threshold,
                            volume_relative_threshold=_volume_relative_threshold,
                            volume_nonzero_required=_volume_nonzero_required, use_ms=False,
-                           custom_filter=custom_filter, resource_type=_key,
+                           custom_filter=custom_filter,
+                           use_kind_filter=False, kind_filter=apm_utils.V2_KIND_FILTER,
+                           exclude_errors_filter=not apm_utils.RESOURCE_TYPE_MAPPING[_key]['error']['true'],
+                           default_group_by=apm_utils.RESOURCE_TYPE_MAPPING[_key]['group_by'],
+                           default_allow_missing=apm_utils.RESOURCE_TYPE_MAPPING[_key]['allow_missing'],
+                           metric_names=apm_utils.RESOURCE_TYPE_MAPPING[_key]['metric_names'],
                            auto_resolve_after=auto_resolve_after, _alert_type='score',
                            _detector_type='rum', _resource_type=resource_type)

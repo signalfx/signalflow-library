@@ -2,7 +2,7 @@ from signalfx.detectors.synthetics import utils
 
 
 def detector(resource_type: string, fire_threshold: float, clear_threshold: float = None, orientation: string ='above', filter_: filter = None,
-             use_location: bool = True, exclude_failed_test: bool = False, consecutive: int = 1):
+             use_location: bool = True, exclude_failed_test: bool = False, consecutive: int = 1, auto_resolve_after: string = '1d'):
     ###################################################################
     # SYNTHETICS ALERTING
     ###################################################################
@@ -18,10 +18,11 @@ def detector(resource_type: string, fire_threshold: float, clear_threshold: floa
     # :param exclude_failed_test specifies if check for threshold violations when test failed
     # :param consecutive specifies for how many tests in a row threshold should be violated before alert is triggered
     # :param consecutive min=1
-    # :param consecutive max=3
+    # :param consecutive max=10
 
     assert resource_type is not None
     utils.assert_threshold(fire_threshold, clear_threshold, orientation)
+    utils.assert_consecutive(consecutive)
 
     scope = utils.merge_filters(filter_, exclude_failed_test)
     group_by = utils.get_group_by(use_location)
@@ -45,16 +46,16 @@ def detector(resource_type: string, fire_threshold: float, clear_threshold: floa
     event_ann = utils.annotate_event(resource_type, fire_threshold, orientation)
     if orientation == 'above':
         return detect(when(stream > fire_threshold_stream) and previous_conditions,
-                      when(stream < clear_threshold_stream),
+                      when(stream <= clear_threshold_stream),
                       annotations=ann,
                       event_annotations=event_ann,
-                      auto_resolve_after=utils.AUTO_RESOLVE_AFTER)
+                      auto_resolve_after=auto_resolve_after)
     elif orientation == 'below':
         return detect(when(stream < fire_threshold_stream) and previous_conditions,
-                      when(stream > clear_threshold_stream),
+                      when(stream >= clear_threshold_stream),
                       annotations=ann,
                       event_annotations=event_ann,
-                      auto_resolve_after=utils.AUTO_RESOLVE_AFTER)
+                      auto_resolve_after=auto_resolve_after)
     elif orientation == 'out_of_band':
         # not implemented yet
         return None
