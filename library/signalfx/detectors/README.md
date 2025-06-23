@@ -50,13 +50,13 @@ Most of the functions in the library can also be accessed via the SignalFx UI. T
 
 |Repository name|UI name|
 |:---|:---|
-|[not_reporting](https://github.com/signalfx/signalflow-library/tree/master/library/signalfx/detectors/not_reporting)|[Heartbeat Check](https://docs.signalfx.com/en/latest/detect-alert/alert-condition-reference/heartbeat-check.html)|
-|[countdown](https://github.com/signalfx/signalflow-library/tree/master/library/signalfx/detectors/countdown)|[Resource Running Out](https://docs.signalfx.com/en/latest/detect-alert/alert-condition-reference/resource-running-out.html)|
-|[population_comparison](https://github.com/signalfx/signalflow-library/tree/master/library/signalfx/detectors/population_comparison)|[Outlier Detection](https://docs.signalfx.com/en/latest/detect-alert/alert-condition-reference/outlier-detection.html)|
-|[against_recent](https://github.com/signalfx/signalflow-library/tree/master/library/signalfx/detectors/against_recent)|[Sudden Change](https://docs.signalfx.com/en/latest/detect-alert/alert-condition-reference/sudden-change.html)|
-|[against_periods](https://github.com/signalfx/signalflow-library/tree/master/library/signalfx/detectors/against_periods)|[Historical Anomaly](https://docs.signalfx.com/en/latest/detect-alert/alert-condition-reference/hist-anomaly.html)|
+|[not_reporting](https://github.com/signalfx/signalflow-library/tree/master/library/signalfx/detectors/not_reporting)|[Heartbeat Check](https://help.splunk.com/en/splunk-observability-cloud/create-alerts-detectors-and-service-level-objectives/create-alerts-and-detectors/built-in-alert-conditions/heartbeat-check)|
+|[countdown](https://github.com/signalfx/signalflow-library/tree/master/library/signalfx/detectors/countdown)|[Resource Running Out](https://help.splunk.com/en/splunk-observability-cloud/create-alerts-detectors-and-service-level-objectives/create-alerts-and-detectors/built-in-alert-conditions/resource-running-out)|
+|[population_comparison](https://github.com/signalfx/signalflow-library/tree/master/library/signalfx/detectors/population_comparison)|[Outlier Detection](https://help.splunk.com/en/splunk-observability-cloud/create-alerts-detectors-and-service-level-objectives/create-alerts-and-detectors/built-in-alert-conditions/outlier-detection)|
+|[against_recent](https://github.com/signalfx/signalflow-library/tree/master/library/signalfx/detectors/against_recent)|[Sudden Change](https://help.splunk.com/en/splunk-observability-cloud/create-alerts-detectors-and-service-level-objectives/create-alerts-and-detectors/built-in-alert-conditions/sudden-change)|
+|[against_periods](https://github.com/signalfx/signalflow-library/tree/master/library/signalfx/detectors/against_periods)|[Historical Anomaly](https://help.splunk.com/en/splunk-observability-cloud/create-alerts-detectors-and-service-level-objectives/create-alerts-and-detectors/built-in-alert-conditions/historical-anomaly)|
 |[aperiodic](https://github.com/signalfx/signalflow-library/tree/master/library/signalfx/detectors/aperiodic)|*not available*|
 |[multivariate](https://github.com/signalfx/signalflow-library/tree/master/library/signalfx/detectors/multivariate)|*not available*|
 
 
-The library also contains functions to facilitate the creation of detectors specific to the APM metrics (relating to latency and error) that are emitted by the Smart Gateway. See the `apm` directory under `detectors` for more information. 
+The library also contains functions to facilitate the creation of detectors specific to the APM metrics (relating to latency and error) that are emitted by the Smart Gateway. See the `apm` directory under `detectors` for more information.
