@@ -33,3 +33,16 @@ def calendar_window_error_budget_left(good_events_stream, total_events_stream, c
     return (1 - calendar_window_burn_rate(good_events_stream, total_events_stream, cycle_type, cycle_start, slo)).scale(100)
 
 ### CALENDAR WINDOW FUNCTIONS END ###
+
+### WINDOW BASED FUNCTIONS START ###
+
+# Request success
+def slo_window_based_req_stream(good_events_stream, total_events_stream, window_slo):
+    sli = (good_events_stream/total_events_stream)*100
+    return sli.map(lambda x: 1 if x > window_slo else 0).fill(0)
+
+# Latency
+def slo_window_based_latency_stram(total_events_stream, window_latency):
+    return total_events_stream.map(lambda x: 1 if x < window_latency else 0).fill(0)
+
+### WINDOW BASED FUNCTIONS END ###

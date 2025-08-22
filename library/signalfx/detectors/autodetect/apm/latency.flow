@@ -23,7 +23,7 @@ def latency_deviations_from_norm_detector(current_window: duration = duration('1
     # :param volume_relative_threshold_perc unit=%
     # :param filter_ metric_name=service.request.duration.ns.p90
     # :param filter_ dimensions=deployment.environment,service.name
-    # :viz valueUnit=Nanosecond
+    # :viz valueUnit=Millisecond
     # :return: detect block that triggers when latency is too many deviations from the norm established in the preceding window
     volume_relative_threshold_rate = volume_relative_threshold_perc * 0.01
 

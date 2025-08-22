@@ -196,7 +196,7 @@ def volume_histograms(duration_=duration('5m'), shift=duration(0), filter_=None,
                                      metric_names=metric_names)
     e = gped_e_streams['errors'].timeshift(shift_)
     n_e = gped_e_streams['non_errors'].timeshift(shift_)
-    return when(e > num_error_threshold and e + n_e > num_attempt_threshold)
+    return when(e >= num_error_threshold and e + n_e > num_attempt_threshold)
 
 
 def error_rate_static_histograms(current_window=duration('5m'), filter_=None, group_by=None,

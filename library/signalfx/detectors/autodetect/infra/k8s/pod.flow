@@ -1,0 +1,27 @@
+from signalfx.detectors.autodetect import utils
+from signalfx.detectors.autodetect.infra.k8s import utils as k8s_utils
+
+
+def pods_in_failed_or_pending_phase(fire_lasting: lasting = lasting('5m', 1), filter_: filter = None):
+    # Detects when K8s Pod is in failed/pending state after 5m
+    # :param fire_lasting description=Specifies trigger sensitivity associated with fire threshold
+    # :param fire_lasting label=Trigger sensitivity
+    # :param filter_ description=Specifies dimensional scope of the detector
+    # :param filter_ metric_name=k8s.pod.phase
+    # :return: detect block that triggers when nodes suitably filtered and grouped, are not ready
+    group_by = [k8s_utils.K8S_NAMESPACE_NAME_DIM,
+                k8s_utils.K8S_CLUSTER_NAME_DIM,
+                k8s_utils.K8S_POD_NAME_DIM]
+
+    stream = data('k8s.pod.phase', filter=filter_).sum(by=group_by, allow_missing=group_by)
+
+    phase_failed_fire_threshold_stream = const(4)
+    phase_pending_fire_threshold_stream = const(1)
+
+    ann = [utils.annotate_stream(stream, 'Pod phase'),
+           utils.annotate_fire_threshold(phase_failed_fire_threshold_stream, orientation='out_of_band')
+           utils.annotate_fire_threshold(phase_pending_fire_threshold_stream, orientation='out_of_band')]
+
+    return detect((when(stream == phase_failed_fire_threshold_stream, lasting=fire_lasting)
+                or when(stream == phase_pending_fire_threshold_stream, lasting=fire_lasting)
+            ), annotations=ann, auto_resolve_after=utils.AUTO_RESOLVE_AFTER)

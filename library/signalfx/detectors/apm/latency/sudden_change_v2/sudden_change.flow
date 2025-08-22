@@ -164,6 +164,7 @@ def deviations_from_norm(filter_=None, current_window=duration('5m'),
                          historical_window=duration('1h'), exclude_errors=True, group_by=None,
                          fire_num_dev_threshold=3.5, clear_num_dev_threshold=3,
                          volume_static_threshold=None, volume_relative_threshold=None,
+                         fire_latency_static_threshold=None,
                          vol_pctile_req_pos=95, custom_filter=None, resource_type='service_operation',
                          auto_resolve_after=None, _alert_type='latency', _detector_type='apm'):
     # Detect when latency is too many deviations from the norm established in the immediately
@@ -185,6 +186,8 @@ def deviations_from_norm(filter_=None, current_window=duration('5m'),
     # :param volume_relative_threshold (number): require request rate on window being evaluated to be
     #                    at least this proportion of request rate on preceding window (used for
     #                    trigger and clear), default=None
+    # :param fire_latency_static_threshold (number, ms): the minimal latency required to trigger (computed threshold
+    #                    will be raised to this value if needed), default=None
     # :param vol_pctile_req_pos (number, percentage): percentage of historical window permitted to
     #                    have request rate 0, default=95
     # :return: detect block that triggers when the latency, suitably filtered and grouped,
@@ -242,7 +245,15 @@ def deviations_from_norm(filter_=None, current_window=duration('5m'),
                                                 metric_names=metric_names).timeshift(
         current_window_)
     hist_spread = historical_p90 - historical_p50
-    fire_threshold = historical_p50 + fire_num_dev_threshold * hist_spread
+
+    statistical_threshold = historical_p50 + fire_num_dev_threshold * hist_spread
+
+    if fire_latency_static_threshold is not None:
+        fire_latency_static_threshold_stream = const(fire_latency_static_threshold)
+        fire_threshold = max(statistical_threshold, fire_latency_static_threshold_stream)
+    else:
+        fire_threshold = statistical_threshold
+
     clear_threshold = historical_p50 + clear_num_dev_threshold * hist_spread
     ann = [annotate(current_p50, 'current latency', {'sfui_streamType': 'signal'}),
            annotate(historical_p50, 'baseline',

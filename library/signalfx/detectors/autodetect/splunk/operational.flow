@@ -366,3 +366,32 @@ def aws_invalid_metric_stream_integration_or_feature_disabled_detector(fire_thre
                   off=when(stream <= clear_threshold_stream, lasting=clear_lasting),
                   annotations=ann,
                   auto_resolve_after=splunk_utils.AWS_INVALID_METRIC_STREAM_AUTO_RESOLVE)
+
+def detectors_with_quality_issues_detector(fire_threshold: int = 0, fire_lasting: lasting = lasting('1h', 1.0), filter_: filter = None):
+    # Detects when number of detectors with quality issues remains above the threshold for a specified duration
+    # :param fire_threshold description=Specifies the trigger threshold for the number of detectors with quality issues
+    # :param fire_threshold label=Trigger threshold
+    # :param fire_threshold min=0
+    # :param fire_lasting description=Specifies how long the condition must persist before triggering
+    # :param fire_lasting label=Trigger sensitivity
+    # :param filter_ description=Specifies dimensional scope of the detector
+    # :param filter_ metric_name=sf.org.num.detector.unhealthy
+    # :return: detect block that triggers when the number of detectors with quality issues remains above the threshold
+    detectors_with_quality_issues_stream = data('sf.org.num.detector.unhealthy', filter=filter_).sum(by=['issueType'])
+
+    fire_threshold_stream = const(fire_threshold)
+    ann = [
+        utils.annotate_stream(detectors_with_quality_issues_stream, 'Detectors with quality issues'),
+        utils.annotate_fire_threshold(fire_threshold_stream, orientation='above')
+    ]
+    readable_condition = 'Number of detectors with quality issues is above threshold'
+    event_annotations = {
+    'sfui_incidentInformation': '[{"readableCondition":"' + readable_condition +
+                                '","builtInFunction":"signalfx.detectors.autodetect.splunk.operational"}]',
+    'detector_type': 'auto_detectors_with_quality_issues'
+}
+
+    return detect(when(detectors_with_quality_issues_stream > fire_threshold_stream, lasting=fire_lasting),
+                  annotations=ann,
+                  event_annotations=event_annotations,
+                  auto_resolve_after=utils.AUTO_RESOLVE_AFTER)
