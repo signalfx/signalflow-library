@@ -1,3 +1,8 @@
+def recent_mean(stream, current_window=duration('5m')):
+    current_window_ = duration(current_window)
+    return stream.mean(over=current_window_)
+
+
 def recent_extrema(stream, current_window=duration('5m')):
     current_window_ = duration(current_window)
     recent_min = stream.min(over=current_window_)

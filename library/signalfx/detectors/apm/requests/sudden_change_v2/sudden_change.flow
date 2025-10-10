@@ -1,13 +1,13 @@
 from signalfx.detectors.apm.requests import streams
 from signalfx.detectors.against_recent import against_recent
-
+from signalfx.detectors.apm import utils
 
 def detector_mean_std(filter_=None, exclude_errors=False, group_by=None, custom_filter=None,
                       resource_type='service_operation', current_window=duration('5m'),
                       historical_window=duration('1h'),
-                      fire_num_stddev=3, clear_num_stddev=2.5,
+                      fire_num_stddev=3, clear_num_stddev=2.5, attempt_threshold=1,
                       orientation='above', ignore_extremes=True, calculation_mode='ewma',
-                      auto_resolve_after=None, _alert_type='requests', _detector_type='apm'):
+                      auto_resolve_after=None, _alert_type='requests', _detector_type='apm', fire_lasting=None):
     #
     # :param filter_:
     # :param exclude_errors:
@@ -18,10 +18,13 @@ def detector_mean_std(filter_=None, exclude_errors=False, group_by=None, custom_
     # :param historical_window:
     # :param fire_num_stddev:
     # :param clear_num_stddev:
+    # :param attempt_threshold (number) : threshold on number of attempts (errors + non-errors)
+    #                    in the window being evaluated in order to trigger, default=1
     # :param orientation:
     # :param ignore_extremes:
     # :param calculation_mode:
     # :param auto_resolve_after:
+    # :param fire_lasting:
     # :return:
     d = streams.request_rate_histograms(filter_=filter_, exclude_errors=exclude_errors, group_by=group_by,
                              custom_filter=custom_filter, resource_type=resource_type)
@@ -29,12 +32,14 @@ def detector_mean_std(filter_=None, exclude_errors=False, group_by=None, custom_
                                             historical_window=historical_window,
                                             fire_num_stddev=fire_num_stddev,
                                             clear_num_stddev=clear_num_stddev,
+                                            attempt_threshold=utils.to_per_sec(attempt_threshold, current_window),
                                             orientation=orientation,
                                             ignore_extremes=ignore_extremes,
                                             calculation_mode=calculation_mode,
                                             auto_resolve_after=auto_resolve_after,
                                             _alert_type=_alert_type,
-                                            _detector_type=_detector_type)
+                                            _detector_type=_detector_type,
+                                            fire_lasting=fire_lasting)
 
 
 def detector_growth_rate(filter_=None, exclude_errors=False, group_by=None, custom_filter=None,

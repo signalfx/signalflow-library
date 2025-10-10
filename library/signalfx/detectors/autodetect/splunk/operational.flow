@@ -377,7 +377,7 @@ def detectors_with_quality_issues_detector(fire_threshold: int = 0, fire_lasting
     # :param filter_ description=Specifies dimensional scope of the detector
     # :param filter_ metric_name=sf.org.num.detector.unhealthy
     # :return: detect block that triggers when the number of detectors with quality issues remains above the threshold
-    detectors_with_quality_issues_stream = data('sf.org.num.detector.unhealthy', filter=filter_).sum(by=['issueType'])
+    detectors_with_quality_issues_stream = data('sf.org.num.detector.unhealthy', filter=filter_, extrapolation='last_value').sum(by=['issueType'])
 
     fire_threshold_stream = const(fire_threshold)
     ann = [

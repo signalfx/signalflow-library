@@ -169,7 +169,7 @@ def percentage_growth_histograms(current_window=duration('5m'), preceding_window
 
 
 def volume_histograms(duration_=duration('5m'), shift=duration(0), filter_=None, group_by=None,
-           num_error_threshold=1, num_attempt_threshold=1, custom_filter=None, use_kind_filter=True,
+           num_error_threshold=1, num_attempt_threshold=1, fire_lasting=None, custom_filter=None, use_kind_filter=True,
            kind_filter=utils.V2_KIND_FILTER, error_true=utils.V2_ERROR_TRUE,
            error_false=utils.V2_ERROR_FALSE, default_group_by=utils.V2_DEFAULT_GROUPBY,
            default_allow_missing=utils.V2_DEFAULT_ALLOW_MISSING,
@@ -196,7 +196,7 @@ def volume_histograms(duration_=duration('5m'), shift=duration(0), filter_=None,
                                      metric_names=metric_names)
     e = gped_e_streams['errors'].timeshift(shift_)
     n_e = gped_e_streams['non_errors'].timeshift(shift_)
-    return when(e >= num_error_threshold and e + n_e > num_attempt_threshold)
+    return when(e >= num_error_threshold and e + n_e > num_attempt_threshold, fire_lasting)
 
 
 def error_rate_static_histograms(current_window=duration('5m'), filter_=None, group_by=None,

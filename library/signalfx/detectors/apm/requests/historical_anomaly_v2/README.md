@@ -4,21 +4,22 @@ Detect when the request rate differs from a historically defined baseline.
 
 The `detector_growth_rate` function detects when the request rate grows or decays by a specified amount relative to the historical baseline. It has the following parameters.
 
-|Parameter name|Type|Description|Default value|
-|:---|:---|:---|:---|
-|filter_|filter|specifies dimensional scope of the detector (on built-in dimensions)|None|
-|exclude_errors|boolean|whether to exclude error spans from the request rate|False|
-|group_by|list of strings|sum by these (in addition to default grouping associated with resource type)|None|
-|custom_filter|filter|specifies dimensional scope of the detector (on custom dimensions)|None|
-|window_to_compare|duration|length of current window (being tested for anomalous values), and historical windows (used to establish a baseline)|duration('15m')|
-|space_between_windows|duration|time range reflecting the periodicity of the data stream|duration('1w')|  
-|num_windows|integer|number of previous periods used to define baseline, must be > 0|4|
-|fire_growth_rate_threshold|number|request rate growth required to trigger|0.2|
-|clear_growth_rate_threshold|number|request rate growth required to clear|0.1|
-|discard_historical_outliers|boolean|whether to take the median (True) or mean (False) of historical windows|True|
-|orientation|string|specifies whether detect fires when request rate is above or below threshold (options  'above', 'below')|'above'|
-|resource_type|string|key from [RESOURCE_TYPE_MAPPING_HISTOGRAMS](../../utils.flow), determines schema|'service_operation'|
-|auto_resolve_after|duration|if provided, duration after which to clear when group drops from schema or has value None|None|
+| Parameter name            |Type|Description|Default value|
+|:--------------------------|:---|:---|:---|
+| filter_                   |filter|specifies dimensional scope of the detector (on built-in dimensions)|None|
+| exclude_errors            |boolean|whether to exclude error spans from the request rate|False|
+| group_by                  |list of strings|sum by these (in addition to default grouping associated with resource type)|None|
+| custom_filter             |filter|specifies dimensional scope of the detector (on custom dimensions)|None|
+| window_to_compare         |duration|length of current window (being tested for anomalous values), and historical windows (used to establish a baseline)|duration('15m')|
+| space_between_windows     |duration|time range reflecting the periodicity of the data stream|duration('1w')|  
+| num_windows               |integer|number of previous periods used to define baseline, must be > 0|4|
+| fire_growth_rate_threshold|number|request rate growth required to trigger|0.2|
+| clear_growth_rate_threshold|number|request rate growth required to clear|0.1|
+| discard_historical_outliers|boolean|whether to take the median (True) or mean (False) of historical windows|True|
+| orientation               |string|specifies whether detect fires when request rate is above or below threshold (options  'above', 'below')|'above'|
+| resource_type             |string|key from [RESOURCE_TYPE_MAPPING_HISTOGRAMS](../../utils.flow), determines schema|'service_operation'|
+| auto_resolve_after        |duration|if provided, duration after which to clear when group drops from schema or has value None|None|
+| fire_lasting              |lasting|duration for which the trigger threshold must be met before the detector fires an alert|None|
 
     
 It returns a detect block that triggers when the average request rate, suitably filtered and grouped, over the last `window_to_compare`, is greater than `1 + fire_growth_rate_threshold` times the historically defined baseline request rate;

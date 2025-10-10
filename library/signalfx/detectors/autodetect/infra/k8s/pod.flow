@@ -19,7 +19,7 @@ def pods_in_failed_or_pending_phase(fire_lasting: lasting = lasting('5m', 1), fi
     phase_pending_fire_threshold_stream = const(1)
 
     ann = [utils.annotate_stream(stream, 'Pod phase'),
-           utils.annotate_fire_threshold(phase_failed_fire_threshold_stream, orientation='out_of_band')
+           utils.annotate_fire_threshold(phase_failed_fire_threshold_stream, orientation='out_of_band'),
            utils.annotate_fire_threshold(phase_pending_fire_threshold_stream, orientation='out_of_band')]
 
     return detect((when(stream == phase_failed_fire_threshold_stream, lasting=fire_lasting)

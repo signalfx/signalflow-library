@@ -169,3 +169,6 @@ def merge_group_by_with_default(group_by, default=DEFAULT_GROUPBY):
 
 def is_apm_resource(resource_type):
     return resource_type == 'service_operation' or resource_type == 'service' or resource_type == 'workflow'
+
+def to_per_sec(value, window=duration('1s')):
+    return (value*duration('1s'))/duration(window)

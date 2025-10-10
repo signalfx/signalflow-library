@@ -5,7 +5,7 @@ from signalfx.detectors.apm import utils
 
 def detector(current_window=duration('5m'),
              fire_rate_threshold=0.01, clear_rate_threshold=0.001,
-             attempt_threshold=1, filter_=None, group_by=None, custom_filter=None,
+             attempt_threshold=1, fire_lasting=None, filter_=None, group_by=None, custom_filter=None,
              resource_type='service_operation', auto_resolve_after=None,
              _alert_type='errors', _detector_type='apm', _resource_type=None):
     # Detect when error rate exceeds a static threshold
@@ -17,6 +17,7 @@ def detector(current_window=duration('5m'),
     #                               between 0 and 1, default=0.001
     # :param attempt_threshold (number) : threshold on number of attempts (errors + non-errors)
     #                    in the window being evaluated in order to trigger, default=1
+    # :param fire_lasting (lasting): duration for which the trigger threshold must be met before the detector fires an alert, default=None
     # :param filter_ (filter): specifies dimensional scope of the detector, default=None
     # :param group_by (list of strings): group errors and non-errors by these (in addition to default grouping
     #                    by cluster, service, operation), default=None
@@ -61,8 +62,9 @@ def detector(current_window=duration('5m'),
                                           use_kind_filter=use_kind_filter,
                                           default_group_by=default_group_by,
                                           default_allow_missing=default_allow_missing,
-                                          metric_names=metric_names)
-    return detect(when(err_pct > fire_pct_threshold_stream) and attempt_condition,
+                                          metric_names=metric_names,
+                                          fire_lasting=fire_lasting)
+    return detect(when(err_pct > fire_pct_threshold_stream, fire_lasting) and attempt_condition,
                   off=when(err_pct <= clear_pct_threshold_stream),
                   annotations=ann,
                   event_annotations=event_ann, auto_resolve_after=auto_resolve_after)

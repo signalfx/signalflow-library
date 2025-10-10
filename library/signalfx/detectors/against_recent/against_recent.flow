@@ -24,20 +24,25 @@ from signalfx.detectors.against_recent import streams
 from signalfx.detectors.against_recent import utils
 
 
-def detector_helper(recent_min, recent_max, f_bot, c_bot, c_top, f_top, orientation, annotations,
-                    event_annotations=None, auto_resolve_after=None):
+def detector_helper(recent_min, recent_max, recent_mean, f_bot, c_bot, c_top, f_top, orientation, annotations,
+                    event_annotations=None, auto_resolve_after=None, attempt_threshold=None, fire_lasting=None):
     if orientation == 'above':
-        return detect(when(recent_min > f_top), when(recent_max < c_top), annotations=annotations,
-                      event_annotations=event_annotations, auto_resolve_after=auto_resolve_after)
+        return detect(above_fire_condition(recent_min, recent_mean, f_top, attempt_threshold, fire_lasting), when(recent_max < c_top),
+                      annotations=annotations, event_annotations=event_annotations, auto_resolve_after=auto_resolve_after)
     elif orientation == 'below':
-        return detect(when(recent_max < f_bot), when(recent_min > c_bot), annotations=annotations,
+        return detect(when(recent_max < f_bot, fire_lasting), when(recent_min > c_bot), annotations=annotations,
                       event_annotations=event_annotations, auto_resolve_after=auto_resolve_after)
     elif orientation == 'out_of_band':
-        return detect(when(recent_min > f_top or recent_max < f_bot),
+        return detect(when(recent_min > f_top or recent_max < f_bot, fire_lasting),
                       when(recent_max < c_top and recent_min > c_bot),
                       mode='split',
                       annotations=annotations, event_annotations=event_annotations, auto_resolve_after=auto_resolve_after)
 
+def above_fire_condition(recent_min, recent_mean, f_top, attempt_threshold, fire_lasting):
+    if attempt_threshold is not None:
+        return when(recent_min > f_top and recent_mean >= attempt_threshold, fire_lasting)
+    else:
+        return when(recent_min > f_top, fire_lasting)
 
 def ewma_plus_stddev(stream, duration_, num_stddev):
     return stream.ewma(over=duration(duration_)) + num_stddev * stream.stddev(over=duration(duration_))
@@ -75,6 +80,7 @@ def detector_median_iqr(stream, current_window=duration('5m'), historical_window
        'sfui_errorTemplate': "{{{fire_num_iqr}}} must be greater than or equal to {{{clear_num_iqr}}}."}
 
     recent_min, recent_max = streams.recent_extrema(stream, current_window=current_window_)
+    recent_mean = streams.recent_mean(stream, current_window=current_window_)
     fb, cb, ct, ft = streams.median_iqr_thresholds(stream, current_window=current_window_,
                                                  historical_window=historical_window_,
                                                  fire_num_iqr=fire_num_iqr,
@@ -106,15 +112,15 @@ def detector_median_iqr(stream, current_window=duration('5m'), historical_window
     event_annotations = {'current_window': str(current_window_),
                          'alert_type': str(_alert_type),
                          'detector_type': str(_detector_type)}
-    return detector_helper(recent_min, recent_max, fb, cb, ct, ft, orientation, annotations,
+    return detector_helper(recent_min, recent_max, recent_mean, fb, cb, ct, ft, orientation, annotations,
                            event_annotations=event_annotations, auto_resolve_after=auto_resolve_after)
 
 
 def detector_mean_std(stream, current_window=duration('5m'),
                       historical_window=duration('1h'),
-                      fire_num_stddev=3, clear_num_stddev=2.5,
+                      fire_num_stddev=3, clear_num_stddev=2.5, attempt_threshold=None,
                       orientation='above', ignore_extremes=True, calculation_mode='vanilla',
-                      auto_resolve_after=None, _alert_type='against-recent', _detector_type=None):
+                      auto_resolve_after=None, _alert_type='against-recent', _detector_type=None, fire_lasting=None):
     current_window_ = duration(current_window)
     historical_window_ = duration(historical_window)
     # Args:
@@ -127,6 +133,8 @@ def detector_mean_std(stream, current_window=duration('5m'),
     #           required to fire (optional, default=3)
     #       clear_num_stddev (number): number of standard deviations different from historical mean
     #           required to clear (optional, default=2.5)
+    #       attempt_threshold (number) : threshold on number of attempts (errors + non-errors)
+    #           in the window being evaluated in order to trigger, default=None
     #       orientation (string): specifies whether detect fires when signal is above, below, or
     #           or out-of-band (optional, default='above', one of 'above', 'below', 'out_of_band')
     #       ignore_extremes (boolean): specifies whether to filter the historical_window by
@@ -145,6 +153,7 @@ def detector_mean_std(stream, current_window=duration('5m'),
        'sfui_errorKeys' : ['fire_num_stddev', 'clear_num_stddev'],
        'sfui_errorTemplate': "{{{fire_num_stddev}}} must be greater than or equal to {{{clear_num_stddev}}}."}
     recent_min, recent_max = streams.recent_extrema(stream, current_window=current_window_)
+    recent_mean = streams.recent_mean(stream, current_window=current_window_)
     fb, cb, ct, ft = streams.mean_std_thresholds(stream, current_window=current_window_,
                                                  historical_window=historical_window_,
                                                  fire_num_stddev=fire_num_stddev,
@@ -178,8 +187,9 @@ def detector_mean_std(stream, current_window=duration('5m'),
     event_annotations = {'current_window': str(current_window_),
                          'alert_type': str(_alert_type),
                          'detector_type': str(_detector_type)}
-    return detector_helper(recent_min, recent_max, fb, cb, ct, ft, orientation, annotations,
-                           event_annotations=event_annotations, auto_resolve_after=auto_resolve_after)
+    return detector_helper(recent_min, recent_max, recent_mean, fb, cb, ct, ft, orientation, annotations,
+                           event_annotations=event_annotations, auto_resolve_after=auto_resolve_after,
+                           attempt_threshold=attempt_threshold, fire_lasting=fire_lasting)
 
 
 def detector_percentile(stream, current_window=duration('5m'),
@@ -213,6 +223,7 @@ def detector_percentile(stream, current_window=duration('5m'),
        'sfui_errorKeys' : ['fire_percentile_threshold', 'clear_percentile_threshold'],
        'sfui_errorTemplate': "{{{fire_percentile_threshold}}} must be further from 50 than {{{clear_percentile_threshold}}}."}
     recent_min, recent_max = streams.recent_extrema(stream, current_window=current_window_)
+    recent_mean = streams.recent_mean(stream, current_window=current_window_)
     fb, cb, ct, ft = streams.percentile_thresholds(stream, current_window=current_window_,
                                                    historical_window=historical_window_,
                                                    fire_percentile_threshold=fire_percentile_threshold,
@@ -244,7 +255,7 @@ def detector_percentile(stream, current_window=duration('5m'),
     event_annotations = {'current_window': str(current_window_),
                          'alert_type': str(_alert_type),
                          'detector_type': str(_detector_type)}
-    return detector_helper(recent_min, recent_max, fb, cb, ct, ft, orientation, annotations,
+    return detector_helper(recent_min, recent_max, recent_mean,fb, cb, ct, ft, orientation, annotations,
                            event_annotations=event_annotations, auto_resolve_after=auto_resolve_after)
 
 
@@ -281,6 +292,7 @@ def generic_detector_growth_rate(stream, current_window=duration('5m'),
         'sfui_errorKeys': ['fire_growth_rate_threshold', 'clear_growth_rate_threshold'],
         'sfui_errorTemplate': "{{{fire_growth_rate_threshold}}} must be greater than or equal to {{{clear_growth_rate_threshold}}}."}
     recent_min, recent_max = streams.recent_extrema(stream, current_window=current_window_)
+    recent_mean = streams.recent_mean(stream, current_window=current_window_)
     fb, cb, ct, ft = streams.growth_rate_thresholds(stream, current_window=current_window_,
                                                     historical_window=historical_window_,
                                                     fire_growth_rate_threshold=fire_growth_rate_threshold,
@@ -313,7 +325,7 @@ def generic_detector_growth_rate(stream, current_window=duration('5m'),
     event_annotations = {'current_window': str(current_window_),
                          'alert_type': str(_alert_type),
                          'detector_type': str(_detector_type)}
-    return detector_helper(recent_min, recent_max, fb, cb, ct, ft, orientation, annotations,
+    return detector_helper(recent_min, recent_max, recent_mean, fb, cb, ct, ft, orientation, annotations,
                            event_annotations=event_annotations, auto_resolve_after=auto_resolve_after)
 
 

@@ -4,7 +4,7 @@ from signalfx.detectors.apm import utils
 
 def growth_rate(pctile=90, filter_=None, current_window=duration('5m'),
                 historical_window=duration('1h'), cycle_length=duration('1w'), num_cycles=4,
-                fire_growth_rate_threshold=0.2, clear_growth_rate_threshold=0.1,
+                fire_growth_rate_threshold=0.2, clear_growth_rate_threshold=0.1, fire_lasting=None,
                 exclude_errors=True, group_by=None, volume_static_threshold=None,
                 volume_relative_threshold=None, vol_pctile_req_pos=95, custom_filter=None,
                 resource_type='service_operation', auto_resolve_after=None,
@@ -21,6 +21,7 @@ def growth_rate(pctile=90, filter_=None, current_window=duration('5m'),
     #                                       default=4
     # :param fire_growth_rate_threshold (number): latency growth required to trigger, default=0.2
     # :param clear_growth_rate_threshold (number): latency growth required to clear, default=0.1
+    # :param fire_lasting (lasting): duration for which the trigger threshold must be met before the detector fires an alert, default=None
     # :param exclude_errors (boolean): whether to exclude error spans from latency metric, default=True
     # :param group_by (list of strings): average latency by these (in addition to default grouping
     #                    by cluster, service, operation), default=None
@@ -177,7 +178,7 @@ def growth_rate(pctile=90, filter_=None, current_window=duration('5m'),
         off_ = non_empty_cond
     # "hist is not None" has no effect on the detection, but does allow for the stream
     # hist to participate in event details, e.g., the alert modal
-    return detect(when(curr > fire_threshold) and on_ and hist is not None,
+    return detect(when(curr > fire_threshold, fire_lasting) and on_ and hist is not None,
                   off=when(curr < clear_threshold) and off_,
                   annotations=ann,
                   event_annotations=event_ann, auto_resolve_after=auto_resolve_after)
@@ -186,7 +187,7 @@ def deviations_from_norm(filter_=None, current_window=duration('5m'),
                          historical_window=duration('1h'),
                          cycle_length=duration('1w'), num_cycles=4, exclude_errors=True,
                          group_by=None,
-                         fire_num_dev_threshold=3.5, clear_num_dev_threshold=3,
+                         fire_num_dev_threshold=3.5, clear_num_dev_threshold=3, fire_lasting=None,
                          volume_static_threshold=None, volume_relative_threshold=None,
                          fire_latency_static_threshold=None,
                          vol_pctile_req_pos=95, custom_filter=None, resource_type='service_operation',
@@ -207,6 +208,7 @@ def deviations_from_norm(filter_=None, current_window=duration('5m'),
     #                                the current P50 must be in order to trigger, default=3.5
     # :param clear_num_dev_threshold (number): number of historical (P90 - P50)'s from the historical P50
     #                                the current P50 must be in order to clear, default=3
+    # :param fire_lasting (lasting): duration for which the trigger threshold must be met before the detector fires an alert, default=None
     # :param volume_static_threshold (number): threshold on request rate (per second) required for
     #                    alert to trigger, default=None
     # :param volume_relative_threshold (number): require request rate on window being evaluated to be
@@ -375,6 +377,6 @@ def deviations_from_norm(filter_=None, current_window=duration('5m'),
         off_ = non_empty_cond
     # "historical_p50 is not None" has no effect on the detection, but does allow for the stream
     # historical_p50 to participate in event details, e.g., the alert modal
-    return detect(when(current_p50 > fire_threshold) and on_ and historical_p50 is not None,
+    return detect(when(current_p50 > fire_threshold, fire_lasting) and on_ and historical_p50 is not None,
                   off=when(current_p50 < clear_threshold) and off_, annotations=ann,
                   event_annotations=event_ann, auto_resolve_after=auto_resolve_after)

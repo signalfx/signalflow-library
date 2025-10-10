@@ -15,6 +15,7 @@ The `growth_rate` function detects when latency grows by a specified amount rela
 |num_cycles|positive integer|number of historical windows used to define the baseline|4|
 |fire_growth_rate_threshold|number|latency growth required to trigger|0.2|
 |clear_growth_rate_threshold|number|latency growth required to clear|0.1|
+|fire_lasting|lasting|duration for which the trigger threshold must be met before the detector fires an alert|None|
 |exclude_errors|boolean|whether to exclude error spans from latency metric|True|
 |group_by|list of strings|average latency by these (in addition to default grouping associated with resource type)|None|
 |volume_static_threshold|number|threshold on request rate (per second) required for alert to trigger|None|
@@ -55,6 +56,7 @@ The `deviations_from_norm` function detects when latency is too many deviations 
 |group_by|list of strings|average latency by these (in addition to default grouping associated with resource type)|None|
 |fire_num_dev_threshold|number|number of historical (P90 - P50)'s from the historical P50 the current P50 must be in order to trigger|3.5|
 |clear_num_dev_threshold|number|number of historical (P90 - P50)'s from the historical P50 the current P50 must be in order to clear|3|
+|fire_lasting|lasting|duration for which the trigger threshold must be met before the detector fires an alert|None|
 |volume_static_threshold|number|threshold on request rate (per second) required for alert to trigger|None|
 |volume_relative_threshold|number|require request rate on window being evaluated to be at least this proportion of request rate on preceding window (used for trigger and clear)|None|
 |fire_latency_static_threshold|number (ms)|the minimal latency required to trigger (computed threshold will be raised to this value if needed)|None

@@ -25,15 +25,15 @@ RECURSION_LIMIT = 8
 
 
 def detector_helper(summary, fire_bot, clear_bot, clear_top, fire_top, orientation, annotations,
-                    event_annotations=None, auto_resolve_after=None):
+                    event_annotations=None, auto_resolve_after=None, fire_lasting=None):
     if orientation == 'above':
-        return detect(when(summary > fire_top), when(summary < clear_top), annotations=annotations,
+        return detect(when(summary > fire_top, fire_lasting), when(summary < clear_top), annotations=annotations,
                       event_annotations=event_annotations, auto_resolve_after=auto_resolve_after)
     elif orientation == 'below':
-        return detect(when(summary < fire_bot), when(summary > clear_bot), annotations=annotations,
+        return detect(when(summary < fire_bot, fire_lasting), when(summary > clear_bot), annotations=annotations,
                       event_annotations=event_annotations, auto_resolve_after=auto_resolve_after)
     elif orientation == 'out_of_band':
-        return detect(when(summary > fire_top or summary < fire_bot),
+        return detect(when(summary > fire_top or summary < fire_bot, fire_lasting),
                       when(summary < clear_top and summary > clear_bot), mode='split',
                       annotations=annotations, event_annotations=event_annotations,
                       auto_resolve_after=auto_resolve_after)
@@ -113,7 +113,8 @@ def detector_mean_std(stream, window_to_compare=duration('15m'),
                       num_windows=4, fire_num_stddev=3, clear_num_stddev=2.5,
                       discard_historical_outliers=True, orientation='above',
                       calculation_mode='across', auto_resolve_after=None,
-                      _alert_type='against-periods', _detector_type=None):
+                      _alert_type='against-periods', _detector_type=None,
+                      attempt_threshold=None, fire_lasting=None):
     space_between_windows_dur = duration(space_between_windows)
     window_to_compare_dur = duration(window_to_compare)
     assert num_windows <= RECURSION_LIMIT, {
@@ -138,17 +139,21 @@ def detector_mean_std(stream, window_to_compare=duration('15m'),
                                                  clear_num_stddev=clear_num_stddev,
                                                  discard_historical_outliers=discard_historical_outliers,
                                                  calculation_mode=calculation_mode)
+    if attempt_threshold is not None:
+        upper_fire_threshold = max(ft, const(attempt_threshold))
+    else:
+        upper_fire_threshold = ft
     annotations = [annotate(summary, 'rolling mean', {'sfui_streamType': 'signal'}),
                    annotate(fb, 'lower fire threshold', {'sfui_streamType': 'threshold',
                                                          'sfui_state': 'fire',
                                                          'sfui_orientation': 'below',
                                                          'sfui_trigger': 'outside',
                                                          'influencedBy': 'fire_num_stddev'}),
-                   annotate(ft, 'upper fire threshold', {'sfui_streamType': 'threshold',
-                                                         'sfui_state': 'fire',
-                                                         'sfui_orientation': 'above',
-                                                         'sfui_trigger': 'outside',
-                                                         'influencedBy': 'fire_num_stddev'}),
+                   annotate(upper_fire_threshold, 'upper fire threshold', {'sfui_streamType': 'threshold',
+                                                                           'sfui_state': 'fire',
+                                                                           'sfui_orientation': 'above',
+                                                                           'sfui_trigger': 'outside',
+                                                                           'influencedBy': 'fire_num_stddev'}),
                    annotate(cb, 'lower clear threshold',
                             {'sfui_streamType': 'threshold',
                              'sfui_state': 'clear',
@@ -164,4 +169,4 @@ def detector_mean_std(stream, window_to_compare=duration('15m'),
     event_annotations = {'current_window': str(window_to_compare_dur),
                         'alert_type': str(_alert_type),
                         'detector_type': str(_detector_type)}
-    return detector_helper(summary, fb, cb, ct, ft, orientation, annotations, event_annotations, auto_resolve_after=auto_resolve_after)
+    return detector_helper(summary, fb, cb, ct, upper_fire_threshold, orientation, annotations, event_annotations, auto_resolve_after=auto_resolve_after, fire_lasting=fire_lasting)

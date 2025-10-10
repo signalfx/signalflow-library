@@ -15,7 +15,7 @@ def job_fail_pct_high(fire_threshold: float = 90, fire_lasting: lasting = lastin
                 "k8s.job.name"]
 
     failed_pods_stream = data('k8s.job.failed_pods', filter=filter_, rollup='latest').sum(by=group_by, allow_missing=group_by)
-    successful_pods_stream = data('k8s.job.failed_pods', filter=filter_, rollup='latest').sum(by=group_by, allow_missing=group_by)
+    successful_pods_stream = data('k8s.job.successful_pods', filter=filter_, rollup='latest').sum(by=group_by, allow_missing=group_by)
     stream = (failed_pods_stream / (failed_pods_stream + successful_pods_stream)) * 100
 
     fire_threshold_stream = const(fire_threshold)

@@ -121,10 +121,7 @@ def grouped_span_errors_histograms(duration_=duration('1m'), filter_=None, custo
                         .count(by=gp_by, allow_missing=default_allow_missing, over=duration__)\
                         .fill(0)
 
-    e = error_stream if error_stream is not None else 0
-    n_e = non_error_stream if non_error_stream is not None else 0
-
-    return {'errors': e, 'non_errors': n_e}
+    return {'errors': error_stream, 'non_errors': non_error_stream}
 
 
 def error_rate_histograms(duration_=duration('1m'), filter_=None, custom_filter=None, use_kind_filter=True,
@@ -150,5 +147,4 @@ def error_rate_histograms(duration_=duration('1m'), filter_=None, custom_filter=
 
     e = gped_e_stream_histograms['errors']
     n_e = gped_e_stream_histograms['non_errors']
-    attempts = e + n_e
-    return combine(e / attempts)
+    return combine(0 if e is None else 0 if e is 0 else e / (e + 0 if n_e is None else e + n_e))

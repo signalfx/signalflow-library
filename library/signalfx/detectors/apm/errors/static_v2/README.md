@@ -9,6 +9,7 @@ The `detector` function has the following parameters.
 |current_window|duration|window on which error ratio is calculated|duration('5m')|
 |fire_rate_threshold|number|error ratio needed to trigger, expressed as number between 0 and 1|0.01|
 |clear_rate_threshold|number|error ratio needed to clear, expressed as number between 0 and 1|0.001|
+| fire_lasting          |lasting|duration for which the trigger threshold must be met before the detector fires an alert|None|
 |attempt_threshold|integer|threshold on number of attempts (errors + non-errors) in the window being evaluated in order to trigger|1|
 |filter_|filter|specifies dimensional scope of the detector (on built-in dimensions)|None|
 |group_by|list of strings|group both errors and non-errors by these (in addition to default grouping associated with resource type)|None|
