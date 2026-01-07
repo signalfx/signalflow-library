@@ -1,6 +1,7 @@
 from signalfx.detectors.apm.errors.static import static
 from signalfx.detectors.apm.errors import streams, conditions
 from signalfx.detectors.apm import utils
+from signalfx.detectors.apm.suggestions.static import median_mad
 
 
 def detector(current_window=duration('5m'),
@@ -68,3 +69,17 @@ def detector(current_window=duration('5m'),
                   off=when(err_pct <= clear_pct_threshold_stream),
                   annotations=ann,
                   event_annotations=event_ann, auto_resolve_after=auto_resolve_after)
+
+
+def suggest_threshold(current_window=duration('5m'), filter_=None, custom_filter=None, group_by=None, resource_type='service_operation'):
+    current_window_ = duration(current_window)
+    default_group_by = utils.RESOURCE_TYPE_MAPPING_HISTOGRAMS[resource_type]['group_by']
+    default_allow_missing = utils.RESOURCE_TYPE_MAPPING_HISTOGRAMS[resource_type]['allow_missing']
+    metric_names = utils.RESOURCE_TYPE_MAPPING_HISTOGRAMS[resource_type]['metric_names']
+    error_rate_stream = streams.error_rate_histograms(duration_=current_window_, filter_=filter_,
+                             group_by=group_by, custom_filter=custom_filter,
+                             use_kind_filter=False,
+                             default_group_by=default_group_by,
+                             default_allow_missing=default_allow_missing,
+                             metric_names=metric_names) * 100
+    return median_mad(error_rate_stream)

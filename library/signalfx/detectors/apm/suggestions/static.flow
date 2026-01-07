@@ -1,0 +1,7 @@
+def median_mad(stream, window=duration('14d'), fluctuation_multiplier=13):
+    _duration = duration(window)
+    median = stream.percentile(pct=50, over=_duration)
+    mad = abs(stream-median).median(over=_duration)
+    upper_threshold = (median + (fluctuation_multiplier * mad)).mean()
+    lower_threshold = (median - (fluctuation_multiplier * mad)).mean().map(lambda x: x if x > 0 else 0)
+    return (lower_threshold, upper_threshold)

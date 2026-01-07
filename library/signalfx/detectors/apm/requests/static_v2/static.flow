@@ -1,5 +1,6 @@
 from signalfx.detectors.apm.requests import streams
 from signalfx.detectors.apm import utils as apm_utils
+from signalfx.detectors.apm.suggestions.static import median_mad
 
 def detector(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear_lasting=None,
              orientation='above', filter_=None, exclude_errors=False, group_by=None,
@@ -64,3 +65,10 @@ def detector(fire_threshold=None, fire_lasting=None, clear_threshold=None, clear
     elif orientation == 'out_of_band':
         # not implemented yet
         return None
+
+
+def suggest_threshold(filter_=None, custom_filter=None, exclude_errors=False, group_by=None, resource_type='service_operation'):
+    request_rate_stream = streams.request_rate_histograms(filter_=filter_, exclude_errors=exclude_errors,
+                                 group_by=group_by, custom_filter=custom_filter,
+                                 resource_type=resource_type)
+    return median_mad(request_rate_stream)
