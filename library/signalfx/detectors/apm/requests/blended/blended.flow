@@ -1,4 +1,4 @@
-def blended(guard: float = 600, sensitivity: float = 0.85, filter_ = None):
+def blended(guard: float = 600, sensitivity: float = 0.85, filter_: filter = None):
     # Detect when request rate drops, compared to historical request rates
     # :param guard label=Heuristic guardrail (requests per hour)
     # :param guard description=Don't alert for services with fewer than this number of requests.
@@ -8,7 +8,7 @@ def blended(guard: float = 600, sensitivity: float = 0.85, filter_ = None):
     # :param filter_ description=Optionally refine the set of observed entities with an additional filter.
     # :return: detect block that triggers when traffic drops
     by_ = ['sf_service', 'sf_environment']
-    rr = histogram('service.request', filter=filter_).count(by=by_).fill(duration='10m').publish('Request Rate')
+    rr = histogram('service.request', filter=filter_).count(by=by_).publish('Request Rate')
     rr_today = rr.percentile(pct=5, over='2h')
     rr_yesterday = rr_today.timeshift('23h')
     rr_weekago = rr_yesterday.timeshift('6d')

@@ -1,0 +1,37 @@
+from signalfx.detectors.autodetect.infra.k8s import utils as k8s_utils
+
+
+def container_restarts_per_cluster_or_namespace_detector(fire_threshold_: float = 0.33,
+                                                         filter_: filter = None):
+    # Detects when the ratio of pods with the same container name per cluster or namespace experiencing container restarts exceeds 'fire_threshold'
+    # :param fire_threshold_ label=Fire threshold for ratio of pods per cluster or namespace experiencing container restarts
+    # :param fire_threshold_ description=Don't alert for cluster or namespace with fewer than this ratio of pods experiencing container restarts. 
+    # :param filter_ description=Specifies dimensional scope of the detector
+    # :param filter_ metric_name=k8s.container.restarts
+    # :return: detect block that triggers when the ratio of pods with the same container name per cluster or namespace experiencing container restarts exceeds 'fire_threshold'. 
+    group_by = [k8s_utils.K8S_NAMESPACE_NAME_DIM,
+                k8s_utils.K8S_CLUSTER_NAME_DIM,
+                k8s_utils.K8S_POD_NAME_DIM,
+                k8s_utils.K8S_CONTAINER_NAME_DIM]
+    k8s_container_restarts_per_pod = data('k8s.container.restarts', filter=filter_, extrapolation="last_value").max(by=group_by, allow_missing=group_by).delta().sum(over='5m')
+
+    # Within each cluster and across all namespaces, there can be one container that fails (e.g. istio-proxy)
+    # For each namespace across all clusters, there can be a container that fails
+    # 1) count the number of pods with the same container name per cluster
+    n_pods_per_cluster = k8s_container_restarts_per_pod.count(by=[k8s_utils.K8S_CLUSTER_NAME_DIM, k8s_utils.K8S_CONTAINER_NAME_DIM])
+    # 2) count the number of pods with the same container name experiencing container restarts
+    k8s_container_restarts_gt1_per_cluster = k8s_container_restarts_per_pod.above(1, inclusive=True, clamp=False).count(by=[k8s_utils.K8S_CLUSTER_NAME_DIM, k8s_utils.K8S_CONTAINER_NAME_DIM]).publish('container_restarts_per_cluster', enable=True)
+    k8s_container_restarts_gt1_ratio_per_cluster = (k8s_container_restarts_gt1_per_cluster / n_pods_per_cluster).dimensions(aliases={{"unique_dim": k8s_utils.K8S_CLUSTER_NAME_DIM}})
+
+    n_pods_per_namespace = k8s_container_restarts_per_pod.count(by=[k8s_utils.K8S_NAMESPACE_NAME_DIM, k8s_utils.K8S_CONTAINER_NAME_DIM])
+    k8s_container_restarts_gt1_per_namespace = k8s_container_restarts_per_pod.above(1, inclusive=True, clamp=False).count(by=[k8s_utils.K8S_NAMESPACE_NAME_DIM, k8s_utils.K8S_CONTAINER_NAME_DIM]).publish('container_restarts_per_namespace', enable=True)
+    k8s_container_restarts_gt1_ratio_per_namespace = (k8s_container_restarts_gt1_per_namespace / n_pods_per_namespace).dimensions(aliases={{"unique_dim": k8s_utils.K8S_NAMESPACE_NAME_DIM}})
+
+    k8s_container_restarts_gt1_ratios_combined = union(k8s_container_restarts_gt1_ratio_per_cluster, k8s_container_restarts_gt1_ratio_per_namespace)
+
+    fire_threshold = threshold(fire_threshold_)
+    return detect(
+        when(k8s_container_restarts_gt1_ratios_combined >= fire_threshold, lasting=lasting('15m', 0.8)),
+        off=when(k8s_container_restarts_gt1_ratios_combined <  0.5 * fire_threshold, lasting=lasting('40m', 1)),
+        auto_resolve_after='1d'
+    )

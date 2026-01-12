@@ -1,0 +1,58 @@
+from signalfx.detectors.autodetect.infra.k8s import utils as k8s_utils
+
+def node_cpu_utilization_detector(filter_: filter = None):
+    # Detects when the node CPU utilization per cluster is high
+    # :param filter_ description=Specifies dimensional scope of the detector
+    # :param filter_ metric_name=cpu.utilization
+    # :return: detect block that triggers when the node CPU utilization per cluster is high
+    CPU = data('cpu.utilization', filter=filter(k8s_utils.K8S_CLUSTER_NAME_DIM, '*') and filter(k8s_utils.K8S_NODE_NAME_DIM, '*')).publish('CPU', enable=False)
+    TOTAL = CPU.count(by=k8s_utils.K8S_CLUSTER_NAME_DIM).publish('TOTAL', enable=False)
+    CPU95 = CPU.above(95).count(by=k8s_utils.K8S_CLUSTER_NAME_DIM).publish('CPU95', enable=False)
+    CPU90 = CPU.above(90).count(by=k8s_utils.K8S_CLUSTER_NAME_DIM).publish('CPU90', enable=False)
+    CPU80 = CPU.above(80).count(by=k8s_utils.K8S_CLUSTER_NAME_DIM).publish('CPU80', enable=False)
+    CPU95_PCT = (CPU95 / TOTAL * 100.0).publish('CPU95_PCT')
+    CPU90_PCT = (CPU90 / TOTAL * 100.0).publish('CPU90_PCT')
+    CPU80_PCT = (CPU80 / TOTAL * 100.0).publish('CPU80_PCT')
+
+    return detect(when(CPU95_PCT >= 1.0, lasting=lasting('3m', 0.6)) or when(CPU90_PCT >= 1.0, lasting=lasting('8m', 0.8)) or when(CPU80_PCT >= 1.0, lasting=lasting('15m', 0.8)),
+        off=when(CPU95_PCT < 1.0, lasting=lasting('10m', 0.9)) and when(CPU90_PCT < 1.0, lasting=lasting('15m', 0.9)) and when(CPU80_PCT < 1.0, lasting=lasting('25m', 0.9)),
+        auto_resolve_after=duration('1d')
+    )
+
+
+def node_memory_utilization_detector(filter_: filter = None):
+    # Detects when the node MEM utilization per cluster is high
+    # :param filter_ description=Specifies dimensional scope of the detector
+    # :param filter_ metric_name=memory.utilization
+    # :return: detect block that triggers when the node MEM utilization per cluster is high
+    MEM = data('memory.utilization', filter=filter(k8s_utils.K8S_CLUSTER_NAME_DIM, '*') and filter(k8s_utils.K8S_NODE_NAME_DIM, '*')).publish('MEM', enable=False)
+    TOTAL = MEM.count(by=k8s_utils.K8S_CLUSTER_NAME_DIM).publish('TOTAL', enable=False)
+    MEM95 = MEM.above(95).count(by=k8s_utils.K8S_CLUSTER_NAME_DIM).publish('MEM95', enable=False)
+    MEM90 = MEM.above(90).count(by=k8s_utils.K8S_CLUSTER_NAME_DIM).publish('MEM90', enable=False)
+    MEM80 = MEM.above(80).count(by=k8s_utils.K8S_CLUSTER_NAME_DIM).publish('MEM80', enable=False)
+    MEM95_PCT = (MEM95 / TOTAL * 100.0).publish('MEM95_PCT')
+    MEM90_PCT = (MEM90 / TOTAL * 100.0).publish('MEM90_PCT')
+    MEM80_PCT = (MEM80 / TOTAL * 100.0).publish('MEM80_PCT')
+
+    return detect(when(MEM95_PCT >= 1.0, lasting=lasting('3m', 0.6)) or when(MEM90_PCT >= 1.0, lasting=lasting('8m', 0.8)) or when(MEM80_PCT >= 1.0, lasting=lasting('15m', 0.8)),
+        off=when(MEM95_PCT < 1.0, lasting=lasting('10m', 0.9)) and when(MEM90_PCT < 1.0, lasting=lasting('15m', 0.9)) and when(MEM80_PCT < 1.0, lasting=lasting('25m', 0.9)),
+        auto_resolve_after=duration('1d')
+    )
+
+
+def node_readiness_detector(filter_: filter = None):
+    # Detects when the percentage of ready nodes per cluster is below threshold
+    # :param filter_ description=Specifies dimensional scope of the detector
+    # :param filter_ metric_name=k8s.node.condition_ready
+    # :return: detect block that triggers when the percentage of ready nodes per cluster is below threshold.
+    # https://help.splunk.com/en/splunk-observability-cloud/manage-data/available-data-sources/supported-integrations-in-splunk-observability-cloud/applications-orchestration/kubernetes-cluster-receiver
+    # NOTE: k8s.node.condition_ready is 1 if ready, 0 if not, -1 if unknown.
+    _READY = data('k8s.node.condition_ready')
+    KUBERNETES_CLUSTER_DIM = "kubernetes_cluster"
+    TOTAL = _READY.count(by=KUBERNETES_CLUSTER_DIM).publish('TOTAL', enable=False)
+    READY = max(0, _READY).sum(by=KUBERNETES_CLUSTER_DIM).publish('READY', enable=False)
+    READY_PCT = (READY / TOTAL).publish('READY_PCT')
+    return detect(when(READY_PCT <= 0.9, lasting=lasting('1m', 1.0)) or when(READY_PCT <= 0.95, lasting=lasting('5m', 0.8)),
+        off=when(READY_PCT > 0.9, lasting=lasting('8m', 1.0)) and when(READY_PCT > 0.95, lasting=lasting('15m', 0.8)),
+        auto_resolve_after='3d'
+    )

@@ -1,4 +1,4 @@
-def blended(guard: float = 300, headroom: float = 1.5, filter_ = None):
+def blended(guard: float = 300, headroom: float = 1.5, filter_: filter = None):
     # Detect when latency degrades, compared to historical latencies
     # :param guard label=Heuristic floor (millis)
     # :param guard description=Don't alert for latencies under this.
@@ -13,7 +13,7 @@ def blended(guard: float = 300, headroom: float = 1.5, filter_ = None):
     else:
         _filter = filter_ and filter('sf_error', 'false')
     by_ = ['sf_service', 'sf_environment']
-    p90 = histogram('service.request', filter=_filter).percentile(pct=90, by=by_).fill(duration='10m').publish('P90 Latency')
+    p90 = histogram('service.request', filter=_filter).percentile(pct=90, by=by_).publish('P90 Latency')
     p90_today = p90.percentile(pct=80, over='12h')
     p90_yesterday = p90.percentile(pct=80, over='2h').timeshift('23h')
     p90_weekago = p90_yesterday.timeshift('6d')
