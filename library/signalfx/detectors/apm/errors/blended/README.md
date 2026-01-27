@@ -15,6 +15,6 @@ It returns a detect block that fires when error rate has degraded beyond observe
 ```
 from signalfx.detectors.apm.errors.blended import blended
 
-blended.detector(guard=30, headroom=1.0).publish('my-error-detector')
+blended.blended(guard=30, headroom=1.0).publish('my-error-detector')
 ```
 

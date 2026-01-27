@@ -4,11 +4,11 @@ def _resource_not_at_spec_per_cluster_or_namespace_detector(stream: stream,
                                                             fire_threshold_: float):
     n_resource_per_cluster = stream.count(by=k8s_utils.K8S_CLUSTER_NAME_DIM)
     n_resource_not_at_spec_per_cluster = stream.not_equals(0).count(by=k8s_utils.K8S_CLUSTER_NAME_DIM).fill(0)
-    ratio_resource_not_at_spec_per_cluster = (n_resource_not_at_spec_per_cluster / n_resource_per_cluster).dimensions(aliases={{"unique_dim": k8s_utils.K8S_CLUSTER_NAME_DIM}}).publish('ratio_resource_not_at_spec_per_cluster')
+    ratio_resource_not_at_spec_per_cluster = (n_resource_not_at_spec_per_cluster / n_resource_per_cluster).dimensions(aliases={"unique_dim": k8s_utils.K8S_CLUSTER_NAME_DIM}).publish('ratio_resource_not_at_spec_per_cluster')
 
     n_resource_per_namespace = stream.count(by=k8s_utils.K8S_NAMESPACE_NAME_DIM)
     n_resource_not_at_spec_per_namespace = stream.not_equals(0).count(by=k8s_utils.K8S_NAMESPACE_NAME_DIM).fill(0)
-    ratio_resource_not_at_spec_per_namespace = (n_resource_not_at_spec_per_namespace / n_resource_per_namespace).dimensions(aliases={{"unique_dim": k8s_utils.K8S_NAMESPACE_NAME_DIM}}).publish('ratio_resource_not_at_spec_per_namespace')
+    ratio_resource_not_at_spec_per_namespace = (n_resource_not_at_spec_per_namespace / n_resource_per_namespace).dimensions(aliases={"unique_dim": k8s_utils.K8S_NAMESPACE_NAME_DIM}).publish('ratio_resource_not_at_spec_per_namespace')
 
     # NOTE cannot have MTS with different dimensions in detect block
     # size of union is equal to size of ratio_per_cluster + ratio_per_namespace
@@ -23,12 +23,12 @@ def _resource_not_at_spec_per_cluster_or_namespace_detector(stream: stream,
 
 def deployment_not_at_spec_per_cluster_or_namespace_detector(fire_threshold_: float = 0.25,
                                                              filter_: filter = None):
-    # Detects when the ratio of deployments not at spec per cluster or namespace exceeds 'fire_threshold' 
+    # Detects when the ratio of deployments not at spec per cluster or namespace exceeds 'fire_threshold'
     # :param fire_threshold_ label=Fire threshold for ratio of deployments not at spec per cluster or namespace
     # :param fire_threshold_ description=Don't alert for cluster or namespace with fewer that this ratio of deployments not at spec.
     # :param filter_ description=Specifies dimensional scope of the detector
     # :param filter_ metric_name=k8s.deployment.desired
-    # :return: detect block that triggers when the ratio of deployments not at spec (i.e. the number of available pods deviates from the desired number of pods) per cluster or namespace exceeds 'fire_threshold'. 
+    # :return: detect block that triggers when the ratio of deployments not at spec (i.e. the number of available pods deviates from the desired number of pods) per cluster or namespace exceeds 'fire_threshold'.
     group_by = [k8s_utils.K8S_NAMESPACE_NAME_DIM,
                 k8s_utils.K8S_CLUSTER_NAME_DIM,
                 k8s_utils.K8S_DEPLOYMENT_NAME_DIM]
@@ -40,12 +40,12 @@ def deployment_not_at_spec_per_cluster_or_namespace_detector(fire_threshold_: fl
 
 def statefulset_not_at_spec_per_cluster_or_namespace_detector(fire_threshold_: float = 0.25,
                                                              filter_: filter = None):
-    # Detects when the ratio of statefulsets not at spec per cluster or namespace exceeds 'fire_threshold' 
+    # Detects when the ratio of statefulsets not at spec per cluster or namespace exceeds 'fire_threshold'
     # :param fire_threshold_ label=Fire threshold for ratio of statefulsets not at spec per cluster or namespace
     # :param fire_threshold_ description=Don't alert for cluster or namespace with fewer that this ratio of statefulsets not at spec.
     # :param filter_ description=Specifies dimensional scope of the detector
     # :param filter_ metric_name=k8s.statefulset.desired_pods
-    # :return: detect block that triggers when the ratio of statefulsets not at spec (i.e. the number of ready pods deviates from the desired number of pods) per cluster or namespace exceeds 'fire_threshold'. 
+    # :return: detect block that triggers when the ratio of statefulsets not at spec (i.e. the number of ready pods deviates from the desired number of pods) per cluster or namespace exceeds 'fire_threshold'.
     group_by = [k8s_utils.K8S_NAMESPACE_NAME_DIM,
                 k8s_utils.K8S_CLUSTER_NAME_DIM,
                 k8s_utils.K8S_STATEFULSET_NAME_DIM]
@@ -57,12 +57,12 @@ def statefulset_not_at_spec_per_cluster_or_namespace_detector(fire_threshold_: f
 
 def daemonset_not_at_spec_per_cluster_or_namespace_detector(fire_threshold_: float = 0.25,
                                                              filter_: filter = None):
-    # Detects when the ratio of daemonsets not at spec per cluster or namespace exceeds 'fire_threshold' 
+    # Detects when the ratio of daemonsets not at spec per cluster or namespace exceeds 'fire_threshold'
     # :param fire_threshold_ label=Fire threshold for ratio of daemonsets not at spec per cluster or namespace
     # :param fire_threshold_ description=Don't alert for cluster or namespace with fewer that this ratio of daemonsets not at spec.
     # :param filter_ description=Specifies dimensional scope of the detector
     # :param filter_ metric_name=k8s.daemonset.desired_scheduled_nodes
-    # :return: detect block that triggers when the ratio of daemonsets not at spec (i.e. the number of ready nodes deviates from the desired number of scheduled nodes) per cluster or namespace exceeds 'fire_threshold'. 
+    # :return: detect block that triggers when the ratio of daemonsets not at spec (i.e. the number of ready nodes deviates from the desired number of scheduled nodes) per cluster or namespace exceeds 'fire_threshold'.
     group_by = [k8s_utils.K8S_NAMESPACE_NAME_DIM,
                 k8s_utils.K8S_CLUSTER_NAME_DIM,
                 k8s_utils.K8S_DAEMONSET_NAME_DIM]

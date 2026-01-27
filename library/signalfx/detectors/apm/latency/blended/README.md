@@ -15,6 +15,6 @@ It returns a detect block that fires when p90 latency has degraded beyond observ
 ```
 from signalfx.detectors.apm.latency.blended import blended
 
-blended.detector(guard=100, headroom=1.0).publish('my-latency-detector')
+blended.blended(guard=100, headroom=1.0).publish('my-latency-detector')
 ```
 

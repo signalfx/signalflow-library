@@ -1,5 +1,6 @@
 from signalfx.detectors.autodetect import utils
 from signalfx.detectors.apm.latency.sudden_change_v2 import sudden_change as latency_sudden_change_v2
+from signalfx.detectors.apm.latency.blended import blended
 
 
 def latency_deviations_from_norm_detector(current_window: duration = duration('10m'),

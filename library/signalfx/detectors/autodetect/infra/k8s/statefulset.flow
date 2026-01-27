@@ -14,7 +14,7 @@ def statefulset_pods_not_at_spec_detector(fire_threshold: float = 0, fire_lastin
     # :param filter_ description=Specifies dimensional scope of the detector
     # :param filter_ metric_name=k8s.statefulset.desired_pods
     # :return: detect block that triggers when statefulsets suitably filtered and grouped, are not at spec
-    group_by = [k8s_utils.K8S_CLUSTER_NAME_DIM, k8s_utils.K8S_STATEFULSET_NAME_DIM]
+    group_by = [k8s_utils.K8S_CLUSTER_NAME_DIM, k8s_utils.K8S_STATEFULSET_NAME_DIM, k8s_utils.K8S_NAMESPACE_NAME_DIM]
 
     desired_stream = data('k8s.statefulset.desired_pods', filter=filter_).sum(by=group_by, allow_missing=group_by)
     current_stream = data('k8s.statefulset.current_pods', filter=filter_).sum(by=group_by)

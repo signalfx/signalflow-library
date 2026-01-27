@@ -1,7 +1,7 @@
 from signalfx.detectors.autodetect import utils
 from signalfx.detectors.apm.requests import streams
 from signalfx.detectors.apm.requests.sudden_change_v2 import sudden_change
-
+from signalfx.detectors.apm.requests.blended import blended
 
 def request_rate_mean_std_detector(current_window: duration = duration('10m'),
                                    historical_window: duration = duration('1h'),

@@ -1,5 +1,6 @@
 from signalfx.detectors.autodetect import utils
 from signalfx.detectors.apm.errors.sudden_change_v2 import sudden_change as errors_sudden_change_v2
+from signalfx.detectors.apm.errors.blended import blended
 
 
 def error_rate_sudden_change_detector(current_window: duration = duration('10m'),

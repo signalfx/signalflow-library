@@ -3,12 +3,12 @@ from signalfx.detectors.autodetect.infra.k8s import utils as k8s_utils
 
 def pods_in_failed_and_pending_state_per_cluster_or_namespace_detector(fire_threshold_: float = 0.33,
                                                                        filter_: filter = None):
-    # Detects when the ratio of failed and pending pods per cluster or namespace exceeds 'fire_threshold' 
+    # Detects when the ratio of failed and pending pods per cluster or namespace exceeds 'fire_threshold'
     # :param fire_threshold_ label=Fire threshold for ratio of failed and pending pods per cluster or namespace
     # :param fire_threshold_ description=Don't alert for cluster or namespace with fewer that this ratio of failed and pending pods.
     # :param filter_ description=Specifies dimensional scope of the detector
     # :param filter_ metric_name=k8s.pod.phase
-    # :return: detect block that triggers when the ratio of failed and pending pods per cluster or namespace exceeds 'fire_threshold'. 
+    # :return: detect block that triggers when the ratio of failed and pending pods per cluster or namespace exceeds 'fire_threshold'.
     group_by = [k8s_utils.K8S_NAMESPACE_NAME_DIM,
                 k8s_utils.K8S_CLUSTER_NAME_DIM,
                 k8s_utils.K8S_POD_NAME_DIM]
@@ -17,12 +17,12 @@ def pods_in_failed_and_pending_state_per_cluster_or_namespace_detector(fire_thre
     total_count_ns = stream.count(by=k8s_utils.K8S_NAMESPACE_NAME_DIM)
     failed_count_ns = stream.equals(4).count(by=k8s_utils.K8S_NAMESPACE_NAME_DIM)
     pending_count_ns = stream.equals(1).count(by=k8s_utils.K8S_NAMESPACE_NAME_DIM)
-    failure_ratio_ns = ((failed_count_ns + pending_count_ns) / total_count_ns).dimensions(aliases={{"unique_dim": k8s_utils.K8S_NAMESPACE_NAME_DIM}}).publish('failure_ratio_per_namespace', enable=True)
+    failure_ratio_ns = ((failed_count_ns + pending_count_ns) / total_count_ns).dimensions(aliases={"unique_dim": k8s_utils.K8S_NAMESPACE_NAME_DIM}).publish('failure_ratio_per_namespace', enable=True)
 
     total_count_c = stream.count(by=k8s_utils.K8S_CLUSTER_NAME_DIM)
     failed_count_c = stream.equals(4).count(by=k8s_utils.K8S_CLUSTER_NAME_DIM)
     pending_count_c = stream.equals(1).count(by=k8s_utils.K8S_CLUSTER_NAME_DIM)
-    failure_ratio_c = ((failed_count_c + pending_count_c) / total_count_c).dimensions(aliases={{"unique_dim": k8s_utils.K8S_CLUSTER_NAME_DIM}}).publish('failure_ratio_per_cluster', enable=True)
+    failure_ratio_c = ((failed_count_c + pending_count_c) / total_count_c).dimensions(aliases={"unique_dim": k8s_utils.K8S_CLUSTER_NAME_DIM}).publish('failure_ratio_per_cluster', enable=True)
 
     failure_ratios_combined = union(failure_ratio_ns, failure_ratio_c)
     fire_threshold = threshold(fire_threshold_)

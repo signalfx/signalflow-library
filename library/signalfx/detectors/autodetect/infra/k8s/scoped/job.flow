@@ -20,11 +20,11 @@ def job_failures_per_cluster_or_namespace_detector(high_failure_job_threshold: f
 
     n_job_per_cluster = stream.count(by=k8s_utils.K8S_CLUSTER_NAME_DIM)
     n_high_failure_job_ratio_per_cluster = stream.above(high_failure_job_threshold).count(by=k8s_utils.K8S_CLUSTER_NAME_DIM).fill(0)
-    ratio_per_cluster = (n_high_failure_job_ratio_per_cluster / n_job_per_cluster).dimensions(aliases={{"unique_dim": k8s_utils.K8S_CLUSTER_NAME_DIM}}).publish('High-failure jobs ratio per cluster', enable=True)
+    ratio_per_cluster = (n_high_failure_job_ratio_per_cluster / n_job_per_cluster).dimensions(aliases={"unique_dim": k8s_utils.K8S_CLUSTER_NAME_DIM}).publish('High-failure jobs ratio per cluster', enable=True)
 
     n_job_per_namespace = stream.count(by=k8s_utils.K8S_NAMESPACE_NAME_DIM)
     n_high_failure_job_ratio_per_namespace = stream.above(high_failure_job_threshold).count(by=k8s_utils.K8S_NAMESPACE_NAME_DIM).fill(0)
-    ratio_per_namespace = (n_high_failure_job_ratio_per_namespace / n_job_per_namespace).dimensions(aliases={{"unique_dim": k8s_utils.K8S_NAMESPACE_NAME_DIM}}).publish('High-failure jobs ratio per namespace', enable=True)
+    ratio_per_namespace = (n_high_failure_job_ratio_per_namespace / n_job_per_namespace).dimensions(aliases={"unique_dim": k8s_utils.K8S_NAMESPACE_NAME_DIM}).publish('High-failure jobs ratio per namespace', enable=True)
 
     # NOTE cannot have MTS with different dimensions in detect block
     high_failure_job_ratios_combined = union(ratio_per_cluster, ratio_per_namespace)

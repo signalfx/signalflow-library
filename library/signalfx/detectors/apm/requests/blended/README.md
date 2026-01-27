@@ -15,6 +15,6 @@ It returns a detect block that fires when request rate has degraded beyond obser
 ```
 from signalfx.detectors.apm.requests.blended import blended
 
-blended.detector(guard=10, sensitivity=1.0).publish('my-request-rate-detector')
+blended.blended(guard=10, sensitivity=1.0).publish('my-request-rate-detector')
 ```
 

@@ -21,11 +21,11 @@ def container_restarts_per_cluster_or_namespace_detector(fire_threshold_: float 
     n_pods_per_cluster = k8s_container_restarts_per_pod.count(by=[k8s_utils.K8S_CLUSTER_NAME_DIM, k8s_utils.K8S_CONTAINER_NAME_DIM])
     # 2) count the number of pods with the same container name experiencing container restarts
     k8s_container_restarts_gt1_per_cluster = k8s_container_restarts_per_pod.above(1, inclusive=True, clamp=False).count(by=[k8s_utils.K8S_CLUSTER_NAME_DIM, k8s_utils.K8S_CONTAINER_NAME_DIM]).publish('container_restarts_per_cluster', enable=True)
-    k8s_container_restarts_gt1_ratio_per_cluster = (k8s_container_restarts_gt1_per_cluster / n_pods_per_cluster).dimensions(aliases={{"unique_dim": k8s_utils.K8S_CLUSTER_NAME_DIM}})
+    k8s_container_restarts_gt1_ratio_per_cluster = (k8s_container_restarts_gt1_per_cluster / n_pods_per_cluster).dimensions(aliases={"unique_dim": k8s_utils.K8S_CLUSTER_NAME_DIM})
 
     n_pods_per_namespace = k8s_container_restarts_per_pod.count(by=[k8s_utils.K8S_NAMESPACE_NAME_DIM, k8s_utils.K8S_CONTAINER_NAME_DIM])
     k8s_container_restarts_gt1_per_namespace = k8s_container_restarts_per_pod.above(1, inclusive=True, clamp=False).count(by=[k8s_utils.K8S_NAMESPACE_NAME_DIM, k8s_utils.K8S_CONTAINER_NAME_DIM]).publish('container_restarts_per_namespace', enable=True)
-    k8s_container_restarts_gt1_ratio_per_namespace = (k8s_container_restarts_gt1_per_namespace / n_pods_per_namespace).dimensions(aliases={{"unique_dim": k8s_utils.K8S_NAMESPACE_NAME_DIM}})
+    k8s_container_restarts_gt1_ratio_per_namespace = (k8s_container_restarts_gt1_per_namespace / n_pods_per_namespace).dimensions(aliases={"unique_dim": k8s_utils.K8S_NAMESPACE_NAME_DIM})
 
     k8s_container_restarts_gt1_ratios_combined = union(k8s_container_restarts_gt1_ratio_per_cluster, k8s_container_restarts_gt1_ratio_per_namespace)
 
