@@ -1,6 +1,5 @@
 from signalfx.detectors.autodetect import utils
 from signalfx.detectors.apm.errors.sudden_change_v2 import sudden_change as errors_sudden_change_v2
-from signalfx.detectors.apm.errors.blended import blended
 
 
 def error_rate_sudden_change_detector(current_window: duration = duration('10m'),
@@ -37,3 +36,30 @@ def error_rate_sudden_change_detector(current_window: duration = duration('10m')
                                             clear_growth_threshold=clear_growth_threshold_rate,
                                             filter_=filter_, attempt_threshold=attempt_threshold,
                                             resource_type='service', auto_resolve_after=utils.AUTO_RESOLVE_AFTER)
+
+
+def blended(guard: float = 30, headroom: float = 1.5, filter_: filter = None):
+    # Detect when error rate increases, compared to historical error rates
+    # :param guard label=Heuristic floor (errors per second)
+    # :param guard description=Don't alert for error rates under this.
+    # :param headroom label=Headroom multiplier (unitless; usually between 1.2 and 2.0)
+    # :param headroom description=How much worse error rate must be, compared to historical, in order to trigger an alert.
+    # :param filter_ label=Additional filter
+    # :param filter_ description=Optionally refine the set of observed entities with an additional filter.
+    # :param filter_ metric_name=service.request
+    # :return: detect block that triggers when error rate increases
+    if filter_ is None:
+        _filter = filter('sf_error', 'true')
+    else:
+        _filter = filter_ and filter('sf_error', 'true')
+    by_ = ['sf_service', 'sf_environment']
+    errors = histogram('service.request', filter=_filter, resolution='1s').count(over='1s').rate(by=by_).publish('Error Rate')
+    errors_today = errors.percentile(pct=80, over='12h').publish('Today')
+    errors_yesterday = errors.timeshift('23h').percentile(pct=80, over='2h').publish('Yesterday')
+    errors_weekago = errors_yesterday.timeshift('6d').publish('Week Ago')
+    alert_level = max(max(errors_today, errors_yesterday, errors_weekago) * headroom, guard)
+    return detect(
+        on= when(errors > threshold(alert_level), lasting='15m', at_least=0.8),
+        off=when(errors <= threshold(alert_level), lasting='20m', at_least=0.85),
+        auto_resolve_after='1d',
+    )

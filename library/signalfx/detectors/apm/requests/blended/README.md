@@ -1,3 +1,5 @@
+⚠️ Deprecation warning: superceded by the autodetect.apm.requests.blended function.
+
 Detect when the request rate drops below empirical baselines.
 
 ## Detector

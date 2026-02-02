@@ -1,3 +1,5 @@
+⚠️ Deprecation warning: superceded by the autodetect.apm.latency.blended function.
+
 Detect when the p90 latency exceeds recent empirical baselines.
 
 ## Detector

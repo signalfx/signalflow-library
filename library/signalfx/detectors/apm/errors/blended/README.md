@@ -1,3 +1,5 @@
+⚠️ Deprecation warning: superceded by the autodetect.apm.errors.blended function.
+
 Detect when the error rate exceeds recent empirical baselines.
 
 ## Detector
