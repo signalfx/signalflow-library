@@ -1,0 +1,67 @@
+from signalfx.detectors.autodetect.infra.k8s import utils as k8s_utils
+
+def _resource_not_at_spec_historical_detector(stream: stream, guard: float, headroom: float):
+    n_not_at_spec = stream.not_equals(0).count(by=[k8s_utils.K8S_NAMESPACE_NAME_DIM, k8s_utils.K8S_CLUSTER_NAME_DIM]).fill(0).publish('n_not_at_spec')
+    n_not_at_spec_today = n_not_at_spec.percentile(pct=80, over='12h')
+    n_not_at_spec_yesterday = n_not_at_spec.timeshift('23h').percentile(pct=80, over='2h')
+    n_not_at_spec_weekago = n_not_at_spec_yesterday.timeshift('6d')
+    alert_level = max(max(n_not_at_spec_today, n_not_at_spec_yesterday, n_not_at_spec_weekago) * headroom, guard).publish('threshold')
+    return detect(
+        when(n_not_at_spec > threshold(alert_level), lasting=lasting('15m', 0.8)),
+        off=when(n_not_at_spec <= threshold(alert_level), lasting=lasting('40m', 0.9)),
+        auto_resolve_after=duration('1d')
+    )
+
+
+def deployment_not_at_spec_historical_detector(guard: float = 0, headroom: float = 1, filter_: filter = None):
+    # Detects when the number of deployments not at spec increases, compared to historical values
+    # :param guard label=Heuristic floor (number of deployments not at spec)
+    # :param guard description=Don't alert for a number of deployments not at spec under this.
+    # :param headroom label=Headroom multiplier (unitless; 1.0-2.0)
+    # :param headroom description=How much worse the number of deployments not at spec must be, compared to historical, in order to trigger an alert.
+    # :param filter_ description=Specifies dimensional scope of the detector
+    # :param filter_ metric_name=k8s.deployment.desired
+    # :return: detect block that triggers when number of deployments not at spec increases.
+    group_by = [k8s_utils.K8S_NAMESPACE_NAME_DIM,
+                k8s_utils.K8S_CLUSTER_NAME_DIM,
+                k8s_utils.K8S_DEPLOYMENT_NAME_DIM]
+    desired_stream = data('k8s.deployment.desired', filter=filter_).sum(by=group_by, allow_missing=group_by)
+    available_stream = data('k8s.deployment.available', filter=filter_).sum(by=group_by, allow_missing=group_by)
+    stream = (desired_stream - available_stream)
+    return _resource_not_at_spec_historical_detector(stream=stream, guard=guard, headroom=headroom)
+
+
+def statefulset_not_at_spec_historical_detector(guard: float = 0, headroom: float = 1, filter_: filter = None):
+    # Detects when the number of statefulsets not at spec increases, compared to historical values
+    # :param guard label=Heuristic floor (number of statefulsets not at spec)
+    # :param guard description=Don't alert for a number of statefulsets not at spec under this.
+    # :param headroom label=Headroom multiplier (unitless; 1.0-2.0)
+    # :param headroom description=How much worse the number of statefulsets not at spec must be, compared to historical, in order to trigger an alert.
+    # :param filter_ description=Specifies dimensional scope of the detector
+    # :param filter_ metric_name=k8s.deployment.desired
+    # :return: detect block that triggers when number of statefulsets not at spec increases.
+    group_by = [k8s_utils.K8S_NAMESPACE_NAME_DIM,
+                k8s_utils.K8S_CLUSTER_NAME_DIM,
+                k8s_utils.K8S_STATEFULSET_NAME_DIM]
+    desired_stream = data('k8s.statefulset.desired_pods', filter=filter_).sum(by=group_by, allow_missing=group_by)
+    available_stream = data('k8s.statefulset.ready_pods', filter=filter_).sum(by=group_by, allow_missing=group_by)
+    stream = (desired_stream - available_stream)
+    return _resource_not_at_spec_historical_detector(stream=stream, guard=guard, headroom=headroom)
+
+
+def daemonset_not_at_spec_historical_detector(guard: float = 0, headroom: float = 1, filter_: filter = None):
+    # Detects when the number of daemonsets not at spec increases, compared to historical values
+    # :param guard label=Heuristic floor (number of daemonsets not at spec)
+    # :param guard description=Don't alert for a number of daemonsets not at spec under this.
+    # :param headroom label=Headroom multiplier (unitless; 1.0-2.0)
+    # :param headroom description=How much worse the number of daemonsets not at spec must be, compared to historical, in order to trigger an alert.
+    # :param filter_ description=Specifies dimensional scope of the detector
+    # :param filter_ metric_name=k8s.deployment.desired
+    # :return: detect block that triggers when number of daemonsets not at spec increases.
+    group_by = [k8s_utils.K8S_NAMESPACE_NAME_DIM,
+                k8s_utils.K8S_CLUSTER_NAME_DIM,
+                k8s_utils.K8S_DAEMONSET_NAME_DIM]
+    desired_stream = data('k8s.daemonset.desired_scheduled_nodes', filter=filter_).sum(by=group_by, allow_missing=group_by)
+    available_stream = data('k8s.daemonset.ready_nodes', filter=filter_).sum(by=group_by, allow_missing=group_by)
+    stream = (desired_stream - available_stream)
+    return _resource_not_at_spec_historical_detector(stream=stream, guard=guard, headroom=headroom)
