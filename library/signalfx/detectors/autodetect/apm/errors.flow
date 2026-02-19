@@ -48,15 +48,16 @@ def blended(guard: float = 30, headroom: float = 1.5, filter_: filter = None):
     # :param filter_ description=Optionally refine the set of observed entities with an additional filter.
     # :param filter_ metric_name=service.request
     # :return: detect block that triggers when error rate increases
+    diagnostics = False
     if filter_ is None:
         _filter = filter('sf_error', 'true')
     else:
         _filter = filter_ and filter('sf_error', 'true')
     by_ = ['sf_service', 'sf_environment']
     errors = histogram('service.request', filter=_filter, resolution='1s').count(over='1s').rate(by=by_).publish('Error Rate')
-    errors_today = errors.percentile(pct=80, over='12h').publish('Today')
-    errors_yesterday = errors.timeshift('23h').percentile(pct=80, over='2h').publish('Yesterday')
-    errors_weekago = errors_yesterday.timeshift('6d').publish('Week Ago')
+    errors_today = errors.percentile(pct=80, over='12h').publish('Today', enable=diagnostics)
+    errors_yesterday = errors.timeshift('23h').percentile(pct=80, over='2h').publish('Yesterday', enable=diagnostics)
+    errors_weekago = errors_yesterday.timeshift('6d').publish('Week Ago', enable=diagnostics)
     alert_level = max(max(errors_today, errors_yesterday, errors_weekago) * headroom, guard)
     return detect(
         on= when(errors > threshold(alert_level), lasting='15m', at_least=0.8),

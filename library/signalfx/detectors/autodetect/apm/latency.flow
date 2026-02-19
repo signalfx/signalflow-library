@@ -46,6 +46,7 @@ def blended(guard: float = 500, headroom: float = 2.0, filter_: filter = None):
     # :param filter_ description=Optionally refine the set of observed entities with an additional filter.
     # :param filter_ metric_name=service.request
     # :return: detect block that triggers when latency degrades
+    diagnostics = False
     guard_nanos = guard * 1e6
     if filter_ is None:
         _filter = filter('sf_error', 'false')
@@ -53,9 +54,9 @@ def blended(guard: float = 500, headroom: float = 2.0, filter_: filter = None):
         _filter = filter_ and filter('sf_error', 'false')
     by_ = ['sf_service', 'sf_environment']
     p90 = histogram('service.request', filter=_filter, resolution='1s').percentile(pct=90, by=by_).publish('P90 Latency')
-    p90_today = p90.percentile(pct=80, over='12h').publish('Today')
-    p90_yesterday = p90.percentile(pct=80, over='2h').timeshift('23h').publish('Yesterday')
-    p90_weekago = p90_yesterday.timeshift('6d').publish('Week Ago')
+    p90_today = p90.percentile(pct=80, over='12h').publish('Today', enable=diagnostics)
+    p90_yesterday = p90.percentile(pct=80, over='2h').timeshift('23h').publish('Yesterday', enable=diagnostics)
+    p90_weekago = p90_yesterday.timeshift('6d').publish('Week Ago', enable=diagnostics)
     alert_level = max(max(p90_today, p90_yesterday, p90_weekago) * headroom, guard_nanos)
     return detect(
         on= when(p90 > threshold(alert_level), lasting='15m', at_least=0.8),

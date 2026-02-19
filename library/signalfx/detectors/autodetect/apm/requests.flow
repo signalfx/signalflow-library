@@ -38,11 +38,12 @@ def blended(guard: float = 30, sensitivity: float = 0.85, filter_: filter = None
     # :param filter_ description=Optionally refine the set of observed entities with an additional filter.
     # :param filter_ metric_name=service.request
     # :return: detect block that triggers when traffic drops
+    diagnostics = False
     by_ = ['sf_service', 'sf_environment']
     rr = histogram('service.request', filter=filter_, resolution='1s').count(over='1s').rate(by=by_).publish('Request Rate')
-    rr_today = rr.percentile(pct=5, over='2h').publish('Last 2h')
-    rr_yesterday = rr_today.timeshift('23h').publish('Yesterday')
-    rr_weekago = rr_yesterday.timeshift('6d').publish('Week Ago')
+    rr_today = rr.percentile(pct=5, over='2h').publish('Last 2h', enable=diagnostics)
+    rr_yesterday = rr_today.timeshift('23h').publish('Yesterday', enable=diagnostics)
+    rr_weekago = rr_yesterday.timeshift('6d').publish('Week Ago', enable=diagnostics)
     _alert_level = min(rr_today, rr_yesterday, rr_weekago) * sensitivity
     _guard = rr.sum(over='1h')
     alert_level = combine(0 if _guard < guard else _alert_level)
