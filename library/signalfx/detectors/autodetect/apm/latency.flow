@@ -58,6 +58,44 @@ def blended(guard: float = 500, headroom: float = 2.0, filter_: filter = None):
     p90_yesterday = p90.percentile(pct=80, over='2h').timeshift('23h').publish('Yesterday', enable=diagnostics)
     p90_weekago = p90_yesterday.timeshift('6d').publish('Week Ago', enable=diagnostics)
     alert_level = max(max(p90_today, p90_yesterday, p90_weekago) * headroom, guard_nanos)
+    ann = [annotate(p90, 'p90 latency', {'sfui_streamType': 'signal'}),
+           annotate(alert_level, 'fire threshold', {
+            'sfui_config': '{"signal_baseline": {"sfui_streamType":"threshold","sfui_state":"fire","sfui_orientation":"above"}}'})]
+    return detect(
+        on=when(p90 > threshold(alert_level), lasting='15m', at_least=0.8),
+        off=when(p90 <= threshold(alert_level), lasting='20m', at_least=0.85),
+        annotations=ann,
+        auto_resolve_after='1d',
+    )
+
+def blendedv2(guard: float = 500, headroom: float = 2.0, filter_: filter = None, by_: list = ['sf_service', 'sf_environment'], diagnostics: bool = False):
+    # Detect when latency degrades, compared to historical latencies
+    # :param guard label=Minimum alert threshold
+    # :param guard min=0
+    # :param guard unit=ms
+    # :param guard description=We won't alert for latencies under this.
+    # :param headroom label=Headroom
+    # :param headroom description=For example, a headroom of 2.0 means the alert will trigger when latency is 2x the historical level.
+    # :param headroom min=0
+    # :param filter_ label=Additional filter
+    # :param filter_ description=Optionally refine the set of observed entities with an additional filter.
+    # :param filter_ metric_name=service.request
+    # :param by_ label=Group-by dimensions
+    # :param by_ description=Default 'sf_service' and 'sf_environment'; consider adding 'sf_operation', using 'service.name', etc.
+    # :param diagnostics label=Enable explanatory plots
+    # :param diagnostics description=Adds Today, Yesterday, and Week Ago percentile plots to help explain the alert.
+    # :viz valueUnit=Nanosecond
+    # :return: detect block that triggers when latency degrades
+    guard_nanos = guard * 1e6
+    if filter_ is None:
+        _filter = filter('sf_error', 'false')
+    else:
+        _filter = filter_ and filter('sf_error', 'false')
+    p90 = histogram('service.request', filter=_filter, resolution='1s').percentile(pct=90, by=by_).publish('P90 Latency')
+    p90_today = p90.percentile(pct=80, over='12h').publish('Today', enable=diagnostics)
+    p90_yesterday = p90.percentile(pct=80, over='40m').timeshift('23h40m').publish('Yesterday', enable=diagnostics)
+    p90_weekago = p90_yesterday.timeshift('6d').publish('Week Ago', enable=diagnostics)
+    alert_level = max(max(p90_today, p90_yesterday, p90_weekago) * headroom, guard_nanos)
     return detect(
         on= when(p90 > threshold(alert_level), lasting='15m', at_least=0.8),
         off=when(p90 <= threshold(alert_level), lasting='20m', at_least=0.85),

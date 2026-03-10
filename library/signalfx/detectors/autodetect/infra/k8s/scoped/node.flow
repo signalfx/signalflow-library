@@ -1,3 +1,4 @@
+from signalfx.detectors.autodetect import utils
 from signalfx.detectors.autodetect.infra.k8s import utils as k8s_utils
 
 def node_cpu_utilization_detector(filter_: filter = None):
@@ -5,7 +6,9 @@ def node_cpu_utilization_detector(filter_: filter = None):
     # :param filter_ description=Specifies dimensional scope of the detector
     # :param filter_ metric_name=cpu.utilization
     # :return: detect block that triggers when the node CPU utilization per cluster is high
-    CPU = data('cpu.utilization', filter=filter(k8s_utils.K8S_CLUSTER_NAME_DIM, '*') and filter(k8s_utils.K8S_NODE_NAME_DIM, '*')).publish('CPU', enable=False)
+    initial_filter = filter(k8s_utils.K8S_CLUSTER_NAME_DIM, '*') and filter(k8s_utils.K8S_NODE_NAME_DIM, '*')
+    scope_filter = utils.merge_filters(initial_filter, filter_)
+    CPU = data('cpu.utilization', filter=scope_filter).publish('CPU', enable=False)
     TOTAL = CPU.count(by=k8s_utils.K8S_CLUSTER_NAME_DIM).publish('TOTAL', enable=False)
     CPU95 = CPU.above(95).count(by=k8s_utils.K8S_CLUSTER_NAME_DIM).publish('CPU95', enable=False)
     CPU90 = CPU.above(90).count(by=k8s_utils.K8S_CLUSTER_NAME_DIM).publish('CPU90', enable=False)
@@ -25,7 +28,9 @@ def node_memory_utilization_detector(filter_: filter = None):
     # :param filter_ description=Specifies dimensional scope of the detector
     # :param filter_ metric_name=memory.utilization
     # :return: detect block that triggers when the node MEM utilization per cluster is high
-    MEM = data('memory.utilization', filter=filter(k8s_utils.K8S_CLUSTER_NAME_DIM, '*') and filter(k8s_utils.K8S_NODE_NAME_DIM, '*')).publish('MEM', enable=False)
+    initial_filter = filter(k8s_utils.K8S_CLUSTER_NAME_DIM, '*') and filter(k8s_utils.K8S_NODE_NAME_DIM, '*')
+    scope_filter = utils.merge_filters(initial_filter, filter_)
+    MEM = data('memory.utilization', filter=scope_filter).publish('MEM', enable=False)
     TOTAL = MEM.count(by=k8s_utils.K8S_CLUSTER_NAME_DIM).publish('TOTAL', enable=False)
     MEM95 = MEM.above(95).count(by=k8s_utils.K8S_CLUSTER_NAME_DIM).publish('MEM95', enable=False)
     MEM90 = MEM.above(90).count(by=k8s_utils.K8S_CLUSTER_NAME_DIM).publish('MEM90', enable=False)
@@ -47,7 +52,7 @@ def node_readiness_detector(filter_: filter = None):
     # :return: detect block that triggers when the percentage of ready nodes per cluster is below threshold.
     # https://help.splunk.com/en/splunk-observability-cloud/manage-data/available-data-sources/supported-integrations-in-splunk-observability-cloud/applications-orchestration/kubernetes-cluster-receiver
     # NOTE: k8s.node.condition_ready is 1 if ready, 0 if not, -1 if unknown.
-    _READY = data('k8s.node.condition_ready')
+    _READY = data('k8s.node.condition_ready', filter=filter_)
     KUBERNETES_CLUSTER_DIM = "kubernetes_cluster"
     TOTAL = _READY.count(by=KUBERNETES_CLUSTER_DIM).publish('TOTAL', enable=False)
     READY = max(0, _READY).sum(by=KUBERNETES_CLUSTER_DIM).publish('READY', enable=False)
