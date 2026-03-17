@@ -38,7 +38,7 @@ def blended(guard: float = 30, sensitivity: float = 0.85, filter_: filter = None
     # :param filter_ description=Optionally refine the set of observed entities with an additional filter.
     # :param filter_ metric_name=service.request
     # :return: detect block that triggers when traffic drops
-    diagnostics = False
+    diagnostics = False  # setting this to True breaks the autodetectors UI
     by_ = ['sf_service', 'sf_environment']
     rr = histogram('service.request', filter=filter_, resolution='1s').count(over='1s').rate(by=by_).publish('Request Rate')
     rr_today = rr.percentile(pct=5, over='2h').publish('Last 2h', enable=diagnostics)
@@ -47,8 +47,11 @@ def blended(guard: float = 30, sensitivity: float = 0.85, filter_: filter = None
     _alert_level = min(rr_today, rr_yesterday, rr_weekago) * sensitivity
     _guard = rr.sum(over='1h')
     alert_level = combine(0 if _guard < guard else _alert_level)
+    ann = [annotate(alert_level, 'upper fire threshold', {
+        'sfui_streamType': 'threshold','sfui_state':'fire','sfui_orientation':'below'})]
     return detect(
-        on=when(rr < threshold(alert_level), lasting='15m', at_least=0.8),
-        off=when(rr >= threshold(alert_level), lasting='20m', at_least=0.85),
+        on=when(rr < alert_level, lasting='15m', at_least=0.8),
+        off=when(rr >= alert_level, lasting='20m', at_least=0.85),
+        annotations=ann,
         auto_resolve_after='1d',
     )

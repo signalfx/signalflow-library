@@ -37,7 +37,6 @@ def error_rate_sudden_change_detector(current_window: duration = duration('10m')
                                             filter_=filter_, attempt_threshold=attempt_threshold,
                                             resource_type='service', auto_resolve_after=utils.AUTO_RESOLVE_AFTER)
 
-
 def blended(guard: float = 30, headroom: float = 1.5, filter_: filter = None):
     # Detect when error rate increases, compared to historical error rates
     # :param guard label=Heuristic floor (errors per second)
@@ -48,7 +47,7 @@ def blended(guard: float = 30, headroom: float = 1.5, filter_: filter = None):
     # :param filter_ description=Optionally refine the set of observed entities with an additional filter.
     # :param filter_ metric_name=service.request
     # :return: detect block that triggers when error rate increases
-    diagnostics = False
+    diagnostics = False  # setting this to True breaks the autodetectors UI
     if filter_ is None:
         _filter = filter('sf_error', 'true')
     else:
@@ -59,9 +58,12 @@ def blended(guard: float = 30, headroom: float = 1.5, filter_: filter = None):
     errors_yesterday = errors.timeshift('23h').percentile(pct=80, over='2h').publish('Yesterday', enable=diagnostics)
     errors_weekago = errors_yesterday.timeshift('6d').publish('Week Ago', enable=diagnostics)
     alert_level = max(max(errors_today, errors_yesterday, errors_weekago) * headroom, guard)
+    ann = [annotate(alert_level, 'upper fire threshold', {
+        'sfui_streamType': 'threshold','sfui_state':'fire','sfui_orientation':'above'})]
     return detect(
-        on= when(errors > threshold(alert_level), lasting='15m', at_least=0.8),
-        off=when(errors <= threshold(alert_level), lasting='20m', at_least=0.85),
+        on=when(errors > alert_level, lasting='15m', at_least=0.8),
+        off=when(errors <= alert_level, lasting='20m', at_least=0.85),
+        annotations=ann,
         auto_resolve_after='1d',
     )
 
@@ -80,7 +82,7 @@ def blendedv2(guard: float = 30, headroom: float = 1.5, filter_: filter = None, 
     # :param by_ label=Group-by dimensions
     # :param by_ description=Default 'sf_service' and 'sf_environment'; consider adding 'sf_operation', using 'service.name', etc.
     # :param diagnostics label=Enable explanatory plots
-    # :param diagnostics description=Adds Today, Yesterday, and Week Ago percentile plots to help explain the alert.
+    # :param diagnostics description=Adds Today, Yesterday, and Week Ago percentile plots to help explain the alert; setting this to True breaks the autodetectors UI
     # :viz valueSuffix=Hz
     # :return: detect block that triggers when error rate increases
     if filter_ is None:
@@ -92,8 +94,41 @@ def blendedv2(guard: float = 30, headroom: float = 1.5, filter_: filter = None, 
     errors_yesterday = errors.percentile(pct=80, over='40m').timeshift('23h40m').publish('Yesterday', enable=diagnostics)
     errors_weekago = errors_yesterday.timeshift('6d').publish('Week Ago', enable=diagnostics)
     alert_level = max(max(errors_today, errors_yesterday, errors_weekago) * headroom, guard)
+    ann = [annotate(alert_level, 'upper fire threshold', {
+        'sfui_streamType': 'threshold','sfui_state':'fire','sfui_orientation':'above'})]
     return detect(
-        on= when(errors > threshold(alert_level), lasting='15m', at_least=0.8),
-        off=when(errors <= threshold(alert_level), lasting='20m', at_least=0.85),
+        on=when(errors > alert_level, lasting='15m', at_least=0.8),
+        off=when(errors <= alert_level, lasting='20m', at_least=0.85),
+        annotations=ann,
         auto_resolve_after='1d',
     )
+
+def blendedv2_sensitivity(guard: float = 30,
+                          sensitivity: float = 0.5,
+                          filter_: filter = None,
+                          by_: list = ['sf_service', 'sf_environment'],
+                          diagnostics: bool = False):
+    # Detect when error rate increases, compared to historical error rates
+    # :param guard label=Minimum alert threshold
+    # :param guard min=0
+    # :param guard unit=eps
+    # :param guard description=We won't alert for error rates under this.
+    # :param sensitivity label=sensitivity
+    # :param sensitivity description=Low sensitivity means less alerts, high sensitivity mean more alerts. For exemple, a sensitivity of 0.5 means the alert will trigger when error rate is 2x the historical level.
+    # :param sensitivity min=0
+    # :param sensitivity max=1
+    # :param filter_ label=Additional filter
+    # :param filter_ description=Optionally refine the set of observed entities with an additional filter.
+    # :param filter_ metric_name=service.request
+    # :param by_ label=Group-by dimensions
+    # :param by_ description=Default 'sf_service' and 'sf_environment'; consider adding 'sf_operation', using 'service.name', etc.
+    # :param diagnostics label=Enable explanatory plots
+    # :param diagnostics description=Adds Today, Yesterday, and Week Ago percentile plots to help explain the alert; setting this to True breaks the autodetectors UI
+    # :viz valueSuffix=Hz
+    # :return: detect block that triggers when error rate increases
+    assert sensitivity >= 0 and sensitivity <= 1, {
+        'sensitivity': sensitivity,
+        'sfui_errorKeys': ['sensitivity'],
+        'sfui_errorTemplate': "{{{sensitivity}}} must be in range: [0..1]"}
+    headroom = 3 - 2 * sensitivity
+    return blendedv2(guard=guard, headroom=headroom, filter_=filter_, by_=by_, diagnostics=diagnostics)
