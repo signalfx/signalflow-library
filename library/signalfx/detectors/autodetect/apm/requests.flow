@@ -49,9 +49,11 @@ def blended(guard: float = 30, sensitivity: float = 0.85, filter_: filter = None
     alert_level = combine(0 if _guard < guard else _alert_level)
     ann = [annotate(alert_level, 'upper fire threshold', {
         'sfui_streamType': 'threshold','sfui_state':'fire','sfui_orientation':'below'})]
+    event_ann = {'alert_type': 'requests', 'detector_type': 'apm'}
     return detect(
         on=when(rr < alert_level, lasting='15m', at_least=0.8),
         off=when(rr >= alert_level, lasting='20m', at_least=0.85),
         annotations=ann,
+        event_annotations=event_ann,
         auto_resolve_after='1d',
     )
