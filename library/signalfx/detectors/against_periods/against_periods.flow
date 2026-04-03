@@ -39,19 +39,6 @@ def detector_helper(summary, fire_bot, clear_bot, clear_top, fire_top, orientati
                       auto_resolve_after=auto_resolve_after)
 
 
-def detect_from_conditions(c, orientation, auto_resolve_after=None):
-    if orientation == 'out_of_band':
-        return detect(c['on'], c['off'], mode='split',
-                      annotations=c['annotations'],
-                      event_annotations=c['event_annotations'],
-                      auto_resolve_after=auto_resolve_after)
-    else:
-        return detect(c['on'], c['off'],
-                      annotations=c['annotations'],
-                      event_annotations=c['event_annotations'],
-                      auto_resolve_after=auto_resolve_after)
-
-
 h = streams.h
 n_period_trimmed_mean = streams.n_period_trimmed_mean
 n_period_trimmed_threshold = streams.n_period_trimmed_threshold
@@ -63,12 +50,12 @@ period_summaries = streams.period_summaries
 triple_ewma = streams.triple_ewma
 
 
-def growth_rate_conditions(stream, window_to_compare=duration('15m'),
-                           space_between_windows=duration('1w'),
-                           num_windows=4, fire_growth_rate_threshold=0.2,
-                           clear_growth_rate_threshold=0.1,
-                           discard_historical_outliers=True, orientation='above',
-                           _alert_type='against-periods', _detector_type=None):
+def detector_growth_rate(stream, window_to_compare=duration('15m'),
+                         space_between_windows=duration('1w'),
+                         num_windows=4, fire_growth_rate_threshold=0.2,
+                         clear_growth_rate_threshold=0.1,
+                         discard_historical_outliers=True, orientation='above',
+                         auto_resolve_after=None, _alert_type='against-periods', _detector_type=None):
     window_to_compare_dur = duration(window_to_compare)
     space_between_windows_dur = duration(space_between_windows)
     assert fire_growth_rate_threshold >= clear_growth_rate_threshold, {
@@ -86,8 +73,7 @@ def growth_rate_conditions(stream, window_to_compare=duration('15m'),
         'sfui_errorKeys': ['num_windows'],
         'sfui_errorTemplate': "{{{num_windows}}} must be less than or equal to 8."}
     summary = stream.mean(over=window_to_compare_dur)
-    fb, cb, ct, ft = streams.growth_rate_thresholds(stream,
-                                                    window_to_compare=window_to_compare_dur,
+    fb, cb, ct, ft = streams.growth_rate_thresholds(stream, window_to_compare=window_to_compare_dur,
                                                     space_between_windows=space_between_windows_dur,
                                                     num_windows=num_windows,
                                                     fire_growth_rate_threshold=fire_growth_rate_threshold,
@@ -117,66 +103,36 @@ def growth_rate_conditions(stream, window_to_compare=duration('15m'),
                              'sfui_trigger': 'outside',
                              'influencedBy': 'clear_growth_rate_threshold'})]
     event_annotations = {'current_window': str(window_to_compare_dur),
-                         'alert_type': str(_alert_type),
-                         'detector_type': str(_detector_type)}
-    if orientation == 'above':
-        on = when(summary > ft)
-        off = when(summary < ct)
-    elif orientation == 'below':
-        on = when(summary < fb)
-        off = when(summary > cb)
-    elif orientation == 'out_of_band':
-        on = when(summary > ft or summary < fb)
-        off = when(summary < ct and summary > cb)
-    return {'on': on, 'off': off, 'annotations': annotations,
-            'event_annotations': event_annotations}
+                        'alert_type': str(_alert_type),
+                        'detector_type': str(_detector_type)}
+    return detector_helper(summary, fb, cb, ct, ft, orientation, annotations, event_annotations, auto_resolve_after=auto_resolve_after)
 
 
-def detector_growth_rate(stream, window_to_compare=duration('15m'),
-                         space_between_windows=duration('1w'),
-                         num_windows=4, fire_growth_rate_threshold=0.2,
-                         clear_growth_rate_threshold=0.1,
-                         discard_historical_outliers=True, orientation='above',
-                         auto_resolve_after=None, _alert_type='against-periods', _detector_type=None):
-    c = growth_rate_conditions(stream,
-                               window_to_compare=window_to_compare,
-                               space_between_windows=space_between_windows,
-                               num_windows=num_windows,
-                               fire_growth_rate_threshold=fire_growth_rate_threshold,
-                               clear_growth_rate_threshold=clear_growth_rate_threshold,
-                               discard_historical_outliers=discard_historical_outliers,
-                               orientation=orientation,
-                               _alert_type=_alert_type,
-                               _detector_type=_detector_type)
-    return detect_from_conditions(c, orientation, auto_resolve_after=auto_resolve_after)
-
-
-def mean_std_conditions(stream, window_to_compare=duration('15m'),
-                        space_between_windows=duration('1w'),
-                        num_windows=4, fire_num_stddev=3, clear_num_stddev=2.5,
-                        discard_historical_outliers=True, orientation='above',
-                        calculation_mode='across',
-                        _alert_type='against-periods', _detector_type=None,
-                        attempt_threshold=None, fire_lasting=None):
+def detector_mean_std(stream, window_to_compare=duration('15m'),
+                      space_between_windows=duration('1w'),
+                      num_windows=4, fire_num_stddev=3, clear_num_stddev=2.5,
+                      discard_historical_outliers=True, orientation='above',
+                      calculation_mode='across', auto_resolve_after=None,
+                      _alert_type='against-periods', _detector_type=None,
+                      attempt_threshold=None, fire_lasting=None):
     space_between_windows_dur = duration(space_between_windows)
     window_to_compare_dur = duration(window_to_compare)
     assert num_windows <= RECURSION_LIMIT, {
         'num_windows': num_windows,
         'sfui_errorKeys': ['num_windows'],
         'sfui_errorTemplate': "{{{num_windows}}} must be less than or equal to 8."}
-    assert fire_num_stddev >= clear_num_stddev, {
-        'fire_num_stddev': fire_num_stddev,
-        'clear_num_stddev': clear_num_stddev,
-        'sfui_errorKeys': ['fire_num_stddev', 'clear_num_stddev'],
-        'sfui_errorTemplate': "{{{fire_num_stddev}}} must be greater than or equal to {{{clear_num_stddev}}}."}
+    assert fire_num_stddev >= clear_num_stddev, {'fire_num_stddev': fire_num_stddev,
+                                                 'clear_num_stddev': clear_num_stddev,
+                                                 'sfui_errorKeys': ['fire_num_stddev',
+                                                                    'clear_num_stddev'],
+                                                 'sfui_errorTemplate': "{{{fire_num_stddev}}} must be greater than or equal to {{{clear_num_stddev}}}."}
     assert space_between_windows_dur >= window_to_compare_dur, {
         'space_between_windows': space_between_windows_dur,
         'window_to_compare': window_to_compare_dur,
         'sfui_errorKeys': ['space_between_windows', 'window_to_compare'],
         'sfui_errorTemplate': "{{{space_between_windows}}} must be greater than or equal to {{{window_to_compare}}}."}
     summary = stream.mean(over=window_to_compare_dur)
-    fb, cb, ct, ft = streams.mean_std_thresholds(stream,
-                                                 window_to_compare=window_to_compare,
+    fb, cb, ct, ft = streams.mean_std_thresholds(stream, window_to_compare=window_to_compare,
                                                  space_between_windows=space_between_windows,
                                                  num_windows=num_windows,
                                                  fire_num_stddev=fire_num_stddev,
@@ -211,39 +167,6 @@ def mean_std_conditions(stream, window_to_compare=duration('15m'),
                              'sfui_trigger': 'outside',
                              'influencedBy': 'clear_num_stddev'})]
     event_annotations = {'current_window': str(window_to_compare_dur),
-                         'alert_type': str(_alert_type),
-                         'detector_type': str(_detector_type)}
-    if orientation == 'above':
-        on = when(summary > upper_fire_threshold, fire_lasting)
-        off = when(summary < ct)
-    elif orientation == 'below':
-        on = when(summary < fb, fire_lasting)
-        off = when(summary > cb)
-    elif orientation == 'out_of_band':
-        on = when(summary > upper_fire_threshold or summary < fb, fire_lasting)
-        off = when(summary < ct and summary > cb)
-    return {'on': on, 'off': off, 'annotations': annotations,
-            'event_annotations': event_annotations}
-
-
-def detector_mean_std(stream, window_to_compare=duration('15m'),
-                      space_between_windows=duration('1w'),
-                      num_windows=4, fire_num_stddev=3, clear_num_stddev=2.5,
-                      discard_historical_outliers=True, orientation='above',
-                      calculation_mode='across', auto_resolve_after=None,
-                      _alert_type='against-periods', _detector_type=None,
-                      attempt_threshold=None, fire_lasting=None):
-    c = mean_std_conditions(stream,
-                            window_to_compare=window_to_compare,
-                            space_between_windows=space_between_windows,
-                            num_windows=num_windows,
-                            fire_num_stddev=fire_num_stddev,
-                            clear_num_stddev=clear_num_stddev,
-                            discard_historical_outliers=discard_historical_outliers,
-                            orientation=orientation,
-                            calculation_mode=calculation_mode,
-                            _alert_type=_alert_type,
-                            _detector_type=_detector_type,
-                            attempt_threshold=attempt_threshold,
-                            fire_lasting=fire_lasting)
-    return detect_from_conditions(c, orientation, auto_resolve_after=auto_resolve_after)
+                        'alert_type': str(_alert_type),
+                        'detector_type': str(_detector_type)}
+    return detector_helper(summary, fb, cb, ct, upper_fire_threshold, orientation, annotations, event_annotations, auto_resolve_after=auto_resolve_after, fire_lasting=fire_lasting)
