@@ -20,7 +20,6 @@ def request_rate_mean_std_detector(current_window: duration = duration('10m'),
     # :viz valueSuffix=%
     # :return: detect block that triggers when request rate is too many deviations from the norm established in the preceding window
 
-    streams.request_rate_histograms(filter_=filter_, resource_type='service').publish('Request Rate')
     return sudden_change.detector_mean_std(current_window=current_window, historical_window=historical_window,
                                            fire_num_stddev=fire_num_stddev,
                                            clear_num_stddev=clear_num_stddev,
