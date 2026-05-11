@@ -17,7 +17,7 @@ def deployment_not_at_spec_historical_detector(guard: float = 0, headroom: float
     # Detects when the number of deployments not at spec increases, compared to historical values
     # :param guard label=Heuristic floor (number of deployments not at spec)
     # :param guard description=Don't alert for a number of deployments not at spec under this.
-    # :param headroom label=Headroom multiplier (unitless; 1.0-2.0)
+    # :param headroom label=Headroom multiplier (unitless; 1.0-3.0)
     # :param headroom description=How much worse the number of deployments not at spec must be, compared to historical, in order to trigger an alert.
     # :param filter_ description=Specifies dimensional scope of the detector
     # :param filter_ metric_name=k8s.deployment.desired
@@ -31,14 +31,33 @@ def deployment_not_at_spec_historical_detector(guard: float = 0, headroom: float
     return _resource_not_at_spec_historical_detector(stream=stream, guard=guard, headroom=headroom)
 
 
+def deployment_not_at_spec_historical_sensitivity_detector(guard: float = 0, sensitivity: float = 1, filter_: filter = None):
+    # Detects when the number of deployments not at spec increases, compared to historical values
+    # :param guard label=Heuristic floor (number of deployments not at spec)
+    # :param guard description=Don't alert for a number of deployments not at spec under this.
+    # :param sensitivity label=sensitivity
+    # :param sensitivity description=Low sensitivity means less alerts, high sensitivity mean more alerts. For exemple, a sensitivity of 0.5 means the alert will trigger when the number of deployments not at spec is 2x the historical level.
+    # :param sensitivity min=0
+    # :param sensitivity max=1
+    # :param filter_ description=Specifies dimensional scope of the detector
+    # :param filter_ metric_name=k8s.deployment.desired
+    # :return: detect block that triggers when number of deployments not at spec increases.
+    assert sensitivity >= 0 and sensitivity <= 1, {
+        'sensitivity': sensitivity,
+        'sfui_errorKeys': ['sensitivity'],
+        'sfui_errorTemplate': "{{{sensitivity}}} must be in range: [0..1]"}
+    headroom = 3 - 2 * sensitivity
+    return deployment_not_at_spec_historical_detector(guard, headroom, filter_)
+
+
 def statefulset_not_at_spec_historical_detector(guard: float = 0, headroom: float = 1, filter_: filter = None):
     # Detects when the number of statefulsets not at spec increases, compared to historical values
     # :param guard label=Heuristic floor (number of statefulsets not at spec)
     # :param guard description=Don't alert for a number of statefulsets not at spec under this.
-    # :param headroom label=Headroom multiplier (unitless; 1.0-2.0)
+    # :param headroom label=Headroom multiplier (unitless; 1.0-3.0)
     # :param headroom description=How much worse the number of statefulsets not at spec must be, compared to historical, in order to trigger an alert.
     # :param filter_ description=Specifies dimensional scope of the detector
-    # :param filter_ metric_name=k8s.deployment.desired
+    # :param filter_ metric_name=k8s.statefulset.desired_pods
     # :return: detect block that triggers when number of statefulsets not at spec increases.
     group_by = [k8s_utils.K8S_NAMESPACE_NAME_DIM,
                 k8s_utils.K8S_CLUSTER_NAME_DIM,
@@ -49,14 +68,33 @@ def statefulset_not_at_spec_historical_detector(guard: float = 0, headroom: floa
     return _resource_not_at_spec_historical_detector(stream=stream, guard=guard, headroom=headroom)
 
 
+def statefulset_not_at_spec_historical_sensitivity_detector(guard: float = 0, sensitivity: float = 1, filter_: filter = None):
+    # Detects when the number of statefulsets not at spec increases, compared to historical values
+    # :param guard label=Heuristic floor (number of statefulsets not at spec)
+    # :param guard description=Don't alert for a number of statefulsets not at spec under this.
+    # :param sensitivity label=sensitivity
+    # :param sensitivity description=Low sensitivity means less alerts, high sensitivity mean more alerts. For exemple, a sensitivity of 0.5 means the alert will trigger when the number of statefulsets not at spec is 2x the historical level.
+    # :param sensitivity min=0
+    # :param sensitivity max=1
+    # :param filter_ description=Specifies dimensional scope of the detector
+    # :param filter_ metric_name=k8s.statefulset.desired_pods
+    # :return: detect block that triggers when number of statefulsets not at spec increases.
+    assert sensitivity >= 0 and sensitivity <= 1, {
+        'sensitivity': sensitivity,
+        'sfui_errorKeys': ['sensitivity'],
+        'sfui_errorTemplate': "{{{sensitivity}}} must be in range: [0..1]"}
+    headroom = 3 - 2 * sensitivity
+    return statefulset_not_at_spec_historical_detector(guard, headroom, filter_)
+
+
 def daemonset_not_at_spec_historical_detector(guard: float = 0, headroom: float = 1, filter_: filter = None):
     # Detects when the number of daemonsets not at spec increases, compared to historical values
     # :param guard label=Heuristic floor (number of daemonsets not at spec)
     # :param guard description=Don't alert for a number of daemonsets not at spec under this.
-    # :param headroom label=Headroom multiplier (unitless; 1.0-2.0)
+    # :param headroom label=Headroom multiplier (unitless; 1.0-3.0)
     # :param headroom description=How much worse the number of daemonsets not at spec must be, compared to historical, in order to trigger an alert.
     # :param filter_ description=Specifies dimensional scope of the detector
-    # :param filter_ metric_name=k8s.deployment.desired
+    # :param filter_ metric_name=k8s.daemonset.desired_scheduled_nodes
     # :return: detect block that triggers when number of daemonsets not at spec increases.
     group_by = [k8s_utils.K8S_NAMESPACE_NAME_DIM,
                 k8s_utils.K8S_CLUSTER_NAME_DIM,
@@ -65,3 +103,22 @@ def daemonset_not_at_spec_historical_detector(guard: float = 0, headroom: float 
     available_stream = data('k8s.daemonset.ready_nodes', filter=filter_).sum(by=group_by, allow_missing=group_by)
     stream = (desired_stream - available_stream)
     return _resource_not_at_spec_historical_detector(stream=stream, guard=guard, headroom=headroom)
+
+
+def daemonset_not_at_spec_historical_sensitivity_detector(guard: float = 0, sensitivity: float = 1, filter_: filter = None):
+    # Detects when the number of daemonsets not at spec increases, compared to historical values
+    # :param guard label=Heuristic floor (number of daemonsets not at spec)
+    # :param guard description=Don't alert for a number of daemonsets not at spec under this.
+    # :param sensitivity label=sensitivity
+    # :param sensitivity description=Low sensitivity means less alerts, high sensitivity mean more alerts. For exemple, a sensitivity of 0.5 means the alert will trigger when the number of daemonsets not at spec is 2x the historical level.
+    # :param sensitivity min=0
+    # :param sensitivity max=1
+    # :param filter_ description=Specifies dimensional scope of the detector
+    # :param filter_ metric_name=k8s.daemonset.desired_scheduled_nodes
+    # :return: detect block that triggers when number of daemonsets not at spec increases.
+    assert sensitivity >= 0 and sensitivity <= 1, {
+        'sensitivity': sensitivity,
+        'sfui_errorKeys': ['sensitivity'],
+        'sfui_errorTemplate': "{{{sensitivity}}} must be in range: [0..1]"}
+    headroom = 3 - 2 * sensitivity
+    return daemonset_not_at_spec_historical_detector(guard, headroom, filter_)

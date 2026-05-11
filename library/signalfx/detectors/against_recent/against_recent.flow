@@ -26,8 +26,11 @@ from signalfx.detectors.against_recent import utils
 
 def detector_helper(recent_min, recent_max, recent_mean, f_bot, c_bot, c_top, f_top, orientation, annotations,
                     event_annotations=None, auto_resolve_after=None, attempt_threshold=None, fire_lasting=None):
-    if orientation == 'above':
-        return detect(above_fire_condition(recent_min, recent_mean, f_top, attempt_threshold, fire_lasting), when(recent_max < c_top),
+    if orientation == 'above' and attempt_threshold is not None:
+        return detect(when(recent_min > f_top and recent_mean >= attempt_threshold, fire_lasting), when(recent_max < c_top),
+                      annotations=annotations, event_annotations=event_annotations, auto_resolve_after=auto_resolve_after)
+    elif orientation == 'above':
+        return detect(when(recent_min > f_top, fire_lasting), when(recent_max < c_top),
                       annotations=annotations, event_annotations=event_annotations, auto_resolve_after=auto_resolve_after)
     elif orientation == 'below':
         return detect(when(recent_max < f_bot, fire_lasting), when(recent_min > c_bot), annotations=annotations,
@@ -38,11 +41,6 @@ def detector_helper(recent_min, recent_max, recent_mean, f_bot, c_bot, c_top, f_
                       mode='split',
                       annotations=annotations, event_annotations=event_annotations, auto_resolve_after=auto_resolve_after)
 
-def above_fire_condition(recent_min, recent_mean, f_top, attempt_threshold, fire_lasting):
-    if attempt_threshold is not None:
-        return when(recent_min > f_top and recent_mean >= attempt_threshold, fire_lasting)
-    else:
-        return when(recent_min > f_top, fire_lasting)
 
 def ewma_plus_stddev(stream, duration_, num_stddev):
     return stream.ewma(over=duration(duration_)) + num_stddev * stream.stddev(over=duration(duration_))
