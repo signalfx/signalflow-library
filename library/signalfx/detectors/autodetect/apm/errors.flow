@@ -44,6 +44,10 @@ def blended(guard: float = 30, headroom: float = 1.5, filter_: filter = None):
     # :param guard description=Don't alert for error rates under this.
     # :param headroom label=Headroom multiplier (unitless; usually between 1.2 and 2.0)
     # :param headroom description=How much worse error rate must be, compared to historical, in order to trigger an alert.
+    # :param headroom control_type=slider
+    # :param headroom min=1.2
+    # :param headroom max=2.0
+    # :param headroom step_count=5
     # :param filter_ label=Additional filter
     # :param filter_ description=Optionally refine the set of observed entities with an additional filter.
     # :param filter_ metric_name=service.request
