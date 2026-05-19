@@ -1,0 +1,62 @@
+from signalfx.detectors.thousandeyes import utils
+
+
+def detector(resource_type: string, fire_threshold: float, clear_threshold: float = None, orientation: string = 'above', filter_: filter = None,
+             use_location: bool = True, consecutive: int = 1, auto_resolve_after: string = '1d'):
+    ###################################################################
+    # THOUSANDEYES ALERTING
+    ###################################################################
+    # Detects when a specific resource type is above/below threshold over a period
+    # that depends on how many times (specified by consecutive) it should violate the threshold
+    # :param resource_type specifies ThousandEyes OTel metric name
+    # :param fire_threshold specifies fire threshold for resource_type
+    # :param clear_threshold specifies clear threshold for resource_type
+    # :param orientation specifies orientation of the threshold violations
+    # :param filter_ specifies dimensional scope of the detector
+    # :param use_location specifies if signal should be split by thousandeyes.source.agent.id
+    # :param consecutive specifies for how many tests in a row threshold should be violated before alert is triggered
+    # :param consecutive min=1
+    # :param consecutive max=10
+
+    assert resource_type is not None
+    utils.assert_threshold(fire_threshold, clear_threshold, orientation)
+    utils.assert_consecutive(consecutive)
+
+    scope = utils.merge_filters(filter_)
+    group_by = utils.get_group_by(use_location)
+    stream = data(resource_type,
+                  filter=scope,
+                  rollup='latest',
+                  resolution=utils.DEFAULT_RESOLUTION).max(by=group_by, allow_missing=utils.DEFAULT_ALLOW_MISSING)
+    fire_threshold_stream = const(fire_threshold)
+    if clear_threshold is None:
+        clear_threshold_stream = const(fire_threshold)
+    else:
+        clear_threshold_stream = const(clear_threshold)
+
+    previous_conditions = utils.shift_resolution_condition(stream, fire_threshold_stream, orientation,
+                                                           shifts_num=consecutive - 1)
+
+    ann = [
+        utils.annotate_stream(stream, resource_type),
+        utils.annotate_fire_threshold(fire_threshold_stream, orientation=orientation),
+           ]
+    event_ann = utils.annotate_event(resource_type, fire_threshold, orientation)
+    if orientation == 'above':
+        return detect(when(stream > fire_threshold_stream) and previous_conditions,
+                      when(stream <= clear_threshold_stream),
+                      annotations=ann,
+                      event_annotations=event_ann,
+                      auto_resolve_after=auto_resolve_after)
+    elif orientation == 'below':
+        return detect(when(stream < fire_threshold_stream) and previous_conditions,
+                      when(stream >= clear_threshold_stream),
+                      annotations=ann,
+                      event_annotations=event_ann,
+                      auto_resolve_after=auto_resolve_after)
+    elif orientation == 'out_of_band':
+        # not implemented yet
+        return None
+
+# Sample testing script.
+# detector('http.server.request.availability', fire_threshold=50, orientation='below').publish('Detection')
