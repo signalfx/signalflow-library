@@ -28,13 +28,12 @@ def request_rate_mean_std_detector(current_window: duration = duration('10m'),
                                            auto_resolve_after=utils.AUTO_RESOLVE_AFTER)
 
 
-def blended(guard: float = 30, sensitivity: float = 0.85, filter_: filter = None):
+def blended(guard: float = 30, sensitivity: float = 0.7, filter_: filter = None):
     # Detect when request rate drops, compared to historical request rates
-    # :param guard label=Heuristic guardrail (requests per second)
+    # :param guard label=Minimum alert threshold
     # :param guard description=Don't alert for services with fewer than this number of requests.
-    # :param sensitivity label=Sensitivity multiplier (unitless; usually between 0.5 and 1.0)
-    # :param sensitivity description=Lower values push the trigger threshold down, making the detector less sensitive to drops in traffic.
-    # :param sensitivity label=sensitivity
+    # :param guard unit=rps
+    # :param sensitivity label=Sensitivity
     # :param sensitivity description=Low sensitivity means less alerts, high sensitivity mean more alerts.
     # :param sensitivity control_type=slider
     # :param sensitivity min=0
@@ -58,7 +57,7 @@ def blended(guard: float = 30, sensitivity: float = 0.85, filter_: filter = None
     rr_yesterday = rr_today.timeshift('23h').publish('Yesterday', enable=diagnostics)
     rr_weekago = rr_yesterday.timeshift('6d').publish('Week Ago', enable=diagnostics)
     _alert_level = min(rr_today, rr_yesterday, rr_weekago) * sensitivity_
-    _guard = rr.sum(over='1h')
+    _guard = rr.sum(over='1s')
     alert_level = combine(0 if _guard < guard else _alert_level)
     ann = [annotate(alert_level, 'upper fire threshold', {
         'sfui_streamType': 'threshold','sfui_state':'fire','sfui_orientation':'below'})]

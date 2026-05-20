@@ -81,7 +81,7 @@ def blended_sensitivity(guard: float = 30, sensitivity: float = 0.5, filter_: fi
     # :param guard min=0
     # :param guard unit=eps
     # :param guard description=We won't alert for error rates under this.
-    # :param sensitivity label=sensitivity
+    # :param sensitivity label=Sensitivity
     # :param sensitivity description=Low sensitivity means less alerts, high sensitivity mean more alerts. For exemple, a sensitivity of 0.5 means the alert will trigger when error rate is 2x the historical level.
     # :param sensitivity control_type=slider
     # :param sensitivity min=0
