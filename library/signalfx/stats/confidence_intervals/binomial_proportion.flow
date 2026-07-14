@@ -1,0 +1,11 @@
+def wilson(n, successes, z_score = 1.96):
+    #:param n: stream object representing attempts
+    #:param successes: stream object representing successes
+    #:param z_score: number for z corresponding to confidence level. Defaults to 1.96 for 95%. 
+    #:return: tuple of stream objects representing the upper and lower bounds
+    z_squared = z_score * z_score
+    p_hat = successes / n
+    n_squared = n * n
+    base = (1 / (1 + (z_squared / n))) * (p_hat + (z_squared / (2 * n)))
+    diff = (z_score / (1 + z_squared / n)) * sqrt(((p_hat * (1 - p_hat)) / n) + (z_squared / (4 * n_squared)))
+    return base + diff, base - diff
