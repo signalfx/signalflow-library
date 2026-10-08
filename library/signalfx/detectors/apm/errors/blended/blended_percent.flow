@@ -1,0 +1,36 @@
+from signalfx.detectors.apm import utils
+
+
+def blended_percent(guard: float = 1.0, headroom: float = 1.5, window: duration = duration('5m'), min_requests: int = 10, filter_: filter = None, resource_type: str = 'service'):
+    # Detect when error percentage increases, compared to historical error percentages
+    # :param guard label=Heuristic floor (error percent)
+    # :param guard description=Don't alert for error percentages under this.
+    # :param headroom label=Headroom multiplier (unitless; 1.0-2.0)
+    # :param headroom description=How much worse error percentage must be, compared to historical, in order to trigger an alert.
+    # :param window label=Aggregation window
+    # :param window description=Time window over which to aggregate errors and total requests when computing the error percentage.
+    # :param min_requests label=Minimum request volume
+    # :param min_requests description=Minimum number of total requests in the aggregation window required before an alert can fire. Prevents noise from sparse traffic.
+    # :param filter_ label=Additional filter
+    # :param filter_ description=Optionally refine the set of observed entities with an additional filter.
+    # :param resource_type label=Resource type
+    # :param resource_type description=The type of resource to monitor. Use 'service' for service-level monitoring (service.request metric) or 'service_operation' for endpoint monitoring (spans metric).
+    # :return: detect block that triggers when error percentage increases
+    mapping = utils.RESOURCE_TYPE_MAPPING_HISTOGRAMS[resource_type]
+    metric_names = mapping['metric_names']
+    by_ = mapping['group_by']
+    allow_missing_ = mapping['allow_missing']
+    _error_filter = utils.V2_ERROR_TRUE if filter_ is None else filter_ and utils.V2_ERROR_TRUE
+    errors = histogram(metric_names, filter=_error_filter, resolution='1s').count(by=by_, allow_missing=allow_missing_, over=window).fill(0)
+    total = histogram(metric_names, filter=filter_, resolution='1s').count(by=by_, allow_missing=allow_missing_, over=window).fill(0)
+    error_pct = combine(0 if total is None else 0 if total is 0 else 0 if errors is None else errors / total * 100).publish('Error Percent')
+    error_pct_today = error_pct.percentile(pct=80, over='12h').publish('Today')
+    error_pct_yesterday = error_pct.timeshift('23h').percentile(pct=80, over='2h').publish('Yesterday')
+    error_pct_weekago = error_pct_yesterday.timeshift('6d').publish('Week Ago')
+    alert_level = max(max(error_pct_today, error_pct_yesterday, error_pct_weekago) * headroom, guard)
+    volume_condition = when(total >= min_requests)
+    return detect(
+        on=when(error_pct > threshold(alert_level), lasting='15m', at_least=0.8) and volume_condition,
+        off=when(error_pct <= threshold(alert_level), lasting='20m', at_least=0.85),
+        auto_resolve_after='1d',
+    )

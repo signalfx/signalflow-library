@@ -1,0 +1,24 @@
+from signalfx.detectors.autodetect import utils
+from signalfx.detectors.autodetect.infra.k8s import utils as k8s_utils
+
+def hpa_max_replicas_reached_detector(filter_: filter = None):
+    # Detects when the HPA has scaled the workload to its maximum configured replica count for an extended duration. Indicates potential throughput limitations due to limited horizontal scale.
+    # :param filter_ description=Specifies dimensional scope of the detector
+    # :param filter_ metric_name=k8s.hpa.current_replicas
+    # :return: detect block that triggers when the HPA has scaled the workload to its maximum configured replica count for an extended duration.
+    group_by = [k8s_utils.K8S_NAMESPACE_NAME_DIM,
+                k8s_utils.K8S_CLUSTER_NAME_DIM,
+                "k8s.hpa.name",
+                "k8s.hpa.scaletargetref.name",
+                "k8s.hpa.scaletargetref.kind"
+                ]
+    current_replicas = data('k8s.hpa.current_replicas', filter=filter_).sum(by=group_by, allow_missing=group_by)
+    max_replicas = data('k8s.hpa.max_replicas', filter=filter_).sum(by=group_by, allow_missing=group_by)
+    ann = [utils.annotate_stream(current_replicas, 'Current replicas'),
+           utils.annotate_fire_threshold(max_replicas, orientation='above')]
+    return detect(
+        when(current_replicas == max_replicas, lasting=lasting('10m', 0.8)),
+        off=when(current_replicas < max_replicas, lasting=lasting('30m', 0.9)),
+        annotations=ann,
+        auto_resolve_after='1d'
+    )

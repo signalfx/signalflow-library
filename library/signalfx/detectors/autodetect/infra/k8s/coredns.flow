@@ -1,0 +1,22 @@
+from signalfx.detectors.autodetect import utils
+from signalfx.detectors.autodetect.infra.k8s import utils as k8s_utils
+
+def coredns_failing_detector(filter_: filter = None):
+    # Detects when coreDNS SERVFAIL and REFUSED responses represent more than 5% of responses
+    # NOTE: Metric is available with CoreDNS integration
+    # :param filter_ description=Specifies dimensional scope of the detector
+    # :param filter_ metric_name=coredns_dns_responses_total
+    # :return: detect block that triggers when coreDNS SERVFAIL and REFUSED responses represent more that 5% of responses
+    group_by = [k8s_utils.K8S_CLUSTER_NAME_DIM]
+    rcode_filter = filter('rcode', 'REFUSED', 'SERVFAIL')
+    scope_filter = utils.merge_filters(rcode_filter, filter_)
+    A = data('coredns_dns_responses_total', filter=scope_filter, rollup='delta').sum(by=group_by)
+    responses_total = data('coredns_dns_responses_total', filter=filter_, rollup='delta').sum(by=group_by)
+    stream = (A/responses_total*100).publish(label='CoreDNS error rate (%)')
+    fire_threshold_stream = const(5)
+    ann = [utils.annotate_stream(stream, 'CoreDNS error rate (%)'),
+           utils.annotate_fire_threshold(fire_threshold_stream, orientation='above')]
+    return detect(when(responses_total > 10 and stream > fire_threshold_stream, lasting=lasting('5m', 0.8)),
+                  off=when(stream <= fire_threshold_stream, lasting=lasting('10m', 0.9)),
+                  annotations=ann,
+                  auto_resolve_after='1d')

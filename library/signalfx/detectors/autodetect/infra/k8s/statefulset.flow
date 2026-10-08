@@ -14,7 +14,11 @@ def statefulset_pods_not_at_spec_detector(fire_threshold: float = 0, fire_lastin
     # :param filter_ description=Specifies dimensional scope of the detector
     # :param filter_ metric_name=k8s.statefulset.desired_pods
     # :return: detect block that triggers when statefulsets suitably filtered and grouped, are not at spec
-    group_by = [k8s_utils.K8S_CLUSTER_NAME_DIM, k8s_utils.K8S_STATEFULSET_NAME_DIM, k8s_utils.K8S_NAMESPACE_NAME_DIM]
+    group_by = [
+        k8s_utils.K8S_STATEFULSET_NAME_DIM,
+        k8s_utils.K8S_STATEFULSET_UID,
+        k8s_utils.K8S_CLUSTER_NAME_DIM,
+        k8s_utils.K8S_NAMESPACE_NAME_DIM]
 
     desired_stream = data('k8s.statefulset.desired_pods', filter=filter_).sum(by=group_by, allow_missing=group_by)
     ready_stream = data('k8s.statefulset.ready_pods', filter=filter_).sum(by=group_by)
@@ -22,10 +26,8 @@ def statefulset_pods_not_at_spec_detector(fire_threshold: float = 0, fire_lastin
 
     above_fire_threshold_stream = const(fire_threshold)
     below_fire_threshold_stream = const(0)
-
     ann = [utils.annotate_stream(stream, 'Desired - Ready'),
            utils.annotate_fire_threshold(above_fire_threshold_stream, orientation='above'),
            utils.annotate_fire_threshold(below_fire_threshold_stream, label='below_0_threshold', orientation='out_of_band')]
-
     return detect(when((stream > above_fire_threshold_stream) or (stream < below_fire_threshold_stream), lasting=fire_lasting),
                   annotations=ann, auto_resolve_after=utils.AUTO_RESOLVE_AFTER)

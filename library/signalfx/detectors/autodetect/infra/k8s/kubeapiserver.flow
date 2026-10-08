@@ -1,0 +1,22 @@
+from signalfx.detectors.autodetect import utils
+from signalfx.detectors.autodetect.infra.k8s import utils as k8s_utils
+
+def control_plane_api_server_readiness_degraded_detector(filter_: filter = None):
+    # Detects when more than 20% of requests to the /readyz endpoint of the kubernetes API server result in errors 
+    # NOTE: Metric is available with Kubernetes API server integration
+    # :param filter_ description=Specifies the dimensional scope of the detector
+    # :param filter_ metric_name=apiserver_request_total
+    # :return: detect block that triggers when kubernetes API server readiness degrades
+    group_by = [k8s_utils.K8S_CLUSTER_NAME_DIM]
+    readyz_filter = filter('subresource', '/readyz')
+    scope_filter = utils.merge_filters(readyz_filter, filter_)
+    A = data('apiserver_request_total', filter=scope_filter and not filter('code', '200'), rollup='delta').sum(by=group_by)
+    request_total = data('apiserver_request_total', filter=scope_filter, rollup='delta').sum(by=group_by)
+    stream = (A/request_total*100).publish(label='/readyz endpoint error rate (%)')
+    fire_threshold_stream = const(20)
+    ann = [utils.annotate_stream(stream, '/readyz endpoint error rate (%)'),
+           utils.annotate_fire_threshold(fire_threshold_stream, orientation='above')]
+    return detect(when(request_total > 5 and stream > fire_threshold_stream, lasting=lasting('5m', 0.8)),
+                  off=when(stream <= fire_threshold_stream, lasting=lasting('10m', 0.9)),
+                  annotations=ann,
+                  auto_resolve_after='1d')

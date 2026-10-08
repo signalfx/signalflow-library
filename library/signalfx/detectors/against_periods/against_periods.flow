@@ -39,6 +39,186 @@ def detector_helper(summary, fire_bot, clear_bot, clear_top, fire_top, orientati
                       auto_resolve_after=auto_resolve_after)
 
 
+def detect_from_conditions(c, auto_resolve_after=None):
+    assert c['orientation'] == 'above' or c['orientation'] == 'below' or c['orientation'] == 'out_of_band', {
+        'orientation': c['orientation'],
+        'sfui_errorKeys': ['orientation'],
+        'sfui_errorTemplate': "{{{orientation}}} must be one of above, below, or out_of_band."}
+    if c['orientation'] == 'above':
+        return detect(when(c['summary'] > c['fire_top'], c['fire_lasting']),
+                      when(c['summary'] < c['clear_top']),
+                      annotations=c['annotations'], event_annotations=c['event_annotations'],
+                      auto_resolve_after=auto_resolve_after)
+    elif c['orientation'] == 'below':
+        return detect(when(c['summary'] < c['fire_bot'], c['fire_lasting']),
+                      when(c['summary'] > c['clear_bot']),
+                      annotations=c['annotations'], event_annotations=c['event_annotations'],
+                      auto_resolve_after=auto_resolve_after)
+    elif c['orientation'] == 'out_of_band':
+        return detect(when(c['summary'] > c['fire_top'] or c['summary'] < c['fire_bot'], c['fire_lasting']),
+                      when(c['summary'] < c['clear_top'] and c['summary'] > c['clear_bot']),
+                      mode='split', annotations=c['annotations'], event_annotations=c['event_annotations'],
+                      auto_resolve_after=auto_resolve_after)
+
+
+def condition_stream(summary, fire_bot, fire_top, orientation, fire_lasting=None):
+    if orientation == 'above':
+        return when(summary > fire_top, fire_lasting)
+    elif orientation == 'below':
+        return when(summary < fire_bot, fire_lasting)
+    elif orientation == 'out_of_band':
+        return when(summary > fire_top or summary < fire_bot, fire_lasting)
+
+
+def condition_stream_label(condition_identifier):
+    return 'when(' + condition_identifier + ')'
+
+
+def growth_rate_annotations(summary, fire_bot, fire_top, clear_bot, clear_top,
+                            orientation, condition_identifier):
+    if condition_identifier is None:
+        return [annotate(summary, 'rolling mean', {'sfui_streamType': 'signal'}),
+                annotate(fire_bot, 'lower fire threshold', {'sfui_streamType': 'threshold',
+                                                            'sfui_state': 'fire',
+                                                            'sfui_orientation': 'below',
+                                                            'sfui_trigger': 'outside',
+                                                            'influencedBy': 'fire_growth_rate_threshold'}),
+                annotate(fire_top, 'upper fire threshold', {'sfui_streamType': 'threshold',
+                                                            'sfui_state': 'fire',
+                                                            'sfui_orientation': 'above',
+                                                            'sfui_trigger': 'outside',
+                                                            'influencedBy': 'fire_growth_rate_threshold'}),
+                annotate(clear_bot, 'lower clear threshold',
+                         {'sfui_streamType': 'threshold',
+                          'sfui_state': 'clear',
+                          'sfui_orientation': 'below',
+                          'sfui_trigger': 'outside',
+                          'influencedBy': 'clear_growth_rate_threshold'}),
+                annotate(clear_top, 'upper clear threshold',
+                         {'sfui_streamType': 'threshold',
+                          'sfui_state': 'clear',
+                          'sfui_orientation': 'above',
+                          'sfui_trigger': 'outside',
+                          'influencedBy': 'clear_growth_rate_threshold'})]
+    return [annotate(summary, 'rolling mean', {'sfui_streamType': 'signal',
+                                               'sfui_conditionIdentifier': condition_identifier}),
+            annotate(fire_bot, 'lower fire threshold', {'sfui_streamType': 'threshold',
+                                                        'sfui_state': 'fire',
+                                                        'sfui_orientation': 'below',
+                                                        'sfui_trigger': 'outside',
+                                                        'influencedBy': 'fire_growth_rate_threshold',
+                                                        'sfui_conditionIdentifier': condition_identifier}),
+            annotate(fire_top, 'upper fire threshold', {'sfui_streamType': 'threshold',
+                                                        'sfui_state': 'fire',
+                                                        'sfui_orientation': 'above',
+                                                        'sfui_trigger': 'outside',
+                                                        'influencedBy': 'fire_growth_rate_threshold',
+                                                        'sfui_conditionIdentifier': condition_identifier}),
+            annotate(clear_bot, 'lower clear threshold',
+                     {'sfui_streamType': 'threshold',
+                      'sfui_state': 'clear',
+                      'sfui_orientation': 'below',
+                      'sfui_trigger': 'outside',
+                      'influencedBy': 'clear_growth_rate_threshold',
+                      'sfui_conditionIdentifier': condition_identifier}),
+            annotate(clear_top, 'upper clear threshold',
+                     {'sfui_streamType': 'threshold',
+                      'sfui_state': 'clear',
+                      'sfui_orientation': 'above',
+                      'sfui_trigger': 'outside',
+                      'influencedBy': 'clear_growth_rate_threshold',
+                      'sfui_conditionIdentifier': condition_identifier}),
+            annotate(condition_stream(summary, fire_bot, fire_top, orientation),
+                     condition_stream_label(condition_identifier),
+                     {'sfui_streamType': 'condition',
+                      'sfui_conditionIdentifier': condition_identifier,
+                      'sf_streamLabel': condition_stream_label(condition_identifier)})]
+
+
+def mean_std_annotations(summary, fire_bot, fire_top, clear_bot, clear_top,
+                         orientation, fire_lasting, condition_identifier):
+    if condition_identifier is None:
+        return [annotate(summary, 'rolling mean', {'sfui_streamType': 'signal'}),
+                annotate(fire_bot, 'lower fire threshold', {'sfui_streamType': 'threshold',
+                                                            'sfui_state': 'fire',
+                                                            'sfui_orientation': 'below',
+                                                            'sfui_trigger': 'outside',
+                                                            'influencedBy': 'fire_num_stddev'}),
+                annotate(fire_top, 'upper fire threshold', {'sfui_streamType': 'threshold',
+                                                            'sfui_state': 'fire',
+                                                            'sfui_orientation': 'above',
+                                                            'sfui_trigger': 'outside',
+                                                            'influencedBy': 'fire_num_stddev'}),
+                annotate(clear_bot, 'lower clear threshold',
+                         {'sfui_streamType': 'threshold',
+                          'sfui_state': 'clear',
+                          'sfui_orientation': 'below',
+                          'sfui_trigger': 'outside',
+                          'influencedBy': 'clear_num_stddev'}),
+                annotate(clear_top, 'upper clear threshold',
+                         {'sfui_streamType': 'threshold',
+                          'sfui_state': 'clear',
+                          'sfui_orientation': 'above',
+                          'sfui_trigger': 'outside',
+                          'influencedBy': 'clear_num_stddev'})]
+    return [annotate(summary, 'rolling mean', {'sfui_streamType': 'signal',
+                                               'sfui_conditionIdentifier': condition_identifier}),
+            annotate(fire_bot, 'lower fire threshold', {'sfui_streamType': 'threshold',
+                                                        'sfui_state': 'fire',
+                                                        'sfui_orientation': 'below',
+                                                        'sfui_trigger': 'outside',
+                                                        'influencedBy': 'fire_num_stddev',
+                                                        'sfui_conditionIdentifier': condition_identifier}),
+            annotate(fire_top, 'upper fire threshold', {'sfui_streamType': 'threshold',
+                                                        'sfui_state': 'fire',
+                                                        'sfui_orientation': 'above',
+                                                        'sfui_trigger': 'outside',
+                                                        'influencedBy': 'fire_num_stddev',
+                                                        'sfui_conditionIdentifier': condition_identifier}),
+            annotate(clear_bot, 'lower clear threshold',
+                     {'sfui_streamType': 'threshold',
+                      'sfui_state': 'clear',
+                      'sfui_orientation': 'below',
+                      'sfui_trigger': 'outside',
+                      'influencedBy': 'clear_num_stddev',
+                      'sfui_conditionIdentifier': condition_identifier}),
+            annotate(clear_top, 'upper clear threshold',
+                     {'sfui_streamType': 'threshold',
+                      'sfui_state': 'clear',
+                      'sfui_orientation': 'above',
+                      'sfui_trigger': 'outside',
+                      'influencedBy': 'clear_num_stddev',
+                      'sfui_conditionIdentifier': condition_identifier}),
+            annotate(condition_stream(summary, fire_bot, fire_top, orientation, fire_lasting),
+                     condition_stream_label(condition_identifier),
+                     {'sfui_streamType': 'condition',
+                      'sfui_conditionIdentifier': condition_identifier,
+                      'sf_streamLabel': condition_stream_label(condition_identifier)})]
+
+
+def static_annotations(summary, threshold_stream, orientation, fire_lasting, condition_identifier):
+    if condition_identifier is None:
+        return [annotate(summary, 'signal', {'sfui_streamType': 'signal'}),
+                annotate(threshold_stream, 'static threshold', {'sfui_streamType': 'threshold',
+                                                                 'sfui_state': 'fire',
+                                                                 'sfui_orientation': orientation,
+                                                                 'sfui_trigger': 'outside'})]
+    return [annotate(summary, 'signal', {'sfui_streamType': 'signal',
+                                         'sfui_conditionIdentifier': condition_identifier}),
+            annotate(threshold_stream, 'static threshold',
+                     {'sfui_streamType': 'threshold',
+                      'sfui_state': 'fire',
+                      'sfui_orientation': orientation,
+                      'sfui_trigger': 'outside',
+                      'sfui_conditionIdentifier': condition_identifier}),
+            annotate(condition_stream(summary, threshold_stream, threshold_stream, orientation,
+                                      fire_lasting),
+                     condition_stream_label(condition_identifier),
+                     {'sfui_streamType': 'condition',
+                      'sfui_conditionIdentifier': condition_identifier,
+                      'sf_streamLabel': condition_stream_label(condition_identifier)})]
+
+
 h = streams.h
 n_period_trimmed_mean = streams.n_period_trimmed_mean
 n_period_trimmed_threshold = streams.n_period_trimmed_threshold
@@ -50,12 +230,13 @@ period_summaries = streams.period_summaries
 triple_ewma = streams.triple_ewma
 
 
-def detector_growth_rate(stream, window_to_compare=duration('15m'),
-                         space_between_windows=duration('1w'),
-                         num_windows=4, fire_growth_rate_threshold=0.2,
-                         clear_growth_rate_threshold=0.1,
-                         discard_historical_outliers=True, orientation='above',
-                         auto_resolve_after=None, _alert_type='against-periods', _detector_type=None):
+def growth_rate_conditions(stream, window_to_compare=duration('15m'),
+                           space_between_windows=duration('1w'),
+                           num_windows=4, fire_growth_rate_threshold=0.2,
+                           clear_growth_rate_threshold=0.1,
+                           discard_historical_outliers=True, orientation='above',
+                           _alert_type='against-periods', _detector_type=None,
+                           condition_identifier=None):
     window_to_compare_dur = duration(window_to_compare)
     space_between_windows_dur = duration(space_between_windows)
     assert fire_growth_rate_threshold >= clear_growth_rate_threshold, {
@@ -79,42 +260,52 @@ def detector_growth_rate(stream, window_to_compare=duration('15m'),
                                                     fire_growth_rate_threshold=fire_growth_rate_threshold,
                                                     clear_growth_rate_threshold=clear_growth_rate_threshold,
                                                     discard_historical_outliers=discard_historical_outliers)
-    annotations = [annotate(summary, 'rolling mean', {'sfui_streamType': 'signal'}),
-                   annotate(fb, 'lower fire threshold', {'sfui_streamType': 'threshold',
-                                                         'sfui_state': 'fire',
-                                                         'sfui_orientation': 'below',
-                                                         'sfui_trigger': 'outside',
-                                                         'influencedBy': 'fire_growth_rate_threshold'}),
-                   annotate(ft, 'upper fire threshold', {'sfui_streamType': 'threshold',
-                                                         'sfui_state': 'fire',
-                                                         'sfui_orientation': 'above',
-                                                         'sfui_trigger': 'outside',
-                                                         'influencedBy': 'fire_growth_rate_threshold'}),
-                   annotate(cb, 'lower clear threshold',
-                            {'sfui_streamType': 'threshold',
-                             'sfui_state': 'clear',
-                             'sfui_orientation': 'below',
-                             'sfui_trigger': 'outside',
-                             'influencedBy': 'clear_growth_rate_threshold'}),
-                   annotate(ct, 'upper clear threshold',
-                            {'sfui_streamType': 'threshold',
-                             'sfui_state': 'clear',
-                             'sfui_orientation': 'above',
-                             'sfui_trigger': 'outside',
-                             'influencedBy': 'clear_growth_rate_threshold'})]
     event_annotations = {'current_window': str(window_to_compare_dur),
-                        'alert_type': str(_alert_type),
-                        'detector_type': str(_detector_type)}
-    return detector_helper(summary, fb, cb, ct, ft, orientation, annotations, event_annotations, auto_resolve_after=auto_resolve_after)
+                         'alert_type': str(_alert_type),
+                         'detector_type': str(_detector_type)}
+    return {
+        'summary': summary,
+        'fire_bot': fb,
+        'clear_bot': cb,
+        'clear_top': ct,
+        'fire_top': ft,
+        'fire_lasting': None,
+        'orientation': orientation,
+        'annotations': growth_rate_annotations(summary, fb, ft, cb, ct, orientation,
+                                               condition_identifier),
+        'event_annotations': event_annotations
+    }
 
 
-def detector_mean_std(stream, window_to_compare=duration('15m'),
-                      space_between_windows=duration('1w'),
-                      num_windows=4, fire_num_stddev=3, clear_num_stddev=2.5,
-                      discard_historical_outliers=True, orientation='above',
-                      calculation_mode='across', auto_resolve_after=None,
-                      _alert_type='against-periods', _detector_type=None,
-                      attempt_threshold=None, fire_lasting=None):
+def detector_growth_rate(stream, window_to_compare=duration('15m'),
+                         space_between_windows=duration('1w'),
+                         num_windows=4, fire_growth_rate_threshold=0.2,
+                         clear_growth_rate_threshold=0.1,
+                         discard_historical_outliers=True, orientation='above',
+                         auto_resolve_after=None, _alert_type='against-periods', _detector_type=None,
+                         condition_identifier=None):
+    c = growth_rate_conditions(stream,
+                               window_to_compare=window_to_compare,
+                               space_between_windows=space_between_windows,
+                               num_windows=num_windows,
+                               fire_growth_rate_threshold=fire_growth_rate_threshold,
+                               clear_growth_rate_threshold=clear_growth_rate_threshold,
+                               discard_historical_outliers=discard_historical_outliers,
+                               orientation=orientation,
+                               _alert_type=_alert_type,
+                               _detector_type=_detector_type,
+                               condition_identifier=condition_identifier)
+    return detect_from_conditions(c, auto_resolve_after=auto_resolve_after)
+
+
+def mean_std_conditions(stream, window_to_compare=duration('15m'),
+                        space_between_windows=duration('1w'),
+                        num_windows=4, fire_num_stddev=3, clear_num_stddev=2.5,
+                        discard_historical_outliers=True, orientation='above',
+                        calculation_mode='across',
+                        _alert_type='against-periods', _detector_type=None,
+                        attempt_threshold=None, fire_lasting=None,
+                        condition_identifier=None):
     space_between_windows_dur = duration(space_between_windows)
     window_to_compare_dur = duration(window_to_compare)
     assert num_windows <= RECURSION_LIMIT, {
@@ -143,30 +334,205 @@ def detector_mean_std(stream, window_to_compare=duration('15m'),
         upper_fire_threshold = max(ft, const(attempt_threshold))
     else:
         upper_fire_threshold = ft
-    annotations = [annotate(summary, 'rolling mean', {'sfui_streamType': 'signal'}),
-                   annotate(fb, 'lower fire threshold', {'sfui_streamType': 'threshold',
-                                                         'sfui_state': 'fire',
-                                                         'sfui_orientation': 'below',
-                                                         'sfui_trigger': 'outside',
-                                                         'influencedBy': 'fire_num_stddev'}),
-                   annotate(upper_fire_threshold, 'upper fire threshold', {'sfui_streamType': 'threshold',
-                                                                           'sfui_state': 'fire',
-                                                                           'sfui_orientation': 'above',
-                                                                           'sfui_trigger': 'outside',
-                                                                           'influencedBy': 'fire_num_stddev'}),
-                   annotate(cb, 'lower clear threshold',
-                            {'sfui_streamType': 'threshold',
-                             'sfui_state': 'clear',
-                             'sfui_orientation': 'below',
-                             'sfui_trigger': 'outside',
-                             'influencedBy': 'clear_num_stddev'}),
-                   annotate(ct, 'upper clear threshold',
-                            {'sfui_streamType': 'threshold',
-                             'sfui_state': 'clear',
-                             'sfui_orientation': 'above',
-                             'sfui_trigger': 'outside',
-                             'influencedBy': 'clear_num_stddev'})]
     event_annotations = {'current_window': str(window_to_compare_dur),
-                        'alert_type': str(_alert_type),
-                        'detector_type': str(_detector_type)}
-    return detector_helper(summary, fb, cb, ct, upper_fire_threshold, orientation, annotations, event_annotations, auto_resolve_after=auto_resolve_after, fire_lasting=fire_lasting)
+                         'alert_type': str(_alert_type),
+                         'detector_type': str(_detector_type)}
+    return {
+        'summary': summary,
+        'fire_bot': fb,
+        'clear_bot': cb,
+        'clear_top': ct,
+        'fire_top': upper_fire_threshold,
+        'fire_lasting': fire_lasting,
+        'orientation': orientation,
+        'annotations': mean_std_annotations(summary, fb, upper_fire_threshold, cb, ct, orientation,
+                                            fire_lasting, condition_identifier),
+        'event_annotations': event_annotations
+    }
+
+
+def detector_mean_std(stream, window_to_compare=duration('15m'),
+                      space_between_windows=duration('1w'),
+                      num_windows=4, fire_num_stddev=3, clear_num_stddev=2.5,
+                      discard_historical_outliers=True, orientation='above',
+                      calculation_mode='across', auto_resolve_after=None,
+                      _alert_type='against-periods', _detector_type=None,
+                      attempt_threshold=None, fire_lasting=None,
+                      condition_identifier=None):
+    c = mean_std_conditions(stream,
+                            window_to_compare=window_to_compare,
+                            space_between_windows=space_between_windows,
+                            num_windows=num_windows,
+                            fire_num_stddev=fire_num_stddev,
+                            clear_num_stddev=clear_num_stddev,
+                            discard_historical_outliers=discard_historical_outliers,
+                            orientation=orientation,
+                            calculation_mode=calculation_mode,
+                            _alert_type=_alert_type,
+                            _detector_type=_detector_type,
+                            attempt_threshold=attempt_threshold,
+                            fire_lasting=fire_lasting,
+                            condition_identifier=condition_identifier)
+    return detect_from_conditions(c, auto_resolve_after=auto_resolve_after)
+
+
+def static_condition(stream, threshold_value, orientation='above', fire_lasting=None,
+                     condition_identifier=None):
+    assert orientation == 'above' or orientation == 'below', {
+        'orientation': orientation,
+        'sfui_errorKeys': ['orientation'],
+        'sfui_errorTemplate': "{{{orientation}}} is not supported for static conditions; use above or below."}
+    summary = stream
+    thresh = threshold(threshold_value)
+    return {
+        'summary': summary,
+        'fire_bot': thresh,
+        'clear_bot': thresh,
+        'clear_top': thresh,
+        'fire_top': thresh,
+        'fire_lasting': fire_lasting,
+        'orientation': orientation,
+        'annotations': static_annotations(summary, thresh, orientation, fire_lasting, condition_identifier),
+        'event_annotations': {'alert_type': 'static'}
+    }
+
+
+def fire_when_single(c):
+    assert c['orientation'] == 'above' or c['orientation'] == 'below', {
+        'orientation': c['orientation'],
+        'sfui_errorKeys': ['orientation'],
+        'sfui_errorTemplate': "Multi-condition detectors do not support {{{orientation}}} orientation."}
+    if c['orientation'] == 'above':
+        return when(c['summary'] > c['fire_top'], c['fire_lasting'])
+    elif c['orientation'] == 'below':
+        return when(c['summary'] < c['fire_bot'], c['fire_lasting'])
+
+
+def clear_when_single(c):
+    assert c['orientation'] == 'above' or c['orientation'] == 'below', {
+        'orientation': c['orientation'],
+        'sfui_errorKeys': ['orientation'],
+        'sfui_errorTemplate': "Multi-condition detectors do not support {{{orientation}}} orientation."}
+    if c['orientation'] == 'above':
+        return when(c['summary'] < c['clear_top'])
+    elif c['orientation'] == 'below':
+        return when(c['summary'] > c['clear_bot'])
+
+
+def cond(c):
+    return {'_kind': 'leaf', '_cond': c}
+
+
+def and_expr(items):
+    assert len(items) >= 2, {
+        'num_items': len(items),
+        'sfui_errorKeys': ['num_items'],
+        'sfui_errorTemplate': "and_expr requires at least 2 items, got {{{num_items}}}."}
+    return {'_kind': 'and', '_items': items}
+
+
+def or_expr(items):
+    assert len(items) >= 2, {
+        'num_items': len(items),
+        'sfui_errorKeys': ['num_items'],
+        'sfui_errorTemplate': "or_expr requires at least 2 items, got {{{num_items}}}."}
+    return {'_kind': 'or', '_items': items}
+
+
+def eval_fire(node):
+    if node['_kind'] == 'leaf':
+        return fire_when_single(node['_cond'])
+    elif node['_kind'] == 'and':
+        return eval_fire_and_chain(node['_items'], 0)
+    elif node['_kind'] == 'or':
+        return eval_fire_or_chain(node['_items'], 0)
+
+
+def eval_fire_and_chain(items, idx):
+    if idx >= len(items) - 1:
+        return eval_fire(items[idx])
+    return eval_fire(items[idx]) and eval_fire_and_chain(items, idx + 1)
+
+
+def eval_fire_or_chain(items, idx):
+    if idx >= len(items) - 1:
+        return eval_fire(items[idx])
+    return eval_fire(items[idx]) or eval_fire_or_chain(items, idx + 1)
+
+
+def eval_clear(node):
+    if node['_kind'] == 'leaf':
+        return clear_when_single(node['_cond'])
+    elif node['_kind'] == 'and':
+        return eval_clear_or_chain(node['_items'], 0)
+    elif node['_kind'] == 'or':
+        return eval_clear_and_chain(node['_items'], 0)
+
+
+def eval_clear_or_chain(items, idx):
+    if idx >= len(items) - 1:
+        return eval_clear(items[idx])
+    return eval_clear(items[idx]) or eval_clear_or_chain(items, idx + 1)
+
+
+def eval_clear_and_chain(items, idx):
+    if idx >= len(items) - 1:
+        return eval_clear(items[idx])
+    return eval_clear(items[idx]) and eval_clear_and_chain(items, idx + 1)
+
+
+def eval_annotations(node):
+    if node['_kind'] == 'leaf':
+        return node['_cond']['annotations']
+    return eval_annotations_chain(node['_items'], 0)
+
+
+def eval_annotations_chain(items, idx):
+    if idx >= len(items) - 1:
+        return eval_annotations(items[idx])
+    return eval_annotations(items[idx]) + eval_annotations_chain(items, idx + 1)
+
+
+def eval_event_annotations(node):
+    if node['_kind'] == 'leaf':
+        return node['_cond']['event_annotations']
+    return eval_event_annotations(node['_items'][0])
+
+
+def eval_non_static_event_annotations(node):
+    if node['_kind'] == 'leaf':
+        return node['_cond']['event_annotations']
+    return eval_non_static_event_annotations_chain(node['_items'], 0)
+
+
+def eval_non_static_event_annotations_chain(items, idx):
+    current = eval_non_static_event_annotations(items[idx])
+    if current['alert_type'] == 'static' and idx < len(items) - 1:
+        return eval_non_static_event_annotations_chain(items, idx + 1)
+    return current
+
+
+def merge_event_annotations(base, extra):
+    if extra is None:
+        return base
+    if base['alert_type'] == 'static':
+        return {'alert_type': base['alert_type'],
+                'sfui_incidentInformation': extra['sfui_incidentInformation']}
+    return {'current_window': base['current_window'],
+            'alert_type': base['alert_type'],
+            'detector_type': base['detector_type'],
+            'sfui_incidentInformation': extra['sfui_incidentInformation']}
+
+
+def detect_expr(expr, auto_resolve_after=None, event_annotations=None):
+    if event_annotations is None:
+        return detect(eval_fire(expr),
+                      eval_clear(expr),
+                      annotations=eval_annotations(expr),
+                      event_annotations=eval_event_annotations(expr),
+                      auto_resolve_after=auto_resolve_after)
+    return detect(eval_fire(expr),
+                  eval_clear(expr),
+                  annotations=eval_annotations(expr),
+                  event_annotations=merge_event_annotations(eval_non_static_event_annotations(expr), event_annotations),
+                  auto_resolve_after=auto_resolve_after)

@@ -8,7 +8,7 @@ The `detector` function detects when latency exceeds a specified static threshol
 |Parameter name|Type|Description|Default value|
 |:---|:---|:---|:---|
 |fire_threshold|number|latency threshold required to trigger, expressed in nanoseconds or milliseconds (see use_ms)|None|
-|fire_lasting|lasting|percent of duration associated with fire_threshold|None|
+|fire_lasting|lasting|percent of duration associated with fire_threshold; use None for immediate triggering|None|
 |clear_threshold|numnber|latency threshold required to clear, expressed in nanoseconds or milliseconds (see use_ms)|None|
 |clear_lasting|lasting|percent of duration associated with clear_threshold|None|
 |use_ms|boolean|if True, use milliseconds; if False, use nanoseconds (see fire_threshold and clear_threshold)|True|
@@ -20,8 +20,9 @@ The `detector` function detects when latency exceeds a specified static threshol
 |resource_type|string|key from [RESOURCE_TYPE_MAPPING_HISTOGRAMS](../../utils.flow), determines schema|'service_operation'|
 |volume_static_threshold|number|threshold on request rate (per second) required for alert to trigger|None|
 |volume_relative_threshold|number|require request rate on window being evaluated to be at least this proportion of request rate on preceding window (used for trigger and clear)|None|
-|volume_nonzero_required|number between 0 and 1|require request rate to be nonzero for this proportion of fire_lasting.duration (used for trigger and clear)|0.1|    
+|volume_nonzero_required|number between 0 and 1|require request rate to be nonzero for this proportion of current_window (used for trigger and clear)|0.1|
 |auto_resolve_after|duration|if provided, duration after which to clear when group drops from schema or has value None|None|
+|current_window|duration|window used for volume condition checks when fire_lasting is None; when fire_lasting is provided, its duration is used instead|duration('5m')|
 
 
 It returns detect block that triggers when the specified percentile of latency,

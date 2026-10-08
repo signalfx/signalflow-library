@@ -127,6 +127,14 @@ WEBVITALS_FID_NODE_KEY, WEBVITALS_FID_NODE_VALUE = make_entry(_WEBVITALS_FID_KEY
                                                               count_present=False,
                                                               error_present=False)
 
+_WEBVITALS_INP_KEY = 'webvitals_inp'
+WEBVITALS_INP_KEY, WEBVITALS_INP_VALUE = make_entry(_WEBVITALS_INP_KEY, use_node_name=False,
+                                                    count_present=False, error_present=False)
+WEBVITALS_INP_NODE_KEY, WEBVITALS_INP_NODE_VALUE = make_entry(_WEBVITALS_INP_KEY,
+                                                              use_node_name=True,
+                                                              count_present=False,
+                                                              error_present=False)
+
 _RESOURCE_REQUEST_TTFB_KEY = 'resource_request.ttfb'
 RESOURCE_REQUEST_TTFB_KEY, RESOURCE_REQUEST_TTFB_VALUE = make_entry(_RESOURCE_REQUEST_TTFB_KEY,
                                                                     use_node_name=False,

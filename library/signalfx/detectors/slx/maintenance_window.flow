@@ -1,0 +1,107 @@
+# Include-mask primitives for SLO maintenance window exclusions.
+#
+# Every mask function returns a 0/1 stream: 1=keep, 0=drop.
+# Combine masks with * and apply to event streams before aggregation:
+#
+#   mask         = mask_weekly(MON, FRI, 18, 6) * mask_weekly(SAT, SUN, 0, 24) * mask_one_time(...)
+#   good_masked  = apply_mask(good_events,  mask)
+#   total_masked = apply_mask(total_events, mask)
+#
+# During a window both good and total events are zeroed, making the SLI undefined
+# (division by zero) for that period — this is intentional.
+#
+# All times UTC; ranges are half-open [start, end). start_hour is 0-23; end_hour
+# is 0-24 (24 = end of day). active_from_ms / active_until_ms: epoch ms bounds,
+# or 0 for no bound.
+# Window boundaries are hour-aligned — SLO detectors run at 1h resolution, so
+# sub-hour precision would be silently rounded.
+
+_MS_PER_DAY = 86400000
+
+MON = 0
+TUE = 1
+WED = 2
+THU = 3
+FRI = 4
+SAT = 5
+SUN = 6
+
+
+# Floor-based modulo, since SignalFlow has no native % operator.
+def _mod(x, n):
+    return x - (x / n).floor() * n
+
+
+def _time_of_day_ms(t):
+    return _mod(t, _MS_PER_DAY)
+
+
+def _day_of_week(t):
+    # Jan 1 1970 was Thursday; +3 shifts so 0=Monday.
+    return _mod((t / _MS_PER_DAY).floor() + 3, 7)
+
+
+def _previous_day(today):
+    return _mod(today + 6, 7)
+
+
+def _day_is_in_range(day, day_from, day_to):
+    if day_from <= day_to:
+        return (day >= day_from) and (day <= day_to)
+    else:
+        return (day >= day_from) or (day <= day_to)
+
+
+def _hour_to_ms(hour):
+    ms = hour * 3600000
+    return _MS_PER_DAY if ms >= _MS_PER_DAY else ms
+
+
+def _to_mask(in_window, active_from_ms, active_until_ms):
+    if active_from_ms != 0:
+        in_window = in_window and (time() >= active_from_ms)
+    if active_until_ms != 0:
+        in_window = in_window and (time() <  active_until_ms)
+    return 1 - in_window.map(lambda x: 1 if x else 0)
+
+
+def mask_one_time(start_ms, end_ms):
+    return _to_mask((time() >= start_ms) and (time() < end_ms), 0, 0)
+
+
+def mask_daily(start_hour, end_hour, active_from_ms=0, active_until_ms=0):
+    time_of_day_ms = _time_of_day_ms(time())
+    start_ms       = _hour_to_ms(start_hour)
+    end_ms         = _hour_to_ms(end_hour)
+
+    if start_ms <= end_ms:
+        in_window = (time_of_day_ms >= start_ms) and (time_of_day_ms < end_ms)
+    else:
+        in_window = (time_of_day_ms >= start_ms) or  (time_of_day_ms < end_ms)
+
+    return _to_mask(in_window, active_from_ms, active_until_ms)
+
+
+# Midnight crossing (start_hour > end_hour) anchors the window to the start day:
+# mask_weekly(MON, FRI, 18, 6) excludes Saturday 03:00 as the tail of Friday's window.
+def mask_weekly(day_from, day_to, start_hour, end_hour, active_from_ms=0, active_until_ms=0):
+    time_of_day_ms = _time_of_day_ms(time())
+    today          = _day_of_week(time())
+    start_ms       = _hour_to_ms(start_hour)
+    end_ms         = _hour_to_ms(end_hour)
+
+    today_is_in_range = _day_is_in_range(today, day_from, day_to)
+
+    if start_ms <= end_ms:
+        in_window = today_is_in_range and (time_of_day_ms >= start_ms) and (time_of_day_ms < end_ms)
+    else:
+        previous_day_is_in_range = _day_is_in_range(_previous_day(today), day_from, day_to)
+        opening                  = today_is_in_range        and (time_of_day_ms >= start_ms)
+        tail                     = previous_day_is_in_range and (time_of_day_ms <  end_ms)
+        in_window                = opening or tail
+
+    return _to_mask(in_window, active_from_ms, active_until_ms)
+
+
+def apply_mask(stream, mask):
+    return stream * mask
