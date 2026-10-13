@@ -1,13 +1,14 @@
+from signalfx.detectors.autodetect import utils
 from signalfx.detectors.autodetect.infra.k8s import utils as k8s_utils
 
 def _resource_not_at_spec_blended(stream: stream, desired: stream, headroom: float):
-    missing = stream.publish('Missing')
+    missing = stream
     missing_today = missing.percentile(pct=80, over='12h')
     missing_yesterday = missing.timeshift('23h').percentile(pct=80, over='2h')
     missing_weekago = missing_yesterday.timeshift('6d')
     alert_level = min(max(missing_today, missing_yesterday, missing_weekago) * headroom, desired)
-    ann = [annotate(alert_level, 'upper fire threshold', {
-        'sfui_streamType': 'threshold','sfui_state':'fire','sfui_orientation':'above'})]
+    ann = [utils.annotate_stream(missing, 'Missing'),
+           utils.annotate_fire_threshold(alert_level, orientation='above')]
     # NOTE Alert when missing >= threshold(alert_level) means alerting when all pods are missing regardless of 
     # historical values (not desirable); missing > threshold(alert_level) means it is possible that no alert is raised
     # even if all pods are missing
@@ -20,7 +21,7 @@ def _resource_not_at_spec_blended(stream: stream, desired: stream, headroom: flo
 
 def deployment_not_at_spec_blended_detector(headroom: float = 1, filter_: filter = None):
     # Detects when the number of missing pods for the deployment increases, compared to historical values
-    # :param headroom label=Headroom multiplier (unitless; 1.0-2.0)
+    # :param headroom label=Headroom multiplier (unitless; 0.0-2.0)
     # :param headroom description=How much worse the number of missing pods must be, compared to historical, in order to trigger an alert.
     # :param headroom control_type=slider
     # :param headroom min=0
@@ -41,7 +42,7 @@ def deployment_not_at_spec_blended_detector(headroom: float = 1, filter_: filter
 
 def daemonset_not_at_spec_blended_detector(headroom: float = 1, filter_: filter = None):
     # Detects when the number of missing nodes running the daemon pod for the daemonset increases, compared to historical values
-    # :param headroom label=Headroom multiplier (unitless; 1.0-2.0)
+    # :param headroom label=Headroom multiplier (unitless; 0.0-2.0)
     # :param headroom description=How much worse the number of missing nodes must be, compared to historical, in order to trigger an alert.
     # :param headroom control_type=slider
     # :param headroom min=0
@@ -62,7 +63,7 @@ def daemonset_not_at_spec_blended_detector(headroom: float = 1, filter_: filter 
 
 def statefulset_not_at_spec_blended_detector(headroom: float = 1, filter_: filter = None):
     # Detects when the number of missing pods for the statefulset increases, compared to historical values
-    # :param headroom label=Headroom multiplier (unitless; 1.0-2.0)
+    # :param headroom label=Headroom multiplier (unitless; 0.0-2.0)
     # :param headroom description=How much worse the number of missing pods must be, compared to historical, in order to trigger an alert.
     # :param headroom control_type=slider
     # :param headroom min=0

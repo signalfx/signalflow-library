@@ -12,11 +12,12 @@ def coredns_failing_detector(filter_: filter = None):
     scope_filter = utils.merge_filters(rcode_filter, filter_)
     A = data('coredns_dns_responses_total', filter=scope_filter, rollup='delta').sum(by=group_by)
     responses_total = data('coredns_dns_responses_total', filter=filter_, rollup='delta').sum(by=group_by)
-    stream = (A/responses_total*100).publish(label='CoreDNS error rate (%)')
+    response_rate_min = responses_total.rate(by=group_by) * 60
+    stream = (A/responses_total*100)
     fire_threshold_stream = const(5)
     ann = [utils.annotate_stream(stream, 'CoreDNS error rate (%)'),
            utils.annotate_fire_threshold(fire_threshold_stream, orientation='above')]
-    return detect(when(responses_total > 10 and stream > fire_threshold_stream, lasting=lasting('5m', 0.8)),
+    return detect(when(response_rate_min > 10 and stream > fire_threshold_stream, lasting=lasting('5m', 0.8)),
                   off=when(stream <= fire_threshold_stream, lasting=lasting('10m', 0.9)),
                   annotations=ann,
                   auto_resolve_after='1d')
