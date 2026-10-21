@@ -1,0 +1,146 @@
+# These functions transform a stream into a detector that fires when the signal
+# departs from a baseline built from its own recent history. The baseline is the
+# mean of the signal over the last several daily timeshifts (default: 7 days,
+# sampled once per day), capturing the typical daily level of the signal.
+#
+# Two upper/lower thresholds are derived from that baseline and the signal is
+# compared against them. The thresholds can be built in one of two ways:
+#   'stddev'     -- a number of sample standard deviations from the baseline,
+#   'percentage' -- a percentage of the baseline value.
+#
+# Three orientations are supported:
+#   'above'        -- fire when the signal rises above the upper threshold,
+#   'below'        -- fire when the signal drops below the lower threshold,
+#   'out_of_band'  -- fire when the signal leaves the [lower, upper] band.
+#
+# @author Filip Gacek
+
+from signalfx.detectors.baseline_threshold import streams
+from signalfx.detectors.baseline_threshold import utils
+
+PERIOD = '7d'
+INTERVAL = '1d'
+
+
+def threshold_annotations(stream, baseline, fire_bot, clear_bot, clear_top, fire_top,
+                          orientation, fire_influenced_by, clear_influenced_by):
+    base = [annotate(stream, 'signal', {'sfui_streamType': 'signal'}),
+            annotate(baseline, 'baseline',
+                     {'sfui_config': '{"signal_baseline": {"sfui_streamType":"signal"}}'})]
+    lower = [
+        annotate(fire_bot, 'lower fire threshold', {'sfui_streamType': 'threshold',
+                                                    'sfui_state': 'fire',
+                                                    'sfui_orientation': 'below',
+                                                    'sfui_trigger': 'outside',
+                                                    'influencedBy': fire_influenced_by}),
+        annotate(clear_bot, 'lower clear threshold', {'sfui_streamType': 'threshold',
+                                                      'sfui_state': 'clear',
+                                                      'sfui_orientation': 'below',
+                                                      'sfui_trigger': 'outside',
+                                                      'influencedBy': clear_influenced_by})]
+    upper = [
+        annotate(clear_top, 'upper clear threshold', {'sfui_streamType': 'threshold',
+                                                      'sfui_state': 'clear',
+                                                      'sfui_orientation': 'above',
+                                                      'sfui_trigger': 'outside',
+                                                      'influencedBy': clear_influenced_by}),
+        annotate(fire_top, 'upper fire threshold', {'sfui_streamType': 'threshold',
+                                                    'sfui_state': 'fire',
+                                                    'sfui_orientation': 'above',
+                                                    'sfui_trigger': 'outside',
+                                                    'influencedBy': fire_influenced_by})]
+    if orientation == 'above':
+        return base + upper
+    elif orientation == 'below':
+        return base + lower
+    elif orientation == 'out_of_band':
+        return base + lower + upper
+
+
+def detector(stream, trigger_type='stddev', orientation='above',
+             fire_num_stddev=2, clear_num_stddev=1,
+             fire_percentage=0.2, clear_percentage=0.1,
+             auto_resolve_after=None, fire_lasting=None):
+    # Args:
+    #       stream (stream): data being monitored
+    #       trigger_type (string): how thresholds are derived from the baseline,
+    #           one of 'stddev', 'percentage' (optional, default='stddev')
+    #       orientation (string): one of 'above', 'below', 'out_of_band'
+    #           (optional, default='above')
+    #       fire_num_stddev (number): standard deviations from baseline to fire,
+    #           used when trigger_type='stddev' (optional, default=2)
+    #       clear_num_stddev (number): standard deviations from baseline to clear,
+    #           used when trigger_type='stddev' (optional, default=1)
+    #       fire_percentage (number): fraction of baseline to fire, used when
+    #           trigger_type='percentage' (optional, default=0.2)
+    #       clear_percentage (number): fraction of baseline to clear, used when
+    #           trigger_type='percentage' (optional, default=0.1)
+    #       auto_resolve_after (duration): if provided, duration after which to
+    #           clear when the group drops from the schema (optional, default=None)
+    #       fire_lasting (lasting): if provided, duration/fraction the fire
+    #           condition must hold before firing (optional, default=None)
+    # Returns:
+    #       detect block that fires when stream departs from its baseline in the
+    #       manner specified by orientation and trigger_type
+    assert trigger_type == 'stddev' or trigger_type == 'percentage', {
+        'trigger_type': trigger_type,
+        'sfui_errorKeys': ['trigger_type'],
+        'sfui_errorTemplate': "{{{trigger_type}}} must be one of stddev, percentage."}
+    assert orientation == 'above' or orientation == 'below' or orientation == 'out_of_band', {
+        'orientation': orientation,
+        'sfui_errorKeys': ['orientation'],
+        'sfui_errorTemplate': "{{{orientation}}} must be one of above, below, out_of_band."}
+        
+    if trigger_type == 'stddev':
+        assert fire_num_stddev >= 0 and clear_num_stddev >= 0, {
+            'fire_num_stddev': fire_num_stddev, 'clear_num_stddev': clear_num_stddev,
+            'sfui_errorKeys': ['fire_num_stddev', 'clear_num_stddev'],
+            'sfui_errorTemplate': "{{{fire_num_stddev}}} and {{{clear_num_stddev}}} must be greater than or equal to 0."}
+        assert fire_num_stddev >= clear_num_stddev, {
+            'fire_num_stddev': fire_num_stddev, 'clear_num_stddev': clear_num_stddev,
+            'sfui_errorKeys': ['fire_num_stddev', 'clear_num_stddev'],
+            'sfui_errorTemplate': "{{{fire_num_stddev}}} must be greater than or equal to {{{clear_num_stddev}}}."}
+    elif trigger_type == 'percentage':
+        assert fire_percentage >= 0 and clear_percentage >= 0, {
+            'fire_percentage': fire_percentage, 'clear_percentage': clear_percentage,
+            'sfui_errorKeys': ['fire_percentage', 'clear_percentage'],
+            'sfui_errorTemplate': "{{{fire_percentage}}} and {{{clear_percentage}}} must be greater than or equal to 0."}
+        assert fire_percentage >= clear_percentage, {
+            'fire_percentage': fire_percentage, 'clear_percentage': clear_percentage,
+            'sfui_errorKeys': ['fire_percentage', 'clear_percentage'],
+            'sfui_errorTemplate': "{{{fire_percentage}}} must be greater than or equal to {{{clear_percentage}}}."}
+
+    baseline, baseline_stddev = streams.baseline_stats(stream)
+
+    if trigger_type == 'stddev':
+        fire_bot, clear_bot, clear_top, fire_top = streams.stddev_thresholds(
+            baseline, baseline_stddev, fire_num_stddev, clear_num_stddev)
+        fire_influenced_by = 'fire_num_stddev'
+        clear_influenced_by = 'clear_num_stddev'
+    else:
+        fire_bot, clear_bot, clear_top, fire_top = streams.percentage_thresholds(
+            baseline, fire_percentage, clear_percentage)
+        fire_influenced_by = 'fire_percentage'
+        clear_influenced_by = 'clear_percentage'
+
+    annotations = threshold_annotations(stream, baseline, fire_bot, clear_bot, clear_top,
+                                        fire_top, orientation, fire_influenced_by,
+                                        clear_influenced_by)
+    if orientation == 'above':
+        fire_identifiers = '["stream","baseline","fire_top"]'
+    elif orientation == 'below':
+        fire_identifiers = '["stream","baseline","fire_bot"]'
+    else:
+        fire_identifiers = '["stream","baseline","fire_bot","fire_top"]'
+    event_annotations = {'historical_period': str(PERIOD),
+                         'baseline_interval': str(INTERVAL),
+                         'trigger_type': str(trigger_type),
+                         'alert_type': 'baseline-threshold',
+                         'sfui_incidentInformation': '[{"selectedIdentifiers":' +
+                         fire_identifiers + ',"conditionIdentifier":"signal_baseline"}]'}
+
+    return utils.detector_from_thresholds(stream, baseline, fire_bot, clear_bot, clear_top,
+                                          fire_top, orientation, annotations,
+                                          event_annotations=event_annotations,
+                                          auto_resolve_after=auto_resolve_after,
+                                          fire_lasting=fire_lasting)

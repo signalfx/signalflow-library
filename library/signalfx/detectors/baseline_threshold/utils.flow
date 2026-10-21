@@ -1,0 +1,22 @@
+
+def detector_from_thresholds(stream, baseline, fire_bot, clear_bot, clear_top, fire_top,
+                             orientation, annotations, event_annotations=None,
+                             auto_resolve_after=None, fire_lasting=None):
+    # "baseline is not None" has no effect on the detection, but does allow
+    # the baseline stream to participate as a detect input, e.g., in the alert page or alert message variables.
+    if orientation == 'above':
+        return detect(when(stream > fire_top, fire_lasting) and baseline is not None,
+                      when(stream < clear_top) and baseline is not None,
+                      annotations=annotations, event_annotations=event_annotations,
+                      auto_resolve_after=auto_resolve_after)
+    elif orientation == 'below':
+        return detect(when(stream < fire_bot, fire_lasting) and baseline is not None,
+                      when(stream > clear_bot) and baseline is not None,
+                      annotations=annotations, event_annotations=event_annotations,
+                      auto_resolve_after=auto_resolve_after)
+    elif orientation == 'out_of_band':
+        return detect(when(stream > fire_top or stream < fire_bot, fire_lasting) and baseline is not None,
+                      when(stream < clear_top and stream > clear_bot) and baseline is not None,
+                      mode='split',
+                      annotations=annotations, event_annotations=event_annotations,
+                      auto_resolve_after=auto_resolve_after)

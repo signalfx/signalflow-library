@@ -1,0 +1,49 @@
+# Streams used to build a baseline from the recent history of a signal and to
+# derive fire/clear thresholds from that baseline.
+#
+# The baseline is the mean of the signal over the last 7 daily timeshifts (the
+# same clock-time one, two, ..., seven days ago). Alongside the mean we return
+# the sample standard deviation of those daily samples, which the
+# standard-deviation threshold mode consumes.
+
+
+def baseline_stats(stream):
+    # Returns (baseline, baseline_stddev) computed over the last 7 daily
+    # timeshifts of `stream`.
+    def shifted(day):
+        return stream.timeshift(str(day) + 'd')
+
+    def sq_of(day):
+        return shifted(day) * shifted(day)
+
+    def present(day):
+        return 1 if shifted(day) is not None else 0
+
+    sample_mean = combine(mean(shifted(1), shifted(2), shifted(3), shifted(4), shifted(5),
+                               shifted(6), shifted(7)))
+    sample_mean_sq = combine(mean(sq_of(1), sq_of(2), sq_of(3), sq_of(4), sq_of(5), sq_of(6),
+                                  sq_of(7)))
+    num_samples = combine(sum(present(1), present(2), present(3), present(4), present(5),
+                              present(6), present(7)))
+    population_variance = sample_mean_sq - sample_mean * sample_mean
+    sample_variance = population_variance * (num_samples / max(num_samples - 1, const(1)))
+    sample_stddev = max(sample_variance, const(0)).sqrt()
+    return sample_mean, sample_stddev
+
+
+def stddev_thresholds(baseline, baseline_stddev, fire_num_stddev, clear_num_stddev):
+    fire_bot = baseline - fire_num_stddev * baseline_stddev
+    clear_bot = baseline - clear_num_stddev * baseline_stddev
+    clear_top = baseline + clear_num_stddev * baseline_stddev
+    fire_top = baseline + fire_num_stddev * baseline_stddev
+    return fire_bot, clear_bot, clear_top, fire_top
+
+
+def percentage_thresholds(baseline, fire_percentage, clear_percentage):
+    fire_distance = fire_percentage * abs(baseline)
+    clear_distance = clear_percentage * abs(baseline)
+    fire_bot = baseline - fire_distance
+    clear_bot = baseline - clear_distance
+    clear_top = baseline + clear_distance
+    fire_top = baseline + fire_distance
+    return fire_bot, clear_bot, clear_top, fire_top

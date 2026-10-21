@@ -1,20 +1,19 @@
 from signalfx.detectors.autodetect import utils
 from signalfx.detectors.autodetect.infra.k8s import utils as k8s_utils
 
-def _resource_not_at_spec_blended(stream: stream, desired: stream, headroom: float):
-    missing = stream
+def _resource_not_at_spec_blended(missing: stream, desired: stream, headroom: float):
     missing_today = missing.percentile(pct=80, over='12h')
     missing_yesterday = missing.timeshift('23h').percentile(pct=80, over='2h')
     missing_weekago = missing_yesterday.timeshift('6d')
     alert_level = min(max(missing_today, missing_yesterday, missing_weekago) * headroom, desired)
     ann = [utils.annotate_stream(missing, 'Missing'),
            utils.annotate_fire_threshold(alert_level, orientation='above')]
-    # NOTE Alert when missing >= threshold(alert_level) means alerting when all pods are missing regardless of 
-    # historical values (not desirable); missing > threshold(alert_level) means it is possible that no alert is raised
+    # NOTE Alert when missing >= alert_level means alerting when all pods are missing regardless of 
+    # historical values (not desirable); missing > alert_level means it is possible that no alert is raised
     # even if all pods are missing
     return detect(
-        when(missing > threshold(alert_level), lasting=lasting('15m', 0.8)),
-        off=when(missing <= threshold(alert_level), lasting=lasting('40m', 0.9)),
+        when(missing > alert_level, lasting=lasting('15m', 0.8)),
+        off=when(missing <= alert_level, lasting=lasting('40m', 0.9)),
         annotations=ann,
         auto_resolve_after=duration('1d')
     )
@@ -26,7 +25,7 @@ def deployment_not_at_spec_blended_detector(headroom: float = 1, filter_: filter
     # :param headroom control_type=slider
     # :param headroom min=0
     # :param headroom max=2
-    # :param headroom step_count=5
+    # :param headroom step_count=8
     # :param filter_ description=Specifies dimensional scope of the detector
     # :param filter_ metric_name=k8s.deployment.desired
     # :return: detect block that triggers when number of missing pods for the deployment increases.
@@ -36,7 +35,7 @@ def deployment_not_at_spec_blended_detector(headroom: float = 1, filter_: filter
     desired_stream = data('k8s.deployment.desired', filter=filter_).sum(by=group_by, allow_missing=group_by)
     available_stream = data('k8s.deployment.available', filter=filter_).sum(by=group_by, allow_missing=group_by)
     stream = (desired_stream - available_stream)
-    return _resource_not_at_spec_blended(stream=stream,
+    return _resource_not_at_spec_blended(missing=stream,
                                          desired=desired_stream,
                                          headroom=headroom)
 
@@ -47,7 +46,7 @@ def daemonset_not_at_spec_blended_detector(headroom: float = 1, filter_: filter 
     # :param headroom control_type=slider
     # :param headroom min=0
     # :param headroom max=2
-    # :param headroom step_count=5
+    # :param headroom step_count=8
     # :param filter_ description=Specifies dimensional scope of the detector
     # :param filter_ metric_name=k8s.daemonset.desired_scheduled_nodes
     # :return: detect block that triggers when number of missing nodes for the daemonset increases.
@@ -57,7 +56,7 @@ def daemonset_not_at_spec_blended_detector(headroom: float = 1, filter_: filter 
     desired_stream = data('k8s.daemonset.desired_scheduled_nodes', filter=filter_).sum(by=group_by, allow_missing=group_by)
     available_stream = data('k8s.daemonset.ready_nodes', filter=filter_).sum(by=group_by, allow_missing=group_by)
     stream = (desired_stream - available_stream)
-    return _resource_not_at_spec_blended(stream=stream,
+    return _resource_not_at_spec_blended(missing=stream,
                                          desired=desired_stream,
                                          headroom=headroom)
 
@@ -68,7 +67,7 @@ def statefulset_not_at_spec_blended_detector(headroom: float = 1, filter_: filte
     # :param headroom control_type=slider
     # :param headroom min=0
     # :param headroom max=2
-    # :param headroom step_count=5
+    # :param headroom step_count=8
     # :param filter_ description=Specifies dimensional scope of the detector
     # :param filter_ metric_name=k8s.statefulset.desired_pods
     # :return: detect block that triggers when number of missing pods for the daemonset increases.
@@ -78,6 +77,6 @@ def statefulset_not_at_spec_blended_detector(headroom: float = 1, filter_: filte
     desired_stream = data('k8s.statefulset.desired_pods', filter=filter_).sum(by=group_by, allow_missing=group_by)
     available_stream = data('k8s.statefulset.ready_pods', filter=filter_).sum(by=group_by, allow_missing=group_by)
     stream = (desired_stream - available_stream)
-    return _resource_not_at_spec_blended(stream=stream,
+    return _resource_not_at_spec_blended(missing=stream,
                                          desired=desired_stream,
                                          headroom=headroom)

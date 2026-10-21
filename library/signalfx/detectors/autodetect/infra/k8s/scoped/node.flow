@@ -14,14 +14,14 @@ def node_cpu_utilization_detector(filter_: filter = None):
     # :param filter_ metric_name=cpu.utilization
     # :return: detect block that triggers when the node CPU utilization per cluster is high
     scope_filter = utils.merge_filters(NODE_FILTER, filter_)
-    CPU = data('cpu.utilization', filter=scope_filter).publish('CPU', enable=False)
-    TOTAL = CPU.count(by=k8s_utils.K8S_CLUSTER_NAME_DIM).publish('TOTAL', enable=False)
-    CPU95 = CPU.above(95).count(by=k8s_utils.K8S_CLUSTER_NAME_DIM).publish('CPU95', enable=False)
-    CPU90 = CPU.above(90).count(by=k8s_utils.K8S_CLUSTER_NAME_DIM).publish('CPU90', enable=False)
-    CPU80 = CPU.above(80).count(by=k8s_utils.K8S_CLUSTER_NAME_DIM).publish('CPU80', enable=False)
-    CPU95_PCT = (CPU95 / TOTAL * 100.0).publish('CPU95_PCT')
-    CPU90_PCT = (CPU90 / TOTAL * 100.0).publish('CPU90_PCT')
-    CPU80_PCT = (CPU80 / TOTAL * 100.0).publish('CPU80_PCT')
+    CPU = data('cpu.utilization', filter=scope_filter)
+    TOTAL = CPU.count(by=k8s_utils.K8S_CLUSTER_NAME_DIM)
+    CPU95 = CPU.above(95).count(by=k8s_utils.K8S_CLUSTER_NAME_DIM)
+    CPU90 = CPU.above(90).count(by=k8s_utils.K8S_CLUSTER_NAME_DIM)
+    CPU80 = CPU.above(80).count(by=k8s_utils.K8S_CLUSTER_NAME_DIM)
+    CPU95_PCT = (CPU95 / TOTAL * 100.0)
+    CPU90_PCT = (CPU90 / TOTAL * 100.0)
+    CPU80_PCT = (CPU80 / TOTAL * 100.0)
     fire_threshold_stream = const(1.0)
     ann = [utils.annotate_stream(CPU95_PCT, 'CPU95_PCT'),
            utils.annotate_stream(CPU90_PCT, 'CPU90_PCT'),
@@ -43,14 +43,14 @@ def node_memory_utilization_detector(filter_: filter = None):
     # :param filter_ metric_name=memory.utilization
     # :return: detect block that triggers when the node MEM utilization per cluster is high
     scope_filter = utils.merge_filters(NODE_FILTER, filter_)
-    MEM = data('memory.utilization', filter=scope_filter).publish('MEM', enable=False)
-    TOTAL = MEM.count(by=k8s_utils.K8S_CLUSTER_NAME_DIM).publish('TOTAL', enable=False)
-    MEM95 = MEM.above(95).count(by=k8s_utils.K8S_CLUSTER_NAME_DIM).publish('MEM95', enable=False)
-    MEM90 = MEM.above(90).count(by=k8s_utils.K8S_CLUSTER_NAME_DIM).publish('MEM90', enable=False)
-    MEM80 = MEM.above(80).count(by=k8s_utils.K8S_CLUSTER_NAME_DIM).publish('MEM80', enable=False)
-    MEM95_PCT = (MEM95 / TOTAL * 100.0).publish('MEM95_PCT')
-    MEM90_PCT = (MEM90 / TOTAL * 100.0).publish('MEM90_PCT')
-    MEM80_PCT = (MEM80 / TOTAL * 100.0).publish('MEM80_PCT')
+    MEM = data('memory.utilization', filter=scope_filter)
+    TOTAL = MEM.count(by=k8s_utils.K8S_CLUSTER_NAME_DIM)
+    MEM95 = MEM.above(95).count(by=k8s_utils.K8S_CLUSTER_NAME_DIM)
+    MEM90 = MEM.above(90).count(by=k8s_utils.K8S_CLUSTER_NAME_DIM)
+    MEM80 = MEM.above(80).count(by=k8s_utils.K8S_CLUSTER_NAME_DIM)
+    MEM95_PCT = (MEM95 / TOTAL * 100.0)
+    MEM90_PCT = (MEM90 / TOTAL * 100.0)
+    MEM80_PCT = (MEM80 / TOTAL * 100.0)
     fire_threshold_stream = const(1.0)
     ann = [utils.annotate_stream(MEM95_PCT, 'MEM95_PCT'),
            utils.annotate_stream(MEM90_PCT, 'MEM90_PCT'),
@@ -75,9 +75,9 @@ def node_readiness_detector(filter_: filter = None):
     # NOTE: k8s.node.condition_ready is 1 if ready, 0 if not, -1 if unknown.
     _READY = data('k8s.node.condition_ready', filter=filter_)
     KUBERNETES_CLUSTER_DIM = "kubernetes_cluster"
-    TOTAL = _READY.count(by=KUBERNETES_CLUSTER_DIM).publish('TOTAL', enable=False)
-    READY = max(0, _READY).sum(by=KUBERNETES_CLUSTER_DIM).publish('READY', enable=False)
-    READY_PCT = (READY / TOTAL * 100.0).publish('READY_PCT')
+    TOTAL = _READY.count(by=KUBERNETES_CLUSTER_DIM)
+    READY = max(0, _READY).sum(by=KUBERNETES_CLUSTER_DIM)
+    READY_PCT = (READY / TOTAL * 100.0)
     fire_threshold_stream_90 = const(90.0)
     fire_threshold_stream_95 = const(95.0)
     ann = [utils.annotate_stream(READY_PCT, 'READY_PCT'),

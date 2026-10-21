@@ -55,6 +55,7 @@ Most of the functions in the library can also be accessed via the SignalFx UI. T
 |[population_comparison](https://github.com/signalfx/signalflow-library/tree/master/library/signalfx/detectors/population_comparison)|[Outlier Detection](https://help.splunk.com/en/splunk-observability-cloud/create-alerts-detectors-and-service-level-objectives/create-alerts-and-detectors/built-in-alert-conditions/outlier-detection)|
 |[against_recent](https://github.com/signalfx/signalflow-library/tree/master/library/signalfx/detectors/against_recent)|[Sudden Change](https://help.splunk.com/en/splunk-observability-cloud/create-alerts-detectors-and-service-level-objectives/create-alerts-and-detectors/built-in-alert-conditions/sudden-change)|
 |[against_periods](https://github.com/signalfx/signalflow-library/tree/master/library/signalfx/detectors/against_periods)|[Historical Anomaly](https://help.splunk.com/en/splunk-observability-cloud/create-alerts-detectors-and-service-level-objectives/create-alerts-and-detectors/built-in-alert-conditions/historical-anomaly)|
+|[baseline_threshold](https://github.com/signalfx/signalflow-library/tree/master/library/signalfx/detectors/baseline_threshold)|*not available*|
 |[aperiodic](https://github.com/signalfx/signalflow-library/tree/master/library/signalfx/detectors/aperiodic)|*not available*|
 |[multivariate](https://github.com/signalfx/signalflow-library/tree/master/library/signalfx/detectors/multivariate)|*not available*|
 

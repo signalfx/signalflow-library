@@ -89,6 +89,7 @@ def node_cpu_utilization_detector(fire_threshold: float = 90,
 
 def node_disk_memory_pid_pressure_detector(filter_: filter = None):
     # Detects when K8s Node condition is one of DiskPressure, MemoryPressure, PIDPressure for 15 minutes
+    # NOTE: k8s.node.condition is 1 if true, 0 if false, -1 if unknown.
     # :param filter_ description=Specifies dimensional scope of the detector
     # :param filter_ metric_name=k8s.node.condition
     # :return: detect block that triggers when Node is under disk/memory/PID pressure for 15 minutes
@@ -97,7 +98,11 @@ def node_disk_memory_pid_pressure_detector(filter_: filter = None):
                 "condition"]
     condition_filter = filter('condition', 'DiskPressure', 'MemoryPressure', 'PIDPressure')
     scope_filter = utils.merge_filters(condition_filter, filter_)
-    stream = data('k8s.node.condition', filter=scope_filter).sum(by=group_by).publish('Node condition')
-    return detect(when(stream == 1, lasting=lasting('15m', 0.9)),
-           off=when(stream != 1, lasting=lasting('20m', 1)),
+    stream = data('k8s.node.condition', filter=scope_filter).sum(by=group_by)
+    fire_threshold_stream = const(1)
+    ann = [utils.annotate_stream(stream, 'Node condition'),
+           utils.annotate_fire_threshold(fire_threshold_stream, orientation='above')]
+    return detect(when(stream == fire_threshold_stream, lasting=lasting('15m', 0.9)),
+           off=when(stream != fire_threshold_stream, lasting=lasting('20m', 1)),
+           annotations=ann,
            auto_resolve_after=utils.AUTO_RESOLVE_AFTER)
